@@ -4,7 +4,9 @@
 </p>
 <br>
 
-Minecraft Authentic Adventure is a minimalistic mod for 1.2.5 that reverts the game to a more Beta-esque aesthetic with hilly terrain generation, sandbox gameplay and an overall enjoyable experience for player from both the golden age and the modern era.
+Minecraft Authentic Adventure (latest version: 1.0.1) is a minimalistic mod for 1.2.5 that reverts the game to a more Beta-esque aesthetic with hilly terrain generation, sandbox gameplay and an overall enjoyable experience for player from both the golden age and the modern era.
+
+*Why don't you check out Authentic Adventure's sister project, [Minecraft Diverge](https://github.com/BlueStaggo/MCDiverge)?*
 
 ## Features
 - Overhauled world generation, making it more hilly and Beta-esque

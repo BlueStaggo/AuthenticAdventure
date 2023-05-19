@@ -151,7 +151,7 @@
  		}
  
 +		try {
-+			enumOptionsMappingHelperArray[EnumOptions.FANCY_LIGHTING.ordinal()] = 7;
++			enumOptionsMappingHelperArray[EnumOptions.FAST_LIGHTING.ordinal()] = 7;
 +		} catch (NoSuchFieldError var6) {
 +		}
 +
@@ -280,7 +280,7 @@
  		this.drawCenteredString(this.fontRenderer, this.splashText, 0, -8, 16776960);
  		GL11.glPopMatrix();
 -		this.drawString(this.fontRenderer, "Minecraft 1.2.5", 2, this.height - 10, 16777215);
-+		this.drawString(this.fontRenderer, "Minecraft Authentic Adventure 1.0", 2, this.height - 10, 16777215);
++		this.drawString(this.fontRenderer, "Minecraft Authentic Adventure 1.0.1", 2, this.height - 10, 16777215);
  		String var9 = "Copyright Mojang AB. Do not distribute!";
  		this.drawString(this.fontRenderer, var9, this.width - this.fontRenderer.getStringWidth(var9) - 2, this.height - 10, 16777215);
  		super.drawScreen(var1, var2, var3);
@@ -318,6 +318,17 @@
  	}
  
  	public void decorate(World var1, Random var2, int var3, int var4) {
+--- net/minecraft/src/EntityCow.java
++++ net/minecraft/src/EntityCow.java
+@@ -60,7 +60,7 @@
+ 			this.dropItem(Item.leather.shiftedIndex, 1);
+ 		}
+ 
+-		var3 = this.rand.nextInt(3) + 1 + this.rand.nextInt(1 + var2);
++		var3 = this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
+ 
+ 		for(var4 = 0; var4 < var3; ++var4) {
+ 			if(this.isBurning()) {
 --- net/minecraft/src/EntityCreeper.java
 +++ net/minecraft/src/EntityCreeper.java
 @@ -23,7 +23,7 @@
@@ -454,7 +465,7 @@
 +        genLayer = new GenLayerZoom(2004L, genLayer);
 +        genLayer = new GenLayerAddIsland(3L, genLayer);
 +        genLayer = new GenLayerAddMushroomIsland(3L, genLayer);
-+        int n = 4;
++        int n = wt == WorldType.LARGE_BIOMES ? 6 : 4;
 +        GenLayer genLayer2 = genLayer;
 +        genLayer2 = GenLayerZoom.octaves(1000L, genLayer2, 0);
 +        genLayer2 = new GenLayerRiverInit(100L, genLayer2);
@@ -627,6 +638,19 @@
 +        return nArray2;
 +    }
 +}
+--- net/minecraft/src/ItemSoup.java
++++ net/minecraft/src/ItemSoup.java
+@@ -10,4 +10,10 @@
+ 		super.onFoodEaten(var1, var2, var3);
+ 		return new ItemStack(Item.bowlEmpty);
+ 	}
++
++	protected void setClassicTweaks() {
++	}
++
++	protected void unsetClassicTweaks() {
++	}
+ }
 --- net/minecraft/src/PlayerControllerSP.java
 +++ net/minecraft/src/PlayerControllerSP.java
 @@ -90,7 +90,6 @@
@@ -914,7 +938,7 @@
  		if(var1 > 0) {
  			ItemStack var2 = new ItemStack(Item.bow);
 -			EnchantmentHelper.func_48441_a(this.rand, var2, 5);
-+			EnchantmentHelper.func_48441_a(this.rand, var2, 5, this.worldObj.worldInfo.isHardcoreModeEnabled());
++			EnchantmentHelper.func_48441_a(this.rand, var2, 5, this.worldObj.getWorldInfo().isHardcoreModeEnabled());
  			this.entityDropItem(var2, 0.0F);
  		} else {
  			this.dropItem(Item.bow.shiftedIndex, 1);
@@ -1331,7 +1355,7 @@
  		if(this.enchantLevels[var2] > 0 && var3 != null && (var1.experienceLevel >= this.enchantLevels[var2] || var1.capabilities.isCreativeMode)) {
  			if(!this.worldPointer.isRemote) {
 -				List var4 = EnchantmentHelper.buildEnchantmentList(this.rand, var3, this.enchantLevels[var2]);
-+				List var4 = EnchantmentHelper.buildEnchantmentList(this.rand, var3, this.enchantLevels[var2], this.worldPointer.worldInfo.isHardcoreModeEnabled());
++				List var4 = EnchantmentHelper.buildEnchantmentList(this.rand, var3, this.enchantLevels[var2], this.worldPointer.getWorldInfo().isHardcoreModeEnabled());
  				if(var4 != null) {
 -					var1.removeExperience(this.enchantLevels[var2]);
 +					var1.removeExperience(Math.min(Math.max(this.enchantLevels[var2] / 4, 5), this.enchantLevels[var2]));
@@ -1399,7 +1423,7 @@
  			this.entityDropItem(new ItemStack(Block.cloth.blockID, 1, this.getFleeceColor()), 0.0F);
  		}
  
-+		int var3 = this.rand.nextInt(3) + 1 + this.rand.nextInt(1 + var2);
++		int var3 = this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
 +		for(int var4 = 0; var4 < var3; ++var4) {
 +			if(this.isBurning()) {
 +				this.dropItem(Item.muttonCooked.shiftedIndex, 1);
@@ -1444,14 +1468,18 @@
  		return var1;
  	}
  
-@@ -53,5 +55,9 @@
+@@ -53,5 +55,13 @@
  
  	public int getItemEnchantability() {
  		return this.toolMaterial.getEnchantability();
 +	}
 +
-+	public void setClassicDamage(boolean classic) {
-+		this.weaponDamage = 4 + this.toolMaterial.getDamageVsEntity() * (classic ? 2 : 1);
++	protected void setClassicTweaks() {
++		this.weaponDamage = 4 + this.toolMaterial.getDamageVsEntity() * 2;
++	}
++
++	protected void unsetClassicTweaks() {
++		this.weaponDamage = 4 + this.toolMaterial.getDamageVsEntity();
  	}
  }
 --- net/minecraft/src/EntityAIPanic.java
@@ -1473,7 +1501,7 @@
  		int var1 = this.getSlimeSize();
 -		return var1 * var1;
 +		var1 *= var1;
-+		if (this.worldObj.getWorldInfo().isClassicModeEnabled()) {
++		if (this.worldObj.getWorldInfo().isHardcoreModeEnabled()) {
 +			var1 += var1 / 2;
 +		}
 +		return var1;
@@ -1485,7 +1513,7 @@
  	public boolean getCanSpawnHere() {
  		Chunk var1 = this.worldObj.getChunkFromBlockCoords(MathHelper.floor_double(this.posX), MathHelper.floor_double(this.posZ));
 -		return (this.getSlimeSize() == 1 || this.worldObj.difficultySetting > 0) && this.rand.nextInt(10) == 0 && var1.getRandomWithSeed(987234911L).nextInt(10) == 0 && this.posY < 40.0D ? super.getCanSpawnHere() : false;
-+		return this.worldObj.worldInfo.getTerrainType() != WorldType.FLAT
++		return this.worldObj.getWorldInfo().getTerrainType() != WorldType.FLAT
 +				&& (this.getSlimeSize() == 1 || this.worldObj.difficultySetting > 0)
 +				&& this.rand.nextInt(10) == 0
 +				&& var1.getRandomWithSeed(987234911L).nextInt(10) == 0
@@ -1666,24 +1694,14 @@
  		return var3;
 --- net/minecraft/src/StructureStart.java
 +++ net/minecraft/src/StructureStart.java
-@@ -68,6 +68,7 @@
- 		}
- 
- 		int var7 = var10 - this.boundingBox.minY;
-+		System.out.println(var7);
- 		this.boundingBox.offset(0, var7, 0);
- 		Iterator var8 = this.components.iterator();
- 
-@@ -79,6 +80,10 @@
- 	}
- 
+@@ -81,4 +81,8 @@
  	public boolean isSizeableStructure() {
-+		return true;
-+	}
-+
-+	public boolean isFindable() {
  		return true;
  	}
++
++	public boolean isFindable() {
++		return true;
++	}
  }
 --- net/minecraft/src/WorldSettings.java
 +++ net/minecraft/src/WorldSettings.java
@@ -1745,7 +1763,7 @@
  		this.moveForward *= 0.98F;
  		this.randomYawVelocity *= 0.9F;
  		float var15 = this.landMovementFactor;
-+		float var15x = this.landMovementFactor;
++		float var15x = this.jumpMovementFactor;
  		this.landMovementFactor *= this.getSpeedModifier();
 +		this.jumpMovementFactor *= this.getSpeedModifier();
  		this.moveEntityWithHeading(this.moveStrafing, this.moveForward);
@@ -1890,7 +1908,7 @@
  	public int idDropped(int var1, Random var2, int var3) {
 --- net/minecraft/src/ItemFood.java
 +++ net/minecraft/src/ItemFood.java
-@@ -13,7 +13,7 @@
+@@ -13,10 +13,11 @@
  
  	public ItemFood(int var1, int var2, float var3, boolean var4) {
  		super(var1);
@@ -1899,7 +1917,11 @@
  		this.healAmount = var2;
  		this.isWolfsFavoriteMeat = var4;
  		this.saturationModifier = var3;
-@@ -25,8 +25,11 @@
++		this.maxStackSize = 16;
+ 	}
+ 
+ 	public ItemFood(int var1, int var2, boolean var3) {
+@@ -25,8 +26,11 @@
  
  	public ItemStack onFoodEaten(ItemStack var1, World var2, EntityPlayer var3) {
  		--var1.stackSize;
@@ -1913,7 +1935,7 @@
  		if(!var2.isRemote && this.potionId > 0 && var2.rand.nextFloat() < this.potionEffectProbability) {
  			var3.addPotionEffect(new PotionEffect(this.potionId, this.potionDuration * 20, this.potionAmplifier));
  		}
-@@ -35,7 +38,7 @@
+@@ -35,7 +39,7 @@
  	}
  
  	public int getMaxItemUseDuration(ItemStack var1) {
@@ -1922,7 +1944,7 @@
  	}
  
  	public EnumAction getItemUseAction(ItemStack var1) {
-@@ -43,8 +46,12 @@
+@@ -43,8 +47,12 @@
  	}
  
  	public ItemStack onItemRightClick(ItemStack var1, World var2, EntityPlayer var3) {
@@ -1937,6 +1959,20 @@
  		}
  
  		return var1;
+@@ -77,5 +85,13 @@
+ 
+ 	public Item setItemName(String var1) {
+ 		return super.setItemName(var1);
++	}
++
++	protected void setClassicTweaks() {
++		this.maxStackSize = 1;
++	}
++
++	protected void unsetClassicTweaks() {
++		this.maxStackSize = 16;
+ 	}
+ }
 --- net/minecraft/src/GenLayerRiverInit.java
 +++ net/minecraft/src/GenLayerRiverInit.java
 @@ -1,5 +1,7 @@
@@ -1982,7 +2018,7 @@
  	int[] lightUpdateBlockList;
  	private List entitiesWithinAABBExcludingEntity;
  	public boolean isRemote;
-+	public boolean fancyLighting;
++	public boolean fastLighting;
  
  	public BiomeGenBase getBiomeGenForCoords(int var1, int var2) {
  		if(this.blockExists(var1, 0, var2)) {
@@ -2631,7 +2667,7 @@
  			}
  
 -			var8.drawStringWithShadow("Minecraft 1.2.5 (" + this.mc.debug + ")", 2, 2, 16777215);
-+			var8.drawStringWithShadow("Minecraft Authentic Adventure 1.0 (" + this.mc.debug + ")", 2, 2, 16777215);
++			var8.drawStringWithShadow("Minecraft Authentic Adventure 1.0.1 (" + this.mc.debug + ")", 2, 2, 16777215);
  			var8.drawStringWithShadow(this.mc.debugInfoRenders(), 2, 12, 16777215);
  			var8.drawStringWithShadow(this.mc.getEntityDebug(), 2, 22, 16777215);
  			var8.drawStringWithShadow(this.mc.debugInfoEntities(), 2, 32, 16777215);
@@ -2655,14 +2691,7 @@
  	}
  
  	public void buildComponent(StructureComponent var1, List var2, Random var3) {
-@@ -35,12 +39,41 @@
- 			this.fillWithRandomizedBlocks(var1, var3, 4, 1, 9, 4, 3, 9, false, var2, StructureStrongholdPieces.getStrongholdStones());
- 			this.fillWithBlocks(var1, var3, 4, 1, 4, 4, 3, 6, Block.fenceIron.blockID, Block.fenceIron.blockID, false);
- 			this.fillWithBlocks(var1, var3, 5, 1, 5, 7, 3, 5, Block.fenceIron.blockID, Block.fenceIron.blockID, false);
--			this.placeBlockAtCurrentPosition(var1, Block.fenceIron.blockID, 0, 4, 3, 2, var3);
-+			this.placeBlockAtCurrentPosition(var1, Block.fenceIron.blockID, 0, 4, 3, 8, var3);
- 			this.placeBlockAtCurrentPosition(var1, Block.fenceIron.blockID, 0, 4, 3, 8, var3);
- 			this.placeBlockAtCurrentPosition(var1, Block.doorSteel.blockID, this.getMetadataWithOffset(Block.doorSteel.blockID, 3), 4, 1, 2, var3);
+@@ -41,6 +45,35 @@
  			this.placeBlockAtCurrentPosition(var1, Block.doorSteel.blockID, this.getMetadataWithOffset(Block.doorSteel.blockID, 3) + 8, 4, 2, 2, var3);
  			this.placeBlockAtCurrentPosition(var1, Block.doorSteel.blockID, this.getMetadataWithOffset(Block.doorSteel.blockID, 3), 4, 1, 8, var3);
  			this.placeBlockAtCurrentPosition(var1, Block.doorSteel.blockID, this.getMetadataWithOffset(Block.doorSteel.blockID, 3) + 8, 4, 2, 8, var3);
@@ -2755,21 +2784,6 @@
 +        return nArray3;
 +    }
 +}
---- net/minecraft/src/ComponentStrongholdStairs.java
-+++ net/minecraft/src/ComponentStrongholdStairs.java
-@@ -15,10 +15,10 @@
- 		switch(this.coordBaseMode) {
- 		case 0:
- 		case 2:
--			this.boundingBox = new StructureBoundingBox(var3, 64, var4, var3 + 5 - 1, 74, var4 + 5 - 1);
-+			this.boundingBox = new StructureBoundingBox(var3, 64, var4, var3 + 5 - 1, 78, var4 + 5 - 1);
- 			break;
- 		default:
--			this.boundingBox = new StructureBoundingBox(var3, 64, var4, var3 + 5 - 1, 74, var4 + 5 - 1);
-+			this.boundingBox = new StructureBoundingBox(var3, 64, var4, var3 + 5 - 1, 78, var4 + 5 - 1);
- 		}
- 
- 	}
 --- net/minecraft/src/StructureComponent.java
 +++ net/minecraft/src/StructureComponent.java
 @@ -330,7 +330,7 @@
@@ -2799,7 +2813,7 @@
  			var5 = var5 + "Generated " + (new SimpleDateFormat()).format(new Date()) + "\n";
  			var5 = var5 + "\n";
 -			var5 = var5 + "Minecraft: Minecraft 1.2.5\n";
-+			var5 = var5 + "Minecraft: Minecraft Authentic Adventure 1.0\n";
++			var5 = var5 + "Minecraft: Minecraft Authentic Adventure 1.0.1\n";
  			var5 = var5 + "OS: " + System.getProperty("os.name") + " (" + System.getProperty("os.arch") + ") version " + System.getProperty("os.version") + "\n";
  			var5 = var5 + "Java: " + System.getProperty("java.version") + ", " + System.getProperty("java.vendor") + "\n";
  			var5 = var5 + "VM: " + System.getProperty("java.vm.name") + " (" + System.getProperty("java.vm.info") + "), " + System.getProperty("java.vm.vendor") + "\n";
@@ -3053,7 +3067,7 @@
 +			this.recheckGaps(this.worldObj.isRemote);
  		}
  
-+		if(this.worldObj.fancyLighting && !this.isLightPopulated && this.isTerrainPopulated) {
++		if(!this.worldObj.fastLighting && !this.isLightPopulated && this.isTerrainPopulated) {
 +            this.populateLighting();
 +        }
  	}
@@ -3190,7 +3204,7 @@
  		}
  
 -		Display.setTitle("Minecraft Minecraft 1.2.5");
-+		Display.setTitle("Minecraft Minecraft Authentic Adventure 1.0");
++		Display.setTitle("Minecraft Minecraft Authentic Adventure 1.0.1");
  		System.out.println("LWJGL Version: " + Sys.getVersion());
  
  		try {
@@ -3218,7 +3232,7 @@
  			ISaveHandler var4 = this.saveLoader.getSaveLoader(var1, false);
  			World var5 = null;
  			var5 = new World(var4, var2, var3);
-+			var5.fancyLighting = this.gameSettings.fancyLighting;
++			var5.fastLighting = this.gameSettings.fastLighting;
  			if(var5.isNewWorld) {
  				this.statFileWriter.readStat(StatList.createWorldStat, 1);
  				this.statFileWriter.readStat(StatList.startGameStat, 1);
@@ -3268,7 +3282,7 @@
  
  	public static String func_52003_C() {
 -		return "1.2.5";
-+		return "Authentic Adventure 1.0";
++		return "Authentic Adventure 1.0.1";
  	}
  
  	public static void func_52004_D() {
@@ -3737,11 +3751,21 @@
  	RENDER_CLOUDS("options.renderClouds", false, true),
 -	PARTICLES("options.particles", false, false);
 +	PARTICLES("options.particles", false, false),
-+	FANCY_LIGHTING("options.fancyLighting", false, true),
++	FAST_LIGHTING("options.fastLighting", false, true),
 +	BIOME_BLEND("options.biomeBlend", true, false);
  
  	private final boolean enumFloat;
  	private final boolean enumBoolean;
+--- net/minecraft/src/WorldType.java
++++ net/minecraft/src/WorldType.java
+@@ -4,6 +4,7 @@
+ 	public static final WorldType[] worldTypes = new WorldType[16];
+ 	public static final WorldType DEFAULT = (new WorldType(0, "default", 1)).func_48631_f();
+ 	public static final WorldType FLAT = new WorldType(1, "flat");
++	public static final WorldType LARGE_BIOMES = new WorldType(2, "largeBiomes");
+ 	public static final WorldType DEFAULT_1_1 = (new WorldType(8, "default_1_1", 0)).setCanBeCreated(false);
+ 	private final String worldType;
+ 	private final int generatorVersion;
 --- net/minecraft/src/StructureStrongholdStart.java
 +++ net/minecraft/src/StructureStrongholdStart.java
 @@ -4,8 +4,11 @@
@@ -3838,17 +3862,26 @@
  
 --- net/minecraft/src/Item.java
 +++ net/minecraft/src/Item.java
+@@ -117,7 +117,7 @@
+ 	public static Item beefCooked = (new ItemFood(108, 8, 0.8F, true)).setIconCoord(10, 6).setItemName("beefCooked");
+ 	public static Item chickenRaw = (new ItemFood(109, 2, 0.3F, true)).setPotionEffect(Potion.hunger.id, 30, 0, 0.3F).setIconCoord(9, 7).setItemName("chickenRaw");
+ 	public static Item chickenCooked = (new ItemFood(110, 6, 0.6F, true)).setIconCoord(10, 7).setItemName("chickenCooked");
+-	public static Item rottenFlesh = (new ItemFood(111, 4, 0.1F, true)).setPotionEffect(Potion.hunger.id, 30, 0, 0.8F).setIconCoord(11, 5).setItemName("rottenFlesh");
++	public static Item rottenFlesh = (new ItemFood(111, 4, 0.1F, true)).setPotionEffect(Potion.poison.id, 10, 0, 0.8F).setIconCoord(11, 5).setItemName("rottenFlesh");
+ 	public static Item enderPearl = (new ItemEnderPearl(112)).setIconCoord(11, 6).setItemName("enderPearl");
+ 	public static Item blazeRod = (new Item(113)).setIconCoord(12, 6).setItemName("blazeRod");
+ 	public static Item ghastTear = (new Item(114)).setIconCoord(11, 7).setItemName("ghastTear").setPotionEffect(PotionHelper.ghastTearEffect);
 @@ -136,6 +136,9 @@
  	public static Item monsterPlacer = (new ItemMonsterPlacer(127)).setIconCoord(9, 9).setItemName("monsterPlacer");
  	public static Item expBottle = (new ItemExpBottle(128)).setIconCoord(11, 10).setItemName("expBottle");
  	public static Item fireballCharge = (new ItemFireball(129)).setIconCoord(14, 2).setItemName("fireball");
 +	public static Item muttonRaw = (new ItemFood(130, 2, 0.3F, true)).setIconCoord(7, 7).setItemName("muttonRaw");
 +	public static Item muttonCooked = (new ItemFood(131, 6, 0.6F, true)).setIconCoord(8, 7).setItemName("muttonCooked");
-+	public static Item pigmanFlesh = (new ItemFood(132, 4, 0.1F, true)).setPotionEffect(Potion.hunger.id, 30, 0, 0.8F).setIconCoord(6, 6).setItemName("pigmanFlesh");
++	public static Item pigmanFlesh = (new ItemFood(132, 4, 0.1F, true)).setPotionEffect(Potion.poison.id, 10, 0, 0.8F).setIconCoord(6, 6).setItemName("pigmanFlesh");
  	public static Item record13 = (new ItemRecord(2000, "13")).setIconCoord(0, 15).setItemName("record");
  	public static Item recordCat = (new ItemRecord(2001, "cat")).setIconCoord(1, 15).setItemName("record");
  	public static Item recordBlocks = (new ItemRecord(2002, "blocks")).setIconCoord(2, 15).setItemName("record");
-@@ -394,6 +397,28 @@
+@@ -394,6 +397,26 @@
  
  	public int func_46057_a(int var1, int var2) {
  		return this.getIconFromDamage(var1);
@@ -3856,38 +3889,33 @@
 +
 +	public static void enableClassicTweaks() {
 +		for (Item item : itemsList) {
-+			if (item instanceof ItemFood && !(item instanceof ItemSoup)) {
-+				item.maxStackSize = 1;
-+			}
-+			if (item instanceof ItemSword) {
-+				((ItemSword) item).setClassicDamage(true);
-+			}
++			if (item != null)
++				item.setClassicTweaks();
 +		}
 +	}
 +
 +	public static void disableClassicTweaks() {
 +		for (Item item : itemsList) {
-+			if (item instanceof ItemFood && !(item instanceof ItemSoup)) {
-+				item.maxStackSize = 64;
-+			}
-+			if (item instanceof ItemSword) {
-+				((ItemSword) item).setClassicDamage(false);
-+			}
++			if (item != null)
++				item.unsetClassicTweaks();
 +		}
++	}
++
++	protected void setClassicTweaks() {
++	}
++
++	protected void unsetClassicTweaks() {
  	}
  
  	static {
 --- net/minecraft/src/EntityExpBottle.java
 +++ net/minecraft/src/EntityExpBottle.java
-@@ -28,7 +28,13 @@
+@@ -28,7 +28,10 @@
  	protected void onImpact(MovingObjectPosition var1) {
  		if(!this.worldObj.isRemote) {
  			this.worldObj.playAuxSFX(2002, (int)Math.round(this.posX), (int)Math.round(this.posY), (int)Math.round(this.posZ), 0);
 -			int var2 = 3 + this.worldObj.rand.nextInt(5) + this.worldObj.rand.nextInt(5);
-+			int var2 = 1
-+					+ this.worldObj.rand.nextInt(3 + this.worldObj.difficultySetting)
-+					+ this.worldObj.rand.nextInt(3 + this.worldObj.difficultySetting)
-+					+ this.worldObj.difficultySetting;
++			int var2 = 1 + this.worldObj.rand.nextInt(5) + this.worldObj.rand.nextInt(5);
 +			if (this.worldObj.worldInfo.isHardcoreModeEnabled()) {
 +				var2 *= 2;
 +			}
@@ -3964,7 +3992,7 @@
 +		this.biomeDecorator.treesPerChunk = 0;
  		this.biomeDecorator.flowersPerChunk = 4;
  		this.biomeDecorator.grassPerChunk = 10;
-+		this.biomeDecorator.bigMushroomsPerChunk = 10;
++		this.biomeDecorator.bigMushroomsPerChunk = 8;
 +	}
 +
 +	public void decorate(World var1, Random var2, int var3, int var4) {
@@ -4057,7 +4085,7 @@
  	public boolean fancyGraphics = true;
  	public boolean ambientOcclusion = true;
  	public boolean clouds = true;
-+	public boolean fancyLighting = true;
++	public boolean fastLighting = true;
 +	public int biomeBlend = 2;
  	public String skin = "Default";
  	public KeyBinding keyBindForward = new KeyBinding("key.forward", 17);
@@ -4081,10 +4109,10 @@
  			this.mc.renderGlobal.loadRenderers();
  		}
  
-+		if(var1 == EnumOptions.FANCY_LIGHTING) {
-+			this.fancyLighting = !this.fancyLighting;
++		if(var1 == EnumOptions.FAST_LIGHTING) {
++			this.fastLighting = !this.fastLighting;
 +			if (this.mc.theWorld != null) {
-+				this.mc.theWorld.fancyLighting = this.fancyLighting;
++				this.mc.theWorld.fastLighting = this.fastLighting;
 +			}
 +		}
 +
@@ -4108,7 +4136,7 @@
  		case 6:
  			return this.clouds;
 +		case 7:
-+			return this.fancyLighting;
++			return this.fastLighting;
  		default:
  			return false;
  		}
@@ -4149,12 +4177,16 @@
  		}
  	}
  
-@@ -314,6 +361,14 @@
+@@ -314,6 +361,18 @@
  						this.language = var3[1];
  					}
  
 +					if(var3[0].equals("fancyLighting")) {
-+						this.fancyLighting = var3[1].equals("true");
++						this.fastLighting = var3[1].equals("false");
++					}
++
++					if(var3[0].equals("fastLighting")) {
++						this.fastLighting = var3[1].equals("true");
 +					}
 +
 +					if(var3[0].equals("biomeBlendRadius")) {
@@ -4164,11 +4196,11 @@
  					for(int var4 = 0; var4 < this.keyBindings.length; ++var4) {
  						if(var3[0].equals("key_" + this.keyBindings[var4].keyDescription)) {
  							this.keyBindings[var4].keyCode = Integer.parseInt(var3[1]);
-@@ -357,6 +412,8 @@
+@@ -357,6 +416,8 @@
  			var1.println("skin:" + this.skin);
  			var1.println("lastServer:" + this.lastServer);
  			var1.println("lang:" + this.language);
-+			var1.println("fancyLighting:" + this.fancyLighting);
++			var1.println("fastLighting:" + this.fastLighting);
 +			var1.println("biomeBlendRadius:" + this.biomeBlend);
  
  			for(int var2 = 0; var2 < this.keyBindings.length; ++var2) {
@@ -4180,7 +4212,7 @@
  	private GameSettings guiGameSettings;
  	private boolean is64bit = false;
 -	private static EnumOptions[] videoOptions = new EnumOptions[]{EnumOptions.GRAPHICS, EnumOptions.RENDER_DISTANCE, EnumOptions.AMBIENT_OCCLUSION, EnumOptions.FRAMERATE_LIMIT, EnumOptions.ANAGLYPH, EnumOptions.VIEW_BOBBING, EnumOptions.GUI_SCALE, EnumOptions.ADVANCED_OPENGL, EnumOptions.GAMMA, EnumOptions.RENDER_CLOUDS, EnumOptions.PARTICLES};
-+	private static EnumOptions[] videoOptions = new EnumOptions[]{EnumOptions.GRAPHICS, EnumOptions.RENDER_DISTANCE, EnumOptions.AMBIENT_OCCLUSION, EnumOptions.FRAMERATE_LIMIT, EnumOptions.ANAGLYPH, EnumOptions.VIEW_BOBBING, EnumOptions.GUI_SCALE, EnumOptions.ADVANCED_OPENGL, EnumOptions.GAMMA, EnumOptions.RENDER_CLOUDS, EnumOptions.PARTICLES, EnumOptions.FANCY_LIGHTING, EnumOptions.BIOME_BLEND};
++	private static EnumOptions[] videoOptions = new EnumOptions[]{EnumOptions.GRAPHICS, EnumOptions.RENDER_DISTANCE, EnumOptions.AMBIENT_OCCLUSION, EnumOptions.FRAMERATE_LIMIT, EnumOptions.ANAGLYPH, EnumOptions.VIEW_BOBBING, EnumOptions.GUI_SCALE, EnumOptions.ADVANCED_OPENGL, EnumOptions.GAMMA, EnumOptions.RENDER_CLOUDS, EnumOptions.PARTICLES, EnumOptions.FAST_LIGHTING, EnumOptions.BIOME_BLEND};
  
  	public GuiVideoSettings(GuiScreen var1, GameSettings var2) {
  		this.parentGuiScreen = var1;
