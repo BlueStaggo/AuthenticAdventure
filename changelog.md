@@ -193,7 +193,7 @@ Released: July 1st 2023
     - Added the Authentic Adventure subtitle to the logo
     - Added BlueStaggo to the credits
 - Main Menu
-    - Removed 2 panoramas and added 3 panoramas
+    - Replaced all panoramas and added an additional 2 panoramas
     - Holding down left shift speeds up the panorama animation
     - Pressing P cycles through panoramas
     - Removed Authentic Adventure splashes
