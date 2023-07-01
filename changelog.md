@@ -1,5 +1,5 @@
 # 1.1
-Released: TBA
+Released: July 1st 2023
 
 ## Additions
 
