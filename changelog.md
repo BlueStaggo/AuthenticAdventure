@@ -1,3 +1,138 @@
+# 1.2
+Released: December 25th 2023
+
+## Additions
+
+### World Generation
+- Customized world type
+    - Repurposed from the Single Biome world type
+    - Biome size can be changed
+- Legacy world type
+    - Restores randomised biome distribution without climate zones
+
+### Biomes
+- Birch Forest
+    - A forest filled with tall birch trees
+- Extreme Hills
+    - Restored from Beta 1.8
+    - Slightly more tall grass
+- Mega Taiga
+    - Features tall spruce trees
+- Mushroom Valley
+    - Variant of Rainforest featuring mycelium and large mushrooms
+- Snowcapped Hills
+    - Resembles Extreme Hills from release 1.7
+- Snowcapped Peaks
+    - Features spiky, mountainous terrain
+    - Stone mountains with grassy lowlands
+    - Generates with oak and spruce trees
+- Wooded Hills
+    - Variant of Extreme Hills with more trees (oak and spruce)
+
+### Settings
+- Shading style
+    - Beta makes all light grayscale
+
+## Changes
+
+### Blocks
+- Grass Block
+    - Reverted top texture to aa1.0
+- Sapling
+    - Oak saplings generate swamp trees in swamplands
+- Snow Layer
+    - Added to the creative inventory
+- Tall Grass
+    - Increased brightness
+    - Reduced height
+
+### Mobs
+- Spawning
+    - Animals spawn much more frequently and despawn in classic mode
+
+### World Generation
+- Changed the shape of the land
+- Biomes now generate within five climate zones: snowy, cool, temperate, warm and hot
+- The player can spawn in any biome
+- Adjusted height of several biomes
+- Superflat
+    - Increased temperature and humidity
+- Villages
+    - Generate with mossy cobblestone
+    - No longer generate with villagers
+- Large mushrooms now generate after trees again
+
+### Biomes
+- Beaches
+    - No longer generate next to highlands
+- Gravel Beach
+    - Increased size and rarity
+- Ice Plains, Ice Mountains and Frosty Highlands
+    - No longer generates with tall grass, flowers or mushrooms
+- Parched Forest
+    - Renamed from Extreme Hills
+- Plains
+    - Reduced amount of tall grass
+- Rainforest
+    - Removed large mushrooms
+- River
+    - Increased width and decreased depth
+- Savanna
+    - No longer generates with tall grass or flowers
+    - Now generate with spots of desert
+    - Adjusted climate
+- Swampland
+    - Increased amount of large mushrooms
+    - No longer generate with rivers embedded inside
+
+### Gameplay
+- Flying
+    - Sneaking no longer slows down flying
+    - The player can now sprint in any direction while flying
+    - No longer affected underwater
+- Hardcore
+    - Respawning is now allowed
+
+### Lighting
+- Made ambient occlusion darker
+- Adjusted color of block light
+- Adjusted block lighting in the inventory
+
+### Settings
+- Lighting fixes
+    - Changed to three options:
+        - Off: completely disable lighting fixes
+        - Minimal: maximum of 20 lighting fixes every second
+        - Maximum: fix lighting of every new chunk per tick
+
+### Other
+- Replaced all panoramas with 8 new panoramas
+- The main menu panorama starts at a random rotation every time
+- Positive world height limit has been removed
+- Reduced spread of biome color blending
+- Increased chunk updates while the game is paused
+- Debug menu contains information on world height, temperature, rainfall and biome height
+- Made sky color vary more between biomes
+
+## Removals
+
+### World Generation
+- Single Biome world type
+    - Removed in favor of Customized
+- Hill biomes
+    - Now built into regular biomes
+
+### Biomes
+- Shrubland
+    - Removed from generation
+- Biomes no longer have strange variants
+    
+## Bug Fixes
+- Rendering no longer completely breaks down on old graphics drivers
+- Chests are now held correctly
+- More blocks are pick blcoked correctly in creative mode
+- Warning text for far render distance on 32 bit systems now renders correctly
+
 # 1.1
 Released: July 1st 2023
 
@@ -15,11 +150,11 @@ Released: July 1st 2023
 - Sandstone Stairs
 
 ### World Generation
-- Amplified World Type
+- Amplified world type
     - Tall terrain generates up to the top of the world
-- Small Biomes World Type
+- Small Biomes world type
     - Biomes are half the size
-- Single Biome World Type
+- Single Biome world type
     - Generate a single biome of the player's choice
     - Oceans, ocean biomes, beaches, rivers and hills can be turned on or off
     - Amplified world generation can be turned on
@@ -103,8 +238,6 @@ Released: July 1st 2023
     - Changed texture
 
 ### Mobs
-- Spawning
-    - Animals spawn much more frequently
 - Snow Golem
     - Can now place snow at higher temperatures
 
