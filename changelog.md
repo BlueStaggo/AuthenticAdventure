@@ -1,3 +1,24 @@
+# 1.2.1
+Released: December 25th 2023
+
+## Changes
+
+### Gameplay
+- Hardcore
+    - Items now get deleted on death
+
+### Biomes
+- Highlands
+    - Increased temperature and rainfall
+- Reduced the height of a few biomes
+- Removed beaches from a few biomes
+
+## Bug Fixes
+- Blocks above Y 2048 are now saved
+- Picking gravel now correctly gives the player gravel
+- XP no longer appears in creative mode while sneaking
+- The world creation screen and game over screen no longer suggests that hardcore mode prevents respawning
+
 # 1.2
 Released: December 25th 2023
 
@@ -97,6 +118,7 @@ Released: December 25th 2023
 - Made ambient occlusion darker
 - Adjusted color of block light
 - Adjusted block lighting in the inventory
+- Made skylight at sunrises and sunsets darker
 
 ### Settings
 - Lighting fixes
