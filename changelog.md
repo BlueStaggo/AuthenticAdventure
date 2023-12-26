@@ -1,3 +1,16 @@
+# 1.2.2
+Released: December 26th 2023
+
+## Changes
+
+### Gameplay
+- Hardcore
+    - Items are now deleted on death
+
+## Bug Fixes
+- The bottommost layer of the world now generates correctly
+- The bottommost section of the world (lowest 16 blocks) now gets sent to the client
+
 # 1.2.1
 Released: December 25th 2023
 
@@ -5,7 +18,7 @@ Released: December 25th 2023
 
 ### Gameplay
 - Hardcore
-    - Items now get deleted on death
+    - Text mentions that items get deleted on death
 
 ### Biomes
 - Highlands

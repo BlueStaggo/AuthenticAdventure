@@ -3803,7 +3803,7 @@
  	public byte[] chunkData;
  	public boolean includeInitialize;
  	private int tempLength;
-@@ -22,13 +23,15 @@
+@@ -22,13 +23,16 @@
  		this.isChunkDataPacket = true;
  	}
  
@@ -3818,10 +3818,11 @@
 -			var3 = '\uffff';
 +			var3 = 0x7FFFFFFFFFFFFFFFL;
 +			var3 <<= 1;
++			var3 |= 1;
  			var1.field_50025_o = true;
  		}
  
-@@ -38,11 +41,11 @@
+@@ -38,11 +42,11 @@
  
  		int var7;
  		for(var7 = 0; var7 < var4.length; ++var7) {
@@ -3836,7 +3837,7 @@
  					++var6;
  				}
  			}
-@@ -62,7 +65,7 @@
+@@ -62,7 +66,7 @@
  
  		int var10;
  		for(var10 = 0; var10 < var4.length; ++var10) {
@@ -3845,7 +3846,7 @@
  				byte[] var11 = var4[var10].func_48590_g();
  				System.arraycopy(var11, 0, var8, var9, var11.length);
  				var9 += var11.length;
-@@ -71,7 +74,7 @@
+@@ -71,7 +75,7 @@
  
  		NibbleArray var15;
  		for(var10 = 0; var10 < var4.length; ++var10) {
@@ -3854,7 +3855,7 @@
  				var15 = var4[var10].func_48594_i();
  				System.arraycopy(var15.data, 0, var8, var9, var15.data.length);
  				var9 += var15.data.length;
-@@ -79,7 +82,7 @@
+@@ -79,7 +83,7 @@
  		}
  
  		for(var10 = 0; var10 < var4.length; ++var10) {
@@ -3863,7 +3864,7 @@
  				var15 = var4[var10].getBlocklightArray();
  				System.arraycopy(var15.data, 0, var8, var9, var15.data.length);
  				var9 += var15.data.length;
-@@ -87,7 +90,7 @@
+@@ -87,7 +91,7 @@
  		}
  
  		for(var10 = 0; var10 < var4.length; ++var10) {
@@ -3872,7 +3873,7 @@
  				var15 = var4[var10].getSkylightArray();
  				System.arraycopy(var15.data, 0, var8, var9, var15.data.length);
  				var9 += var15.data.length;
-@@ -96,7 +99,7 @@
+@@ -96,7 +100,7 @@
  
  		if(var6 > 0) {
  			for(var10 = 0; var10 < var4.length; ++var10) {
@@ -3881,7 +3882,7 @@
  					var15 = var4[var10].getBlockMSBArray();
  					System.arraycopy(var15.data, 0, var8, var9, var15.data.length);
  					var9 += var15.data.length;
-@@ -127,8 +130,9 @@
+@@ -127,8 +131,9 @@
  		this.xCh = var1.readInt();
  		this.zCh = var1.readInt();
  		this.includeInitialize = var1.readBoolean();
@@ -3893,7 +3894,7 @@
  		this.tempLength = var1.readInt();
  		this.field_48110_h = var1.readInt();
  		if(temp.length < this.tempLength) {
-@@ -139,8 +143,8 @@
+@@ -139,8 +144,8 @@
  		int var2 = 0;
  
  		int var3;
@@ -3904,7 +3905,7 @@
  		}
  
  		var3 = 12288 * var2;
-@@ -166,8 +170,9 @@
+@@ -166,8 +171,9 @@
  		var1.writeInt(this.xCh);
  		var1.writeInt(this.zCh);
  		var1.writeBoolean(this.includeInitialize);
@@ -3916,7 +3917,7 @@
  		var1.writeInt(this.tempLength);
  		var1.writeInt(this.field_48110_h);
  		var1.write(this.chunkData, 0, this.tempLength);
-@@ -178,6 +183,6 @@
+@@ -178,6 +184,6 @@
  	}
  
  	public int getPacketSize() {
