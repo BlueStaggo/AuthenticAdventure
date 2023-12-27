@@ -5994,6 +5994,15 @@
  	}
  
  	public BiomeGenBase func_48560_a(int var1, int var2, WorldChunkManager var3) {
+@@ -821,7 +856,7 @@
+ 
+ 			for(int var7 = 0; var7 < 16; ++var7) {
+ 				int var8 = (var2 << 4) + var7;
+-				if(this.storageArrays[var2] == null && (var7 == 0 || var7 == 15 || var3 == 0 || var3 == 15 || var4 == 0 || var4 == 15) || this.storageArrays[var2] != null && this.storageArrays[var2].getExtBlockID(var3, var7, var4) == 0) {
++				if((var2 >= this.storageArrays.length || this.storageArrays[var2] == null) && (var7 == 0 || var7 == 15 || var3 == 0 || var3 == 15 || var4 == 0 || var4 == 15) || var2 < this.storageArrays.length && this.storageArrays[var2] != null && this.storageArrays[var2].getExtBlockID(var3, var7, var4) == 0) {
+ 					if(Block.lightValue[this.worldObj.getBlockId(var5, var8 - 1, var6)] > 0) {
+ 						this.worldObj.updateAllLightTypes(var5, var8 - 1, var6);
+ 					}
 @@ -851,5 +886,121 @@
  			}
  		}
