@@ -687,11 +687,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
  	}
  }
 --- net/minecraft/src/EntityPigZombie.java
@@ -2518,11 +2518,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
 +	}
 +}
 --- net/minecraft/src/WorldGenMinable.java
@@ -5670,11 +5670,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
  	}
  }
 --- net/minecraft/src/Chunk.java

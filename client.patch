@@ -553,7 +553,22 @@
  	}
  
  	public void initGui() {
-@@ -116,7 +129,11 @@
+@@ -75,12 +88,8 @@
+ 		this.controlList.add(new GuiButton(1, this.width / 2 - 100, var4, var2.translateKey("menu.singleplayer")));
+ 		this.controlList.add(this.multiplayerButton = new GuiButton(2, this.width / 2 - 100, var4 + 24, var2.translateKey("menu.multiplayer")));
+ 		this.controlList.add(new GuiButton(3, this.width / 2 - 100, var4 + 48, var2.translateKey("menu.mods")));
+-		if(this.mc.hideQuitButton) {
+-			this.controlList.add(new GuiButton(0, this.width / 2 - 100, var4 + 72, var2.translateKey("menu.options")));
+-		} else {
+-			this.controlList.add(new GuiButton(0, this.width / 2 - 100, var4 + 72 + 12, 98, 20, var2.translateKey("menu.options")));
+-			this.controlList.add(new GuiButton(4, this.width / 2 + 2, var4 + 72 + 12, 98, 20, var2.translateKey("menu.quit")));
+-		}
++		this.controlList.add(new GuiButton(0, this.width / 2 - 100, var4 + 72 + 12, 98, 20, var2.translateKey("menu.options")));
++		this.controlList.add(new GuiButton(4, this.width / 2 + 2, var4 + 72 + 12, 98, 20, var2.translateKey("menu.quit")));
+ 
+ 		this.controlList.add(new GuiButtonLanguage(5, this.width / 2 - 124, var4 + 72 + 12));
+ 		if(this.mc.session == null) {
+@@ -116,7 +125,11 @@
  
  	}
  
@@ -566,7 +581,7 @@
  		Tessellator var4 = Tessellator.instance;
  		GL11.glMatrixMode(GL11.GL_PROJECTION);
  		GL11.glPushMatrix();
-@@ -165,7 +182,7 @@
+@@ -165,7 +178,7 @@
  					GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
  				}
  
@@ -575,7 +590,7 @@
  				var4.startDrawingQuads();
  				var4.setColorRGBA_I(16777215, 255 / (var6 + 1));
  				float var11 = 0.0F;
-@@ -218,9 +235,9 @@
+@@ -218,9 +231,9 @@
  		GL11.glColorMask(true, true, true, true);
  	}
  
@@ -587,7 +602,7 @@
  		GL11.glDisable(GL11.GL_TEXTURE_2D);
  		GL11.glEnable(GL11.GL_TEXTURE_2D);
  		this.rotateAndBlurSkybox(var3);
-@@ -250,7 +267,7 @@
+@@ -250,7 +263,7 @@
  	}
  
  	public void drawScreen(int var1, int var2, float var3) {
@@ -596,7 +611,7 @@
  		Tessellator var4 = Tessellator.instance;
  		short var5 = 274;
  		int var6 = this.width / 2 - var5 / 2;
-@@ -269,6 +286,7 @@
+@@ -269,6 +282,7 @@
  			this.drawTexturedModalRect(var6 + 0, var7 + 0, 0, 0, 155, 44);
  			this.drawTexturedModalRect(var6 + 155, var7 + 0, 0, 45, 155, 44);
  		}
@@ -604,7 +619,7 @@
  
  		var4.setColorOpaque_I(16777215);
  		GL11.glPushMatrix();
-@@ -279,7 +297,7 @@
+@@ -279,7 +293,7 @@
  		GL11.glScalef(var8, var8, var8);
  		this.drawCenteredString(this.fontRenderer, this.splashText, 0, -8, 16776960);
  		GL11.glPopMatrix();
@@ -1108,11 +1123,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
  	}
  }
 +
@@ -3304,11 +3319,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
 +	}
 +}
 --- net/minecraft/src/WorldGenMinable.java
@@ -7755,11 +7770,11 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
-+		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
++		return super.getMaxHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.4F : 0.0F);
  	}
  }
 --- net/minecraft/src/Chunk.java
@@ -8487,7 +8502,7 @@
  import org.lwjgl.util.glu.GLU;
  
  public abstract class Minecraft implements Runnable {
-+	public static final String version = "AuthAdv 1.2.2";
++	public static final String version = "AuthAdv 1.2.3";
 +	public static final boolean panoramaMode = false;
 +	public static final boolean biomeTestMode = false;
  	public static byte[] field_28006_b = new byte[10485760];
@@ -10461,7 +10476,7 @@
 +	}
 +
 +	protected static float getHeightNoiseValue(double x, double z) {
-+		return (float)heightNoise.generateNoiseNormalized(x * 0.05D, z * 0.05D);
++		return (float)heightNoise.generateNoiseNormalized(x * 0.075D, z * 0.075D);
 +	}
 +
 +	protected static boolean doHills(int x, int z) {

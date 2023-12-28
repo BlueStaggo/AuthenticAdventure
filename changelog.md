@@ -1,3 +1,10 @@
+# 1.2.3
+Released: December 28th 2023
+
+## Changes
+- Adjusted the height of forests, taigas and birch forests
+- Quit game button is now always visible on the title screen
+
 # 1.2.2
 Released: December 26th 2023
 
@@ -24,6 +31,7 @@ Released: December 25th 2023
 - Highlands
     - Increased temperature and rainfall
 - Reduced the height of a few biomes
+- Screwed over the height of forests, taigas and birch forests
 - Removed beaches from a few biomes
 
 ## Bug Fixes
