@@ -642,6 +642,16 @@
  	}
  
  	public float calculateCelestialAngle(long var1, float var3) {
+@@ -80,5 +82,9 @@
+ 
+ 	public int getAverageGroundLevel() {
+ 		return this.terrainType == WorldType.FLAT ? 4 : 64;
++	}
++
++	public int getMinSections() {
++		return 0;
+ 	}
+ }
 --- /dev/null
 +++ net/minecraft/src/BlockStepStone.java
 @@ -1,0 +1,31 @@
@@ -3205,6 +3215,17 @@
  				var7 = this.chunk_Z + this.randomGenerator.nextInt(16) + 8;
  				(new WorldGenLiquids(Block.lavaMoving.blockID)).generate(this.currentWorld, this.randomGenerator, var3, var4, var7);
  			}
+--- net/minecraft/src/WorldProviderHell.java
++++ net/minecraft/src/WorldProviderHell.java
+@@ -37,4 +37,8 @@
+ 	public boolean canRespawnHere() {
+ 		return false;
+ 	}
++
++	public int getMinSections() {
++		return 8;
++	}
+ }
 --- net/minecraft/src/Block.java
 +++ net/minecraft/src/Block.java
 @@ -13,6 +13,7 @@
@@ -4252,6 +4273,17 @@
  			this.configManager.setPlayerManager(this.worldMngr);
  		}
  
+--- net/minecraft/src/WorldProviderEnd.java
++++ net/minecraft/src/WorldProviderEnd.java
+@@ -35,4 +35,8 @@
+ 	public int getAverageGroundLevel() {
+ 		return 50;
+ 	}
++
++	public int getMinSections() {
++		return 16;
++	}
+ }
 --- net/minecraft/src/BlockTallGrass.java
 +++ net/minecraft/src/BlockTallGrass.java
 @@ -6,7 +6,7 @@
@@ -5948,7 +5980,58 @@
  		ExtendedBlockStorage var5 = this.storageArrays[var2 >> 4];
  		if(var5 == null) {
  			return !this.worldObj.worldProvider.hasNoSky && var4 < EnumSkyBlock.Sky.defaultLightValue ? EnumSkyBlock.Sky.defaultLightValue - var4 : 0;
-@@ -751,9 +782,12 @@
+@@ -491,8 +522,8 @@
+ 			var4 = 0;
+ 		}
+ 
+-		if(var4 >= this.entityLists.length) {
+-			var4 = this.entityLists.length - 1;
++		if (var4 >= this.entityLists.length) {
++			this.resizeStorage(var4 + 1);
+ 		}
+ 
+ 		var1.addedToChunk = true;
+@@ -507,14 +538,14 @@
+ 	}
+ 
+ 	public void removeEntityAtIndex(Entity var1, int var2) {
++		if(var2 >= this.entityLists.length) {
++			return;
++		}
++
+ 		if(var2 < 0) {
+ 			var2 = 0;
+ 		}
+ 
+-		if(var2 >= this.entityLists.length) {
+-			var2 = this.entityLists.length - 1;
+-		}
+-
+ 		this.entityLists[var2].remove(var1);
+ 	}
+ 
+@@ -646,15 +677,17 @@
+ 	public void getEntitiesOfTypeWithinAAAB(Class var1, AxisAlignedBB var2, List var3) {
+ 		int var4 = MathHelper.floor_double((var2.minY - 2.0D) / 16.0D);
+ 		int var5 = MathHelper.floor_double((var2.maxY + 2.0D) / 16.0D);
++		if(var4 >= this.entityLists.length) {
++			var4 = this.entityLists.length - 1;
++		}
+ 		if(var4 < 0) {
+ 			var4 = 0;
+-		} else if(var4 >= this.entityLists.length) {
+-			var4 = this.entityLists.length - 1;
+ 		}
+ 
+ 		if(var5 >= this.entityLists.length) {
+ 			var5 = this.entityLists.length - 1;
+-		} else if(var5 < 0) {
++		}
++		if(var5 < 0) {
+ 			var5 = 0;
+ 		}
+ 
+@@ -751,9 +784,12 @@
  
  	public void updateSkylight() {
  		if(this.isGapLightingUpdated && !this.worldObj.worldProvider.hasNoSky) {
@@ -5962,7 +6045,7 @@
  	}
  
  	public ChunkCoordIntPair getChunkCoordIntPair() {
-@@ -761,15 +795,11 @@
+@@ -761,15 +797,11 @@
  	}
  
  	public boolean getAreLevelsEmpty(int var1, int var2) {
@@ -5982,7 +6065,7 @@
  			ExtendedBlockStorage var4 = this.storageArrays[var3 >> 4];
  			if(var4 != null && !var4.getIsEmpty()) {
  				return false;
-@@ -781,6 +811,11 @@
+@@ -781,6 +813,11 @@
  
  	public void setStorageArrays(ExtendedBlockStorage[] var1) {
  		this.storageArrays = var1;
@@ -5990,11 +6073,11 @@
 +		while (height > 0 && (var1[height - 1] == null || var1[height - 1].getIsEmpty())) {
 +			height--;
 +		}
-+		this.resizeStorage(height);
++		this.resizeStorage(Math.max(this.worldObj.worldProvider.getMinSections(), height));
  	}
  
  	public BiomeGenBase func_48560_a(int var1, int var2, WorldChunkManager var3) {
-@@ -821,7 +856,7 @@
+@@ -821,7 +858,7 @@
  
  			for(int var7 = 0; var7 < 16; ++var7) {
  				int var8 = (var2 << 4) + var7;
@@ -6003,7 +6086,7 @@
  					if(Block.lightValue[this.worldObj.getBlockId(var5, var8 - 1, var6)] > 0) {
  						this.worldObj.updateAllLightTypes(var5, var8 - 1, var6);
  					}
-@@ -851,5 +886,121 @@
+@@ -851,5 +888,121 @@
  			}
  		}
  

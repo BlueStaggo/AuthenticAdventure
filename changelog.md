@@ -1,3 +1,15 @@
+# 1.2.4
+Released: December 29th 2023
+
+## Additions
+- New creative mode music from modern versions
+
+## Changes
+- Hunger bar no longer jitters when empty
+
+## Bug Fixes
+- Empty chunks are no longer prone to crashing
+
 # 1.2.3
 Released: December 28th 2023
 

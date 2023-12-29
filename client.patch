@@ -1078,6 +1078,16 @@
  	}
  
  	public float calculateCelestialAngle(long var1, float var3) {
+@@ -141,5 +143,9 @@
+ 
+ 	public boolean func_48218_b(int var1, int var2) {
+ 		return false;
++	}
++
++	public int getMinSections() {
++		return 0;
+ 	}
+ }
 --- /dev/null
 +++ net/minecraft/src/BlockStepStone.java
 @@ -1,0 +1,31 @@
@@ -3079,6 +3089,56 @@
  				var1.onItemPickup(this, 1);
  				var1.addExperience(this.xpValue);
  				this.setDead();
+--- net/minecraft/src/ThreadDownloadResources.java
++++ net/minecraft/src/ThreadDownloadResources.java
+@@ -5,6 +5,7 @@
+ import java.io.File;
+ import java.io.FileOutputStream;
+ import java.io.IOException;
++import java.net.URI;
+ import java.net.URL;
+ import javax.xml.parsers.DocumentBuilder;
+ import javax.xml.parsers.DocumentBuilderFactory;
+@@ -15,6 +16,7 @@
+ import org.w3c.dom.NodeList;
+ 
+ public class ThreadDownloadResources extends Thread {
++	private static final String resUrl = "https://resources.download.minecraft.net/";
+ 	public File resourcesFolder;
+ 	private Minecraft mc;
+ 	private boolean closing = false;
+@@ -53,6 +55,13 @@
+ 					}
+ 				}
+ 			}
++
++			this.downloadAndInstallResource(new URL(resUrl + "3f/3fe4c878450d4dc2bf3ac304e547f20d4efabad8"), "newmusic/creative1.ogg", 4271435, 2);
++			this.downloadAndInstallResource(new URL(resUrl + "59/591f41a2c5f53bcc60d7ded982fe29e76223a8ca"), "newmusic/creative2.ogg", 3704574, 2);
++			this.downloadAndInstallResource(new URL(resUrl + "4f/4f8c3f9b4f290f63c78bf3bbaad16906a3ccff29"), "newmusic/creative3.ogg", 3834148, 2);
++			this.downloadAndInstallResource(new URL(resUrl + "46/4664de25eb2bfc88ebbd638cfae6934dd968ceaa"), "newmusic/creative4.ogg", 3668042, 2);
++			this.downloadAndInstallResource(new URL(resUrl + "45/45cb6cbbff2d7fc1daefbd85b031fd9dcfc70e7b"), "newmusic/creative5.ogg", 5532231, 2);
++			this.downloadAndInstallResource(new URL(resUrl + "62/6254527d626a2c7d80901cc2e62dce3ba4bd81f6"), "newmusic/creative6.ogg", 5468843, 2);
+ 		} catch (Exception var13) {
+ 			this.loadResource(this.resourcesFolder, "");
+ 			var13.printStackTrace();
+@@ -86,7 +95,7 @@
+ 			int var6 = var2.indexOf("/");
+ 			String var7 = var2.substring(0, var6);
+ 			if(!var7.equals("sound") && !var7.equals("newsound")) {
+-				if(var5 != 1) {
++				if(var5 != 1 && var5 != 2) {
+ 					return;
+ 				}
+ 			} else if(var5 != 0) {
+@@ -97,7 +106,7 @@
+ 			if(!var8.exists() || var8.length() != var3) {
+ 				var8.getParentFile().mkdirs();
+ 				String var9 = var2.replaceAll(" ", "%20");
+-				this.downloadResource(new URL(var1, var9), var8, var3);
++				this.downloadResource(var5 == 2 ? var1 : new URL(var1, var9), var8, var3);
+ 				if(this.closing) {
+ 					return;
+ 				}
 --- net/minecraft/src/WorldInfo.java
 +++ net/minecraft/src/WorldInfo.java
 @@ -21,7 +21,8 @@
@@ -4185,6 +4245,17 @@
  				var7 = this.chunk_Z + this.randomGenerator.nextInt(16) + 8;
  				(new WorldGenLiquids(Block.lavaMoving.blockID)).generate(this.currentWorld, this.randomGenerator, var3, var4, var7);
  			}
+--- net/minecraft/src/WorldProviderHell.java
++++ net/minecraft/src/WorldProviderHell.java
+@@ -45,4 +45,8 @@
+ 	public boolean func_48218_b(int var1, int var2) {
+ 		return true;
+ 	}
++
++	public int getMinSections() {
++		return 8;
++	}
+ }
 --- net/minecraft/src/Block.java
 +++ net/minecraft/src/Block.java
 @@ -1,5 +1,7 @@
@@ -4953,6 +5024,60 @@
  		}
  
  		return var3;
+--- net/minecraft/src/SoundManager.java
++++ net/minecraft/src/SoundManager.java
+@@ -13,11 +13,13 @@
+ 	private SoundPool soundPoolSounds = new SoundPool();
+ 	private SoundPool soundPoolStreaming = new SoundPool();
+ 	private SoundPool soundPoolMusic = new SoundPool();
++	private SoundPool soundPoolCreativeMusic = new SoundPool();
+ 	private int latestSoundID = 0;
+ 	private GameSettings options;
+ 	private static boolean loaded = false;
+ 	private Random rand = new Random();
+ 	private int ticksBeforeMusic = this.rand.nextInt(12000);
++	private int ticksBeforeCreativeMusic = this.rand.nextInt(2400);
+ 
+ 	public void loadSoundSettings(GameSettings var1) {
+ 		this.soundPoolStreaming.isGetRandomSound = false;
+@@ -85,6 +87,10 @@
+ 		this.soundPoolMusic.addSound(var1, var2);
+ 	}
+ 
++	public void addCreativeMusic(String var1, File var2) {
++		this.soundPoolCreativeMusic.addSound(var1, var2);
++	}
++
+ 	public void playRandomMusicIfReady() {
+ 		if(loaded && this.options.musicVolume != 0.0F) {
+ 			if(!sndSystem.playing("BgMusic") && !sndSystem.playing("streaming")) {
+@@ -96,6 +102,26 @@
+ 				SoundPoolEntry var1 = this.soundPoolMusic.getRandomSound();
+ 				if(var1 != null) {
+ 					this.ticksBeforeMusic = this.rand.nextInt(12000) + 12000;
++					sndSystem.backgroundMusic("BgMusic", var1.soundUrl, var1.soundName, false);
++					sndSystem.setVolume("BgMusic", this.options.musicVolume);
++					sndSystem.play("BgMusic");
++				}
++			}
++
++		}
++	}
++
++	public void playRandomCreativeMusicIfReady() {
++		if(loaded && this.options.musicVolume != 0.0F) {
++			if(!sndSystem.playing("BgMusic") && !sndSystem.playing("streaming")) {
++				if(this.ticksBeforeCreativeMusic > 0) {
++					--this.ticksBeforeCreativeMusic;
++					return;
++				}
++
++				SoundPoolEntry var1 = this.soundPoolCreativeMusic.getRandomSound();
++				if(var1 != null) {
++					this.ticksBeforeCreativeMusic = this.rand.nextInt(2400) + 1200;
+ 					sndSystem.backgroundMusic("BgMusic", var1.soundUrl, var1.soundName, false);
+ 					sndSystem.setVolume("BgMusic", this.options.musicVolume);
+ 					sndSystem.play("BgMusic");
 --- net/minecraft/src/Packet53BlockChange.java
 +++ net/minecraft/src/Packet53BlockChange.java
 @@ -17,7 +17,7 @@
@@ -5353,6 +5478,17 @@
  		if(!var5) {
  			this.selectedBlockId = 0;
  			this.selectedBlockMetaData = 0;
+--- net/minecraft/src/WorldProviderEnd.java
++++ net/minecraft/src/WorldProviderEnd.java
+@@ -71,4 +71,8 @@
+ 	public boolean func_48218_b(int var1, int var2) {
+ 		return true;
+ 	}
++
++	public int getMinSections() {
++		return 16;
++	}
+ }
 --- /dev/null
 +++ net/minecraft/src/GenLayerLarge.java
 @@ -1,0 +1,9 @@
@@ -5513,6 +5649,15 @@
  			this.renderTopFace(var1, (double)var2, (double)((float)var3 - 1.0F + (6.0F + (float)var14 * 3.0F) / 16.0F), (double)var4, var15);
  		}
  
+@@ -391,7 +395,7 @@
+ 	public boolean renderBlockTorch(Block var1, int var2, int var3, int var4) {
+ 		int var5 = this.blockAccess.getBlockMetadata(var2, var3, var4);
+ 		Tessellator var6 = Tessellator.instance;
+-		var6.setBrightness(var1.getMixedBrightnessForBlock(this.blockAccess, var2, var3, var4));
++		var6.setBrightness(Minecraft.isBetaShadingEnabled() ? 0xF0 : var1.getMixedBrightnessForBlock(this.blockAccess, var2, var3, var4));
+ 		var6.setColorOpaque_F(1.0F, 1.0F, 1.0F);
+ 		double var7 = (double)0.4F;
+ 		double var9 = 0.5D - var7;
 @@ -1513,7 +1517,6 @@
  	}
  
@@ -6731,6 +6876,27 @@
  	}
  
  	public static void clickBlockCreative(Minecraft var0, PlayerController var1, int var2, int var3, int var4, int var5) {
+@@ -78,10 +72,6 @@
+ 		return false;
+ 	}
+ 
+-	public void onWorldChange(World var1) {
+-		super.onWorldChange(var1);
+-	}
+-
+ 	public float getBlockReachDistance() {
+ 		return 5.0F;
+ 	}
+@@ -96,5 +86,9 @@
+ 
+ 	public boolean extendedReach() {
+ 		return true;
++	}
++
++	public void updateController() {
++		this.mc.sndManager.playRandomCreativeMusicIfReady();
+ 	}
+ }
 --- /dev/null
 +++ net/minecraft/src/BiomeGenShrubland.java
 @@ -1,0 +1,15 @@
@@ -7204,7 +7370,7 @@
  						var30 = 5;
  					}
  
-@@ -177,41 +184,47 @@
+@@ -177,41 +184,43 @@
  				}
  
  				int var51;
@@ -7253,10 +7419,6 @@
 +							var52 = 13;
 +						}
 +
-+						if(this.mc.thePlayer.getFoodStats().getFoodLevel() <= 0) {
-+							var26 = var45 + (this.rand.nextInt(2) - 1);
-+						}
-+
 +						if(var14) {
 +							var52 = 1;
 +						}
@@ -7287,7 +7449,7 @@
  					}
  				}
  
-@@ -220,11 +233,16 @@
+@@ -220,11 +229,16 @@
  					var26 = (int)Math.ceil((double)(var25 - 2) * 10.0D / 300.0D);
  					var51 = (int)Math.ceil((double)var25 * 10.0D / 300.0D) - var26;
  
@@ -7306,7 +7468,7 @@
  						}
  					}
  				}
-@@ -262,10 +280,12 @@
+@@ -262,10 +276,12 @@
  
  		int var39;
  		int var40;
@@ -7323,7 +7485,7 @@
  			var39 = (var6 - var8.getStringWidth(var34)) / 2;
  			var40 = var7 - 31 - 4;
  			var8.drawString(var34, var39 + 1, var40, 0);
-@@ -281,7 +301,7 @@
+@@ -281,7 +297,7 @@
  				GL11.glTranslatef(0.0F, 32.0F, 0.0F);
  			}
  
@@ -7332,7 +7494,7 @@
  			var8.drawStringWithShadow(this.mc.debugInfoRenders(), 2, 12, 16777215);
  			var8.drawStringWithShadow(this.mc.getEntityDebug(), 2, 22, 16777215);
  			var8.drawStringWithShadow(this.mc.debugInfoEntities(), 2, 32, 16777215);
-@@ -294,21 +314,28 @@
+@@ -294,21 +310,28 @@
  			this.drawString(var8, var44, var6 - var8.getStringWidth(var44) - 2, 2, 14737632);
  			var44 = "Allocated memory: " + var36 * 100L / var35 + "% (" + var36 / 1024L / 1024L + "MB)";
  			this.drawString(var8, var44, var6 - var8.getStringWidth(var44) - 2, 12, 14737632);
@@ -7371,7 +7533,7 @@
  
  			GL11.glPopMatrix();
  		}
-@@ -689,5 +716,14 @@
+@@ -689,5 +712,14 @@
  		StringTranslate var2 = StringTranslate.getInstance();
  		String var3 = var2.translateKey(var1);
  		this.addChatMessage(var3);
@@ -7817,7 +7979,7 @@
  		this.worldObj = var1;
  		this.xPosition = var2;
  		this.zPosition = var3;
-@@ -59,20 +64,31 @@
+@@ -59,20 +64,35 @@
  	}
  
  	public Chunk(World var1, byte[] var2, int var3, int var4) {
@@ -7828,6 +7990,10 @@
  		this(var1, var3, var4);
  		int var5 = var2.length / 256;
 +		int height = var2.length >> 8;
++
++		if (var1.worldProvider.getMinSections() > 0) {
++			this.resizeStorage(var1.worldProvider.getMinSections());
++		}
  
  		for(int var6 = 0; var6 < 16; ++var6) {
  			for(int var7 = 0; var7 < 16; ++var7) {
@@ -7851,7 +8017,7 @@
  					}
  				}
  			}
-@@ -102,72 +118,88 @@
+@@ -102,72 +122,88 @@
  		return this.storageArrays;
  	}
  
@@ -8006,7 +8172,7 @@
  
  	public void func_4143_d() {
  	}
-@@ -177,7 +209,7 @@
+@@ -177,7 +213,7 @@
  		this.isGapLightingUpdated = true;
  	}
  
@@ -8015,7 +8181,7 @@
  		Profiler.startSection("recheckGaps");
  		if(this.worldObj.doChunksNearChunkExist(this.xPosition * 16 + 8, 0, this.zPosition * 16 + 8, 16)) {
  			for(int var1 = 0; var1 < 16; ++var1) {
-@@ -187,27 +219,22 @@
+@@ -187,27 +223,22 @@
  						int var3 = this.getHeightValue(var1, var2);
  						int var4 = this.xPosition * 16 + var1;
  						int var5 = this.zPosition * 16 + var2;
@@ -8053,7 +8219,7 @@
  					}
  				}
  			}
-@@ -306,6 +333,10 @@
+@@ -306,6 +337,10 @@
  				var13 = var4;
  			}
  
@@ -8064,7 +8230,7 @@
  			if(!this.worldObj.worldProvider.hasNoSky) {
  				this.updateSkylightNeighborHeight(var6 - 1, var7, var12, var13);
  				this.updateSkylightNeighborHeight(var6 + 1, var7, var12, var13);
-@@ -345,6 +376,13 @@
+@@ -345,6 +380,13 @@
  	}
  
  	public boolean setBlockIDWithMetadata(int var1, int var2, int var3, int var4, int var5) {
@@ -8078,7 +8244,7 @@
  		int var6 = var3 << 4 | var1;
  		if(var2 >= this.precipitationHeightMap[var6] - 1) {
  			this.precipitationHeightMap[var6] = -999;
-@@ -392,7 +430,11 @@
+@@ -392,7 +434,11 @@
  						this.relightBlock(var1, var2, var3);
  					}
  
@@ -8091,7 +8257,7 @@
  				}
  
  				TileEntity var13;
-@@ -451,11 +493,19 @@
+@@ -451,11 +497,19 @@
  	}
  
  	public int getSavedLightValue(EnumSkyBlock var1, int var2, int var3, int var4) {
@@ -8111,7 +8277,7 @@
  		ExtendedBlockStorage var6 = this.storageArrays[var3 >> 4];
  		if(var6 == null) {
  			var6 = this.storageArrays[var3 >> 4] = new ExtendedBlockStorage(var3 >> 4 << 4);
-@@ -478,6 +528,10 @@
+@@ -478,6 +532,10 @@
  	}
  
  	public int getBlockLightValue(int var1, int var2, int var3, int var4) {
@@ -8122,7 +8288,58 @@
  		ExtendedBlockStorage var5 = this.storageArrays[var2 >> 4];
  		if(var5 == null) {
  			return !this.worldObj.worldProvider.hasNoSky && var4 < EnumSkyBlock.Sky.defaultLightValue ? EnumSkyBlock.Sky.defaultLightValue - var4 : 0;
-@@ -771,9 +825,14 @@
+@@ -511,8 +569,8 @@
+ 			var4 = 0;
+ 		}
+ 
+-		if(var4 >= this.entityLists.length) {
+-			var4 = this.entityLists.length - 1;
++		if (var4 >= this.entityLists.length) {
++			this.resizeStorage(var4 + 1);
+ 		}
+ 
+ 		var1.addedToChunk = true;
+@@ -527,14 +585,14 @@
+ 	}
+ 
+ 	public void removeEntityAtIndex(Entity var1, int var2) {
++		if(var2 >= this.entityLists.length) {
++			return;
++		}
++
+ 		if(var2 < 0) {
+ 			var2 = 0;
+ 		}
+ 
+-		if(var2 >= this.entityLists.length) {
+-			var2 = this.entityLists.length - 1;
+-		}
+-
+ 		this.entityLists[var2].remove(var1);
+ 	}
+ 
+@@ -666,15 +724,17 @@
+ 	public void getEntitiesOfTypeWithinAAAB(Class var1, AxisAlignedBB var2, List var3) {
+ 		int var4 = MathHelper.floor_double((var2.minY - 2.0D) / 16.0D);
+ 		int var5 = MathHelper.floor_double((var2.maxY + 2.0D) / 16.0D);
++		if(var4 >= this.entityLists.length) {
++			var4 = this.entityLists.length - 1;
++		}
+ 		if(var4 < 0) {
+ 			var4 = 0;
+-		} else if(var4 >= this.entityLists.length) {
+-			var4 = this.entityLists.length - 1;
+ 		}
+ 
+ 		if(var5 >= this.entityLists.length) {
+ 			var5 = this.entityLists.length - 1;
+-		} else if(var5 < 0) {
++		}
++		if(var5 < 0) {
+ 			var5 = 0;
+ 		}
+ 
+@@ -771,9 +831,14 @@
  
  	public void updateSkylight() {
  		if(this.isGapLightingUpdated && !this.worldObj.worldProvider.hasNoSky) {
@@ -8138,7 +8355,7 @@
  	}
  
  	public ChunkCoordIntPair getChunkCoordIntPair() {
-@@ -781,15 +840,11 @@
+@@ -781,15 +846,11 @@
  	}
  
  	public boolean getAreLevelsEmpty(int var1, int var2) {
@@ -8158,7 +8375,7 @@
  			ExtendedBlockStorage var4 = this.storageArrays[var3 >> 4];
  			if(var4 != null && !var4.getIsEmpty()) {
  				return false;
-@@ -801,14 +856,23 @@
+@@ -801,14 +862,23 @@
  
  	public void setStorageArrays(ExtendedBlockStorage[] var1) {
  		this.storageArrays = var1;
@@ -8166,7 +8383,7 @@
 +		while (height > 0 && (var1[height - 1] == null || var1[height - 1].getIsEmpty())) {
 +			height--;
 +		}
-+		this.resizeStorage(height);
++		this.resizeStorage(Math.max(this.worldObj.worldProvider.getMinSections(), height));
  	}
  
 -	public void func_48494_a(byte[] var1, int var2, int var3, boolean var4) {
@@ -8185,7 +8402,7 @@
  				if(this.storageArrays[var6] == null) {
  					this.storageArrays[var6] = new ExtendedBlockStorage(var6 << 4);
  				}
-@@ -816,14 +880,14 @@
+@@ -816,14 +886,14 @@
  				byte[] var7 = this.storageArrays[var6].func_48692_g();
  				System.arraycopy(var1, var5, var7, 0, var7.length);
  				var5 += var7.length;
@@ -8202,7 +8419,7 @@
  				var8 = this.storageArrays[var6].func_48697_j();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -831,7 +895,7 @@
+@@ -831,7 +901,7 @@
  		}
  
  		for(var6 = 0; var6 < this.storageArrays.length; ++var6) {
@@ -8211,7 +8428,7 @@
  				var8 = this.storageArrays[var6].getBlocklightArray();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -839,7 +903,7 @@
+@@ -839,7 +909,7 @@
  		}
  
  		for(var6 = 0; var6 < this.storageArrays.length; ++var6) {
@@ -8220,7 +8437,7 @@
  				var8 = this.storageArrays[var6].getSkylightArray();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -847,7 +911,7 @@
+@@ -847,7 +917,7 @@
  		}
  
  		for(var6 = 0; var6 < this.storageArrays.length; ++var6) {
@@ -8229,7 +8446,7 @@
  				if(this.storageArrays[var6] == null) {
  					var5 += 2048;
  				} else {
-@@ -870,7 +934,7 @@
+@@ -870,7 +940,7 @@
  		}
  
  		for(var6 = 0; var6 < this.storageArrays.length; ++var6) {
@@ -8238,7 +8455,7 @@
  				this.storageArrays[var6].func_48708_d();
  			}
  		}
-@@ -923,7 +987,7 @@
+@@ -923,7 +993,7 @@
  
  			for(int var7 = 0; var7 < 16; ++var7) {
  				int var8 = (var2 << 4) + var7;
@@ -8247,7 +8464,7 @@
  					if(Block.lightValue[this.worldObj.getBlockId(var5, var8 - 1, var6)] > 0) {
  						this.worldObj.updateAllLightTypes(var5, var8 - 1, var6);
  					}
-@@ -953,5 +1017,120 @@
+@@ -953,5 +1023,120 @@
  			}
  		}
  
@@ -8502,7 +8719,7 @@
  import org.lwjgl.util.glu.GLU;
  
  public abstract class Minecraft implements Runnable {
-+	public static final String version = "AuthAdv 1.2.3";
++	public static final String version = "AuthAdv 1.2.4";
 +	public static final boolean panoramaMode = false;
 +	public static final boolean biomeTestMode = false;
  	public static byte[] field_28006_b = new byte[10485760];
@@ -8601,7 +8818,20 @@
  	}
  
  	private void preloadWorld(String var1) {
-@@ -1735,15 +1666,17 @@
+@@ -1644,7 +1575,11 @@
+ 		} else if(var4.equalsIgnoreCase("music")) {
+ 			this.sndManager.addMusic(var1, var2);
+ 		} else if(var4.equalsIgnoreCase("newmusic")) {
+-			this.sndManager.addMusic(var1, var2);
++			if (var1.contains("creative")) {
++				this.sndManager.addCreativeMusic(var1, var2);
++			} else {
++				this.sndManager.addMusic(var1, var2);
++			}
+ 		}
+ 
+ 	}
+@@ -1735,15 +1670,17 @@
  	}
  
  	public static void startMainThread(String var0, String var1, String var2) throws LWJGLException {
@@ -8621,7 +8851,7 @@
  		Thread var8 = new Thread(var7, "Minecraft main thread");
  		var8.setPriority(10);
  		var7.minecraftUri = "www.minecraft.net";
-@@ -1783,6 +1716,10 @@
+@@ -1783,6 +1720,10 @@
  		startMainThread1(var1, var2);
  	}
  
@@ -8632,7 +8862,7 @@
  	public static boolean isGuiEnabled() {
  		return theMinecraft == null || !theMinecraft.gameSettings.hideGUI;
  	}
-@@ -1799,6 +1736,14 @@
+@@ -1799,6 +1740,14 @@
  		return theMinecraft != null && theMinecraft.gameSettings.showDebugInfo;
  	}
  
@@ -8647,7 +8877,7 @@
  	public boolean lineIsCommand(String var1) {
  		if(var1.startsWith("/")) {
  		}
-@@ -1809,47 +1754,57 @@
+@@ -1809,47 +1758,57 @@
  	private void clickMiddleMouseButton() {
  		if(this.objectMouseOver != null) {
  			boolean var1 = this.thePlayer.capabilities.isCreativeMode;
@@ -11688,6 +11918,24 @@
  		this.fillWithBlocks(var1, var3, 1, 2, 0, 7, 3, 0, Block.planks.blockID, Block.planks.blockID, false);
  		this.fillWithBlocks(var1, var3, 1, 2, 5, 7, 3, 5, Block.planks.blockID, Block.planks.blockID, false);
  		this.fillWithBlocks(var1, var3, 0, 4, 1, 8, 4, 1, Block.planks.blockID, Block.planks.blockID, false);
+--- net/minecraft/src/ModelBiped.java
++++ net/minecraft/src/ModelBiped.java
+@@ -132,6 +132,7 @@
+ 			this.bipedRightLeg.rotationPointY = 9.0F;
+ 			this.bipedLeftLeg.rotationPointY = 9.0F;
+ 			this.bipedHead.rotationPointY = 1.0F;
++			this.bipedHeadwear.rotationPointY = 1.0F;
+ 		} else {
+ 			this.bipedBody.rotateAngleX = 0.0F;
+ 			this.bipedRightLeg.rotationPointZ = 0.0F;
+@@ -139,6 +140,7 @@
+ 			this.bipedRightLeg.rotationPointY = 12.0F;
+ 			this.bipedLeftLeg.rotationPointY = 12.0F;
+ 			this.bipedHead.rotationPointY = 0.0F;
++			this.bipedHeadwear.rotationPointY = 0.0F;
+ 		}
+ 
+ 		this.bipedRightArm.rotateAngleZ += MathHelper.cos(var3 * 0.09F) * 0.05F + 0.05F;
 --- net/minecraft/src/EntityExpBottle.java
 +++ net/minecraft/src/EntityExpBottle.java
 @@ -27,8 +27,19 @@
