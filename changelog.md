@@ -9,6 +9,7 @@ Released: December 29th 2023
 
 ## Bug Fixes
 - Empty chunks are no longer prone to crashing
+- Blocks now break correctly at maximum chunk height
 
 # 1.2.3
 Released: December 28th 2023

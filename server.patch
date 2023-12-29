@@ -5927,7 +5927,7 @@
  
  	public boolean setBlockIDWithMetadata(int var1, int var2, int var3, int var4, int var5) {
 +		if ((var2 + 4) >> 4 >= this.storageArrays.length) {
-+			if (var4 == 0) {
++			if (var4 == 0 && var2 >> 4 >= this.storageArrays.length) {
 +				return false;
 +			}
 +			this.resizeStorage(((var2 + 4) >> 4) + 1);
