@@ -1,3 +1,31 @@
+# 1.2.5
+Released: March 17th 2024
+
+## Additions
+- Beta world type
+- Controller support
+
+## Changes
+
+### Biomes
+- Redjusted the height of forests, taigas and birch forests
+- Increased the frequency of ice mountains
+- Removed plains from inside of forests
+- Removed birch trees from rainforests
+
+### Gameplay
+- Classic Mode
+    - Cows, chickens and sheep no longer drop meat
+    - Zombies drop feathers instead of rotten flesh
+    - Zombie Pigmen drop cooked pork instead of pigman flesh
+- Made the sprint cooldown vignette slightly darker
+
+## Bug Fixes
+- Blocks now update correctly in multiplayer
+- Cursor now correctly centers onto the screen when the inventory is opened
+
+---
+
 # 1.2.4
 Released: December 29th 2023
 
@@ -11,12 +39,16 @@ Released: December 29th 2023
 - Empty chunks are no longer prone to crashing
 - Blocks now break correctly at maximum chunk height
 
+---
+
 # 1.2.3
 Released: December 28th 2023
 
 ## Changes
 - Adjusted the height of forests, taigas and birch forests
 - Quit game button is now always visible on the title screen
+
+---
 
 # 1.2.2
 Released: December 26th 2023
@@ -30,6 +62,8 @@ Released: December 26th 2023
 ## Bug Fixes
 - The bottommost layer of the world now generates correctly
 - The bottommost section of the world (lowest 16 blocks) now gets sent to the client
+
+---
 
 # 1.2.1
 Released: December 25th 2023
@@ -53,6 +87,8 @@ Released: December 25th 2023
 - XP no longer appears in creative mode while sneaking
 - The world creation screen and game over screen no longer suggests that hardcore mode prevents respawning
 
+---
+
 # 1.2
 Released: December 25th 2023
 
@@ -75,6 +111,10 @@ Released: December 25th 2023
     - Features tall spruce trees
 - Mushroom Valley
     - Variant of Rainforest featuring mycelium and large mushrooms
+- Seasonal Forest
+    - Unused biome left in the code
+    - Unable to generate even in customized worlds
+    - Forest variant with less trees
 - Snowcapped Hills
     - Resembles Extreme Hills from release 1.7
 - Snowcapped Peaks
@@ -188,6 +228,8 @@ Released: December 25th 2023
 - Chests are now held correctly
 - More blocks are pick blcoked correctly in creative mode
 - Warning text for far render distance on 32 bit systems now renders correctly
+
+---
 
 # 1.1
 Released: July 1st 2023

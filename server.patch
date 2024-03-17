@@ -49,6 +49,26 @@
 +		this.biomeDecorator.mushroomsPerChunk = 0;
  	}
  }
+--- net/minecraft/src/StructureStrongholdPieceWeight.java
++++ net/minecraft/src/StructureStrongholdPieceWeight.java
+@@ -5,11 +5,17 @@
+ 	public final int pieceWeight;
+ 	public int instancesSpawned;
+ 	public int instancesLimit;
++	public boolean noSurface;
+ 
+ 	public StructureStrongholdPieceWeight(Class var1, int var2, int var3) {
++		this(var1, var2, var3, false);
++	}
++
++	public StructureStrongholdPieceWeight(Class var1, int var2, int var3, boolean var4) {
+ 		this.pieceClass = var1;
+ 		this.pieceWeight = var2;
+ 		this.instancesLimit = var3;
++		this.noSurface = var4;
+ 	}
+ 
+ 	public boolean canSpawnMoreStructuresOfType(int var1) {
 --- net/minecraft/src/GenLayerShore.java
 +++ net/minecraft/src/GenLayerShore.java
 @@ -1,6 +1,15 @@
@@ -152,26 +172,6 @@
  				}
  			}
  		}
---- net/minecraft/src/StructureStrongholdPieceWeight.java
-+++ net/minecraft/src/StructureStrongholdPieceWeight.java
-@@ -5,11 +5,17 @@
- 	public final int pieceWeight;
- 	public int instancesSpawned;
- 	public int instancesLimit;
-+	public boolean noSurface;
- 
- 	public StructureStrongholdPieceWeight(Class var1, int var2, int var3) {
-+		this(var1, var2, var3, false);
-+	}
-+
-+	public StructureStrongholdPieceWeight(Class var1, int var2, int var3, boolean var4) {
- 		this.pieceClass = var1;
- 		this.pieceWeight = var2;
- 		this.instancesLimit = var3;
-+		this.noSurface = var4;
- 	}
- 
- 	public boolean canSpawnMoreStructuresOfType(int var1) {
 --- /dev/null
 +++ net/minecraft/src/WorldGenMud.java
 @@ -1,0 +1,36 @@
@@ -697,7 +697,7 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
@@ -2147,16 +2147,6 @@
 +
 +	}
 +}
---- net/minecraft/src/BlockLilyPad.java
-+++ net/minecraft/src/BlockLilyPad.java
-@@ -25,6 +25,6 @@
- 	}
- 
- 	public boolean canBlockStay(World var1, int var2, int var3, int var4) {
--		return var3 >= 0 && var3 < 256 ? var1.getBlockMaterial(var2, var3 - 1, var4) == Material.water && var1.getBlockMetadata(var2, var3 - 1, var4) == 0 : false;
-+		return var3 >= 0 ? var1.getBlockMaterial(var2, var3 - 1, var4) == Material.water && var1.getBlockMetadata(var2, var3 - 1, var4) == 0 : false;
- 	}
- }
 --- net/minecraft/src/StructureStrongholdPieceWeight2.java
 +++ net/minecraft/src/StructureStrongholdPieceWeight2.java
 @@ -5,6 +5,10 @@
@@ -2170,6 +2160,16 @@
  	public boolean canSpawnMoreStructuresOfType(int var1) {
  		return super.canSpawnMoreStructuresOfType(var1) && var1 > 4;
  	}
+--- net/minecraft/src/BlockLilyPad.java
++++ net/minecraft/src/BlockLilyPad.java
+@@ -25,6 +25,6 @@
+ 	}
+ 
+ 	public boolean canBlockStay(World var1, int var2, int var3, int var4) {
+-		return var3 >= 0 && var3 < 256 ? var1.getBlockMaterial(var2, var3 - 1, var4) == Material.water && var1.getBlockMetadata(var2, var3 - 1, var4) == 0 : false;
++		return var3 >= 0 ? var1.getBlockMaterial(var2, var3 - 1, var4) == Material.water && var1.getBlockMetadata(var2, var3 - 1, var4) == 0 : false;
+ 	}
+ }
 --- net/minecraft/src/WorldChunkManager.java
 +++ net/minecraft/src/WorldChunkManager.java
 @@ -1,25 +1,28 @@
@@ -2528,7 +2528,7 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
@@ -2796,7 +2796,7 @@
 +		this.field_48475_h |= 1L << (var2 >> 4);
  		if(this.numBlocksToUpdate < 64) {
 -			short var4 = (short)(var1 << 12 | var3 << 8 | var2);
-+			short var4 = (short)(var1 << 16 | var3 << 12 | var2);
++			int var4 = var1 << 16 | var3 << 12 | var2;
  
  			for(int var5 = 0; var5 < this.numBlocksToUpdate; ++var5) {
  				if(this.blocksToUpdate[var5] == var4) {
@@ -3673,17 +3673,6 @@
  	}
  
  	protected float getSoundVolume() {
---- net/minecraft/src/EntityBlaze.java
-+++ net/minecraft/src/EntityBlaze.java
-@@ -14,7 +14,7 @@
- 	}
- 
- 	public int getMaxHealth() {
--		return 20;
-+		return this.worldObj != null && this.worldObj.getWorldInfo().isHardcoreModeEnabled() ? 30 : 20;
- 	}
- 
- 	protected void entityInit() {
 --- net/minecraft/src/MapGenStronghold.java
 +++ net/minecraft/src/MapGenStronghold.java
 @@ -1,80 +1,19 @@
@@ -3771,6 +3760,17 @@
  		}
  
  		return var3;
+--- net/minecraft/src/EntityBlaze.java
++++ net/minecraft/src/EntityBlaze.java
+@@ -14,7 +14,7 @@
+ 	}
+ 
+ 	public int getMaxHealth() {
+-		return 20;
++		return this.worldObj != null && this.worldObj.getWorldInfo().isHardcoreModeEnabled() ? 30 : 20;
+ 	}
+ 
+ 	protected void entityInit() {
 --- net/minecraft/src/Packet53BlockChange.java
 +++ net/minecraft/src/Packet53BlockChange.java
 @@ -26,7 +26,7 @@
@@ -5377,6 +5377,17 @@
  			var4 = 10000;
  
  			while(var4 > 0) {
+--- net/minecraft/src/EntityFallingSand.java
++++ net/minecraft/src/EntityFallingSand.java
+@@ -66,7 +66,7 @@
+ 						this.dropItem(this.blockID, 1);
+ 					}
+ 				}
+-			} else if(this.fallTime > 100 && !this.worldObj.isRemote && (var2 < 1 || var2 > 256) || this.fallTime > 600) {
++			} else if(this.fallTime > 100 && !this.worldObj.isRemote && var2 < 1 || this.fallTime > 600) {
+ 				this.dropItem(this.blockID, 1);
+ 				this.setDead();
+ 			}
 --- net/minecraft/src/ComponentStrongholdPrison.java
 +++ net/minecraft/src/ComponentStrongholdPrison.java
 @@ -4,6 +4,8 @@
@@ -5432,17 +5443,6 @@
  			return true;
  		}
  	}
---- net/minecraft/src/EntityFallingSand.java
-+++ net/minecraft/src/EntityFallingSand.java
-@@ -66,7 +66,7 @@
- 						this.dropItem(this.blockID, 1);
- 					}
- 				}
--			} else if(this.fallTime > 100 && !this.worldObj.isRemote && (var2 < 1 || var2 > 256) || this.fallTime > 600) {
-+			} else if(this.fallTime > 100 && !this.worldObj.isRemote && var2 < 1 || this.fallTime > 600) {
- 				this.dropItem(this.blockID, 1);
- 				this.setDead();
- 			}
 --- net/minecraft/src/WorldGenSwamp.java
 +++ net/minecraft/src/WorldGenSwamp.java
 @@ -3,6 +3,14 @@
@@ -5702,7 +5702,7 @@
 +	}
 +
 +	public float getMinHeight(int x, int z) {
-+		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.5F : 0.0F);
++		return super.getMinHeight(x, z) + (getHeightNoiseValue(x, z) > 0.0D ? 0.1F : 0.0F);
 +	}
 +
 +	public float getMaxHeight(int x, int z) {
@@ -6271,7 +6271,7 @@
  	protected boolean canTriggerWalking() {
 --- net/minecraft/src/Packet52MultiBlockChange.java
 +++ net/minecraft/src/Packet52MultiBlockChange.java
-@@ -16,7 +16,7 @@
+@@ -16,12 +16,12 @@
  		this.isChunkDataPacket = true;
  	}
  
@@ -6280,19 +6280,35 @@
  		this.isChunkDataPacket = true;
  		this.xPosition = var1;
  		this.zPosition = var2;
-@@ -35,9 +35,9 @@
+ 		this.size = var4;
+-		int var6 = 4 * var4;
++		int var6 = 6 * var4;
+ 		Chunk var7 = var5.getChunkFromChunkCoords(var1, var2);
+ 
+ 		try {
+@@ -35,10 +35,10 @@
  				DataOutputStream var9 = new DataOutputStream(var8);
  
  				for(int var10 = 0; var10 < var4; ++var10) {
 -					int var11 = var3[var10] >> 12 & 15;
 -					int var12 = var3[var10] >> 8 & 15;
 -					int var13 = var3[var10] & 255;
+-					var9.writeShort(var3[var10]);
 +					int var11 = var3[var10] >> 16 & 15;
 +					int var12 = var3[var10] >> 12 & 15;
 +					int var13 = var3[var10] & 1023;
- 					var9.writeShort(var3[var10]);
++					var9.writeInt(var3[var10]);
  					var9.writeShort((short)((var7.getBlockID(var11, var13, var12) & 4095) << 4 | var7.getBlockMetadata(var11, var13, var12) & 15));
  				}
+ 
+@@ -84,6 +84,6 @@
+ 	}
+ 
+ 	public int getPacketSize() {
+-		return 10 + this.size * 4;
++		return 10 + this.size * 6;
+ 	}
+ }
 --- net/minecraft/src/BiomeGenSwamp.java
 +++ net/minecraft/src/BiomeGenSwamp.java
 @@ -7,13 +7,22 @@
@@ -6855,7 +6871,7 @@
 +}
 --- net/minecraft/src/BiomeGenBase.java
 +++ net/minecraft/src/BiomeGenBase.java
-@@ -6,33 +6,317 @@
+@@ -6,33 +6,311 @@
  
  public abstract class BiomeGenBase {
  	public static final BiomeGenBase[] biomeList = new BiomeGenBase[256];
@@ -7151,17 +7167,11 @@
 +		taiga.snowyVariant = snowyTaiga;
 +		highlands.snowyVariant = frostyHighlands;
 +
-+		forest.internalVariant = plains;
-+		forest.internalChance = 4;
-+		forest.internalLayer = 1;
 +		plains.internalVariant = forest;
 +		plains.internalChance = 4;
 +		plains.internalLayer = 1;
-+		snowyTaiga.internalVariant = icePlains;
-+		snowyTaiga.internalChance = 4;
-+		snowyTaiga.internalLayer = 1;
 +		icePlains.internalVariant = iceMountains;
-+		icePlains.internalChance = 10;
++		icePlains.internalChance = 5;
 +		icePlains.internalLayer = 0;
 +		jungle.internalVariant = river;
 +		jungle.internalChance = 8;
@@ -7196,7 +7206,7 @@
  	public int field_6161_q = 5169201;
  	public float minHeight = 0.1F;
  	public float maxHeight = 0.3F;
-@@ -40,6 +324,13 @@
+@@ -40,6 +318,13 @@
  	public float rainfall = 0.5F;
  	public int waterColorMultiplier = 16777215;
  	public BiomeDecorator biomeDecorator;
@@ -7210,7 +7220,7 @@
  	protected List spawnableMonsterList = new ArrayList();
  	protected List spawnableCreatureList = new ArrayList();
  	protected List spawnableWaterCreatureList = new ArrayList();
-@@ -50,6 +341,7 @@
+@@ -50,6 +335,7 @@
  	protected WorldGenBigTree worldGenBigTree = new WorldGenBigTree(false);
  	protected WorldGenForest worldGenForest = new WorldGenForest(false);
  	protected WorldGenSwamp worldGenSwamp = new WorldGenSwamp();
@@ -7218,7 +7228,7 @@
  
  	protected BiomeGenBase(int var1) {
  		this.biomeID = var1;
-@@ -68,18 +360,38 @@
+@@ -68,18 +354,38 @@
  		this.spawnableWaterCreatureList.add(new SpawnListEntry(EntitySquid.class, 10, 4, 4));
  	}
  
@@ -7264,7 +7274,7 @@
  	}
  
  	private BiomeGenBase setMinMaxHeight(float var1, float var2) {
-@@ -93,6 +405,11 @@
+@@ -93,6 +399,11 @@
  		return this;
  	}
  
@@ -7276,7 +7286,7 @@
  	public WorldGenerator getRandomWorldGenForTrees(Random var1) {
  		return (WorldGenerator)(var1.nextInt(10) == 0 ? this.worldGenBigTree : this.worldGenTrees);
  	}
-@@ -101,7 +418,7 @@
+@@ -101,7 +412,7 @@
  		return new WorldGenTallGrass(Block.tallGrass.blockID, 1);
  	}
  
@@ -7285,7 +7295,7 @@
  		this.enableSnow = true;
  		return this;
  	}
-@@ -155,5 +472,85 @@
+@@ -155,5 +466,85 @@
  
  	public void decorate(World var1, Random var2, int var3, int var4) {
  		this.biomeDecorator.decorate(var1, var2, var3, var4);
