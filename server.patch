@@ -473,7 +473,7 @@
  		}
  
 -		var3 = this.rand.nextInt(3) + 1 + this.rand.nextInt(1 + var2);
-+		var3 = this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
++		var3 = this.worldObj.getWorldInfo().isClassicModeEnabled() ? 0 : this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
  
  		for(var4 = 0; var4 < var3; ++var4) {
  			if(this.isBurning()) {
@@ -622,16 +622,18 @@
  				}
 --- net/minecraft/src/WorldProvider.java
 +++ net/minecraft/src/WorldProvider.java
-@@ -29,7 +29,7 @@
+@@ -29,7 +29,9 @@
  
  	protected void registerWorldChunkManager() {
  		if(this.worldObj.getWorldInfo().getTerrainType() == WorldType.FLAT) {
 -			this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenBase.plains, 0.5F, 0.5F);
 +			this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenBase.plains, 0.8F, 0.8F);
++		} else if(this.worldObj.getWorldInfo().getTerrainType() == WorldType.BETA) {
++			this.worldChunkMgr = new WorldChunkManagerBeta(this.worldObj);
  		} else {
  			this.worldChunkMgr = new WorldChunkManager(this.worldObj);
  		}
-@@ -42,7 +42,9 @@
+@@ -42,7 +44,9 @@
  
  	public boolean canCoordinateBeSpawn(int var1, int var2) {
  		int var3 = this.worldObj.getFirstUncoveredBlock(var1, var2);
@@ -642,7 +644,7 @@
  	}
  
  	public float calculateCelestialAngle(long var1, float var3) {
-@@ -80,5 +82,9 @@
+@@ -80,5 +84,9 @@
  
  	public int getAverageGroundLevel() {
  		return this.terrainType == WorldType.FLAT ? 4 : 64;
@@ -693,7 +695,7 @@
  
  	public WorldGenerator getRandomWorldGenForTrees(Random var1) {
 -		return (WorldGenerator)(var1.nextInt(5) == 0 ? this.worldGenForest : (var1.nextInt(10) == 0 ? this.worldGenBigTree : this.worldGenTrees));
-+		return var1.nextInt(5) == 0 ? this.worldGenForest : (var1.nextInt(10) == 0 ? this.worldGenBigTree : this.worldGenTrees);
++		return var1.nextInt(5) == 0 ? this.worldGenForest : (var1.nextInt(beta ? 3 : 10) == 0 ? this.worldGenBigTree : this.worldGenTrees);
 +	}
 +
 +	public float getMinHeight(int x, int z) {
@@ -711,7 +713,7 @@
  		int var4;
  		for(var4 = 0; var4 < var3; ++var4) {
 -			this.dropItem(Item.rottenFlesh.shiftedIndex, 1);
-+			this.dropItem(Item.pigmanFlesh.shiftedIndex, 1);
++			this.dropItem(this.getDropItemId(), 1);
  		}
  
  		var3 = this.rand.nextInt(2 + var2);
@@ -729,7 +731,7 @@
  
  	protected int getDropItemId() {
 -		return Item.rottenFlesh.shiftedIndex;
-+		return Item.pigmanFlesh.shiftedIndex;
++		return this.worldObj.getWorldInfo().isClassicModeEnabled() ? Item.porkCooked.shiftedIndex : Item.pigmanFlesh.shiftedIndex;
  	}
  }
 --- net/minecraft/src/GenLayerRiver.java
@@ -1059,7 +1061,11 @@
  import java.util.List;
  import java.util.Random;
  
-@@ -12,9 +13,11 @@
+@@ -9,12 +10,15 @@
+ 	private NoiseGeneratorOctaves noiseGen2;
+ 	private NoiseGeneratorOctaves noiseGen3;
+ 	private NoiseGeneratorOctaves noiseGen4;
++	private NoiseGeneratorOctaves beachNoise;
  	public NoiseGeneratorOctaves noiseGen5;
  	public NoiseGeneratorOctaves noiseGen6;
  	public NoiseGeneratorOctaves mobSpawnerNoise;
@@ -1072,7 +1078,7 @@
  	private double[] stoneNoise = new double[256];
  	private MapGenBase caveGenerator = new MapGenCaves();
  	private MapGenStronghold strongholdGenerator = new MapGenStronghold();
-@@ -22,6 +25,11 @@
+@@ -22,6 +26,11 @@
  	private MapGenMineshaft mineshaftGenerator = new MapGenMineshaft();
  	private MapGenBase ravineGenerator = new MapGenRavine();
  	private BiomeGenBase[] biomesForGeneration;
@@ -1084,7 +1090,7 @@
  	double[] noise3;
  	double[] noise1;
  	double[] noise2;
-@@ -32,6 +40,7 @@
+@@ -32,23 +41,36 @@
  
  	public ChunkProviderGenerate(World var1, long var2, boolean var4) {
  		this.worldObj = var1;
@@ -1092,12 +1098,15 @@
  		this.mapFeaturesEnabled = var4;
  		this.rand = new Random(var2);
  		this.noiseGen1 = new NoiseGeneratorOctaves(this.rand, 16);
-@@ -41,14 +50,25 @@
+ 		this.noiseGen2 = new NoiseGeneratorOctaves(this.rand, 16);
+ 		this.noiseGen3 = new NoiseGeneratorOctaves(this.rand, 8);
+ 		this.noiseGen4 = new NoiseGeneratorOctaves(this.rand, 4);
++		this.beachNoise = new NoiseGeneratorOctaves(this.rand, 4);
  		this.noiseGen5 = new NoiseGeneratorOctaves(this.rand, 10);
  		this.noiseGen6 = new NoiseGeneratorOctaves(this.rand, 16);
  		this.mobSpawnerNoise = new NoiseGeneratorOctaves(this.rand, 8);
 +		this.simplexNoise = new NoiseGeneratorSimplexOctaves(this.rand, 4);
-+		BiomeGenBase.setupNoise(this.rand);
++		BiomeGenBase.setupNoise(this.rand, this.worldType == WorldType.BETA);
 +
 +		this.field_35561_l = new float[25];
 +		for(int var8 = -2; var8 <= 2; ++var8) {
@@ -1112,15 +1121,16 @@
 +		int height = var3.length / 256;
  		byte var4 = 4;
 -		byte var5 = 16;
+-		byte var6 = 63;
 +		int var5 = height / 8;
- 		byte var6 = 63;
++		int var6 = this.worldType == WorldType.BETA ? 64 : 63;
  		int var7 = var4 + 1;
 -		byte var8 = 17;
 +		int var8 = var5 + 1;
  		int var9 = var4 + 1;
  		this.biomesForGeneration = this.worldObj.getWorldChunkManager().getBiomesForGeneration(this.biomesForGeneration, var1 * 4 - 2, var2 * 4 - 2, var7 + 5, var9 + 5);
  		this.noiseArray = this.initializeNoiseField(this.noiseArray, var1 * var4, 0, var2 * var4, var7, var8, var9);
-@@ -74,19 +94,23 @@
+@@ -74,19 +96,23 @@
  						double var40 = (var21 - var17) * var32;
  
  						for(int var42 = 0; var42 < 4; ++var42) {
@@ -1147,7 +1157,7 @@
  									var43 += var44;
  									var3[var43] = (byte)Block.waterStill.blockID;
  								} else {
-@@ -110,66 +134,28 @@
+@@ -110,66 +136,28 @@
  
  	}
  
@@ -1224,16 +1234,16 @@
 +						xx,
 +						zz,
 +						this.topTerrainHeight,
-+						this.noiseGen4.generateNoiseOctaves(xx * var6 * 2.0D, zz * var6 * 2.0D, 1.0D),
-+						this.stoneNoise[x + z * 16]
-+				);
++						this.worldType == WorldType.BETA ? this.beachNoise.generateNoiseOctaves(xx * var6, zz * var6, 0.0D) : -1.0D,
++						this.worldType == WorldType.BETA ? this.beachNoise.generateNoiseOctaves(xx * var6, 109.0D, zz * var6) : -1.0D,
++						this.noiseGen4.generateNoiseOctaves(xx * var6 * 2.0D, zz * var6 * 2.0D, 1.0D), this.stoneNoise[x + z * 16]);
  			}
  		}
 -
  	}
  
  	public Chunk loadChunk(int var1, int var2) {
-@@ -177,20 +163,22 @@
+@@ -177,20 +165,22 @@
  	}
  
  	public Chunk provideChunk(int var1, int var2) {
@@ -1265,7 +1275,7 @@
  		byte[] var5 = var4.getBiomeArray();
  
  		for(int var6 = 0; var6 < var5.length; ++var6) {
-@@ -202,7 +190,7 @@
+@@ -202,7 +192,7 @@
  	}
  
  	private double[] initializeNoiseField(double[] var1, int var2, int var3, int var4, int var5, int var6, int var7) {
@@ -1274,13 +1284,14 @@
  			var1 = new double[var5 * var6 * var7];
  		}
  
-@@ -228,24 +216,44 @@
+@@ -228,32 +218,66 @@
  		int var12 = 0;
  		int var13 = 0;
  
 +		boolean amplified = this.worldType == WorldType.AMPLIFIED
 +				|| (this.worldType instanceof WorldTypeCustomized
 +						&& ((WorldTypeCustomized)this.worldType).isAmplified());
++		boolean betaHeight = this.worldType == WorldType.BETA;
 +
 +		for (int i = 0; i < 100; i++) {
 +			this.minHeights[i] = this.biomesForGeneration[i].getMinHeight(var2 - 2 + i % 10, var4 - 2 + i / 10);
@@ -1294,44 +1305,89 @@
  				float var18 = 0.0F;
  				byte var19 = 2;
 -				BiomeGenBase var20 = this.biomesForGeneration[var14 + 2 + (var15 + 2) * (var5 + 5)];
-+
-+				int i = var14 + 2 + (var15 + 2) * (var5 + 5);
-+				float baseMinHeight = this.minHeights[i];
- 
- 				for(int var21 = -var19; var21 <= var19; ++var21) {
- 					for(int var22 = -var19; var22 <= var19; ++var22) {
+-
+-				for(int var21 = -var19; var21 <= var19; ++var21) {
+-					for(int var22 = -var19; var22 <= var19; ++var22) {
 -						BiomeGenBase var23 = this.biomesForGeneration[var14 + var21 + 2 + (var15 + var22 + 2) * (var5 + 5)];
 -						float var24 = this.field_35561_l[var21 + 2 + (var22 + 2) * 5] / (var23.minHeight + 2.0F);
 -						if(var23.minHeight > var20.minHeight) {
-+						i = var14 + var21 + 2 + (var15 + var22 + 2) * (var5 + 5);
-+						float minHeight = this.minHeights[i];
-+						float var25 = minHeight;
-+						float var26 = this.maxHeights[i];
+-							var24 /= 2.0F;
 +
-+						if(amplified && var25 > -0.5F) {
-+							var25 = 1.0F + var25 / 2.0F * 2.0F;
-+							var26 = 1.0F + var26 / 2.0F * 4.0F;
-+						}
++				if (betaHeight) {
++					double temp = this.worldObj.getWorldChunkManager().getTemperature((var2 + var14) * 4, (var4 + var15) * 4);
++					double rain = this.worldObj.getWorldChunkManager().getRainfall((var2 + var14) * 4, (var4 + var15) * 4) * temp;
++					double rainOff = 1.0D - rain;
++					rainOff *= rainOff;
++					rainOff *= rainOff;
++					rainOff = 1.0D - rainOff;
++					var16 = (float)((this.noise5[var13] + 256.0D) / 512.0D);
++					var16 *= (float)rainOff;
++					if (var16 > 1.0F) var16 = 1.0F;
++				} else {
++					int i = var14 + 2 + (var15 + 2) * (var5 + 5);
++					float baseMinHeight = this.minHeights[i];
 +
-+						float var24 = this.field_35561_l[var21 + 2 + (var22 + 2) * 5] / (var25 + 2.0F);
-+						if(minHeight > baseMinHeight) {
- 							var24 /= 2.0F;
++					for(int var21 = -var19; var21 <= var19; ++var21) {
++						for(int var22 = -var19; var22 <= var19; ++var22) {
++							i = var14 + var21 + 2 + (var15 + var22 + 2) * (var5 + 5);
++							float minHeight = this.minHeights[i];
++							float var25 = minHeight;
++							float var26 = this.maxHeights[i];
++
++							if(amplified && var25 > -0.5F) {
++								var25 = 1.0F + var25 / 2.0F * 2.0F;
++								var26 = 1.0F + var26 / 2.0F * 4.0F;
++							}
++
++							float var24 = this.field_35561_l[var21 + 2 + (var22 + 2) * 5] / (var25 + 2.0F);
++							if(minHeight > baseMinHeight) {
++								var24 /= 2.0F;
++							}
++
++							var16 += var26 * var24;
++							var17 += var25 * var24;
++							var18 += var24;
  						}
- 
+-
 -						var16 += var23.maxHeight * var24;
 -						var17 += var23.minHeight * var24;
-+						var16 += var26 * var24;
-+						var17 += var25 * var24;
- 						var18 += var24;
+-						var18 += var24;
  					}
- 				}
-@@ -277,14 +285,14 @@
+-				}
+-
+-				var16 /= var18;
+-				var17 /= var18;
+-				var16 = var16 * 0.9F + 0.1F;
+-				var17 = (var17 * 4.0F - 1.0F) / 8.0F;
++
++					var16 /= var18;
++					var17 /= var18;
++					var16 = var16 * 0.9F + 0.1F;
++					var17 = (var17 * 4.0F - 1.0F) / 8.0F;
++ 				}
++
+ 				double var45 = this.noise6[var13] / 8000.0D;
+ 				if(var45 < 0.0D) {
+ 					var45 = -var45 * 0.3D;
+@@ -268,6 +292,7 @@
+ 
+ 					var45 /= 1.4D;
+ 					var45 /= 2.0D;
++					if (betaHeight) var16 = 0.0F;
+ 				} else {
+ 					if(var45 > 1.0D) {
+ 						var45 = 1.0D;
+@@ -276,16 +301,19 @@
+ 					var45 /= 8.0D;
  				}
  
++				if (betaHeight && var16 < 0.0F) var16 = 0.0F;
++
  				++var13;
-+				double var47 = (double)var17;
++				if (betaHeight) var16 += 0.5F;
++				double var47 = betaHeight ? var45 : (double)var17;
 +				double var26 = (double)var16;
-+				var47 += var45 * 0.2D;
++				if (!betaHeight) var47 += var45 * 0.2D;
 +				var47 = var47 * 8.5D / 8.0D;
 +				double var28 = 8.5D + var47 * 4.0D;
  
@@ -1342,11 +1398,13 @@
 -					var47 = var47 * (double)var6 / 16.0D;
 -					double var28 = (double)var6 / 2.0D + var47 * 4.0D;
 -					double var30 = 0.0D;
+-					double var32 = ((double)var46 - var28) * 12.0D * 128.0D / 128.0D / var26;
 +					double var30;
- 					double var32 = ((double)var46 - var28) * 12.0D * 128.0D / 128.0D / var26;
++					double var32 = ((double)var46 - var28) * 12.0D / var26;
  					if(var32 < 0.0D) {
  						var32 *= 4.0D;
-@@ -302,8 +310,10 @@
+ 					}
+@@ -302,8 +330,10 @@
  					}
  
  					var30 -= var32;
@@ -1359,7 +1417,7 @@
  						var30 = var30 * (1.0D - var40) + -10.0D * var40;
  					}
  
-@@ -339,14 +349,14 @@
+@@ -339,14 +369,14 @@
  		int var12;
  		int var13;
  		int var14;
@@ -2022,7 +2080,7 @@
 +	public BiomeGenSeasonalForest(int var1) {
 +		super(var1);
 +		this.spawnableCreatureList.add(new SpawnListEntry(EntityWolf.class, 5, 4, 4));
-+		this.biomeDecorator.treesPerChunk = 4;
++		this.biomeDecorator.treesPerChunk = 5;
 +		this.biomeDecorator.grassPerChunk = 2;
 +	}
 +
@@ -2434,7 +2492,7 @@
 +	}
 +
 +	public WorldGenerator getRandomWorldGenForTrees(Random var1) {
-+		return var1.nextInt(5) == 0 ? this.worldGenForest : var1.nextInt(3) == 0 ? this.worldGenBigTree : this.worldGenTrees;
++		return var1.nextInt(3) == 0 ? this.worldGenBigTree : this.worldGenTrees;
 +	}
 +
 +	public WorldGenerator func_48440_b(Random var1) {
@@ -2594,6 +2652,25 @@
 +        return nArray2;
 +    }
 +}
+--- net/minecraft/src/EntityChicken.java
++++ net/minecraft/src/EntityChicken.java
+@@ -98,10 +98,12 @@
+ 			this.dropItem(Item.feather.shiftedIndex, 1);
+ 		}
+ 
+-		if(this.isBurning()) {
+-			this.dropItem(Item.chickenCooked.shiftedIndex, 1);
+-		} else {
+-			this.dropItem(Item.chickenRaw.shiftedIndex, 1);
++		if(!this.worldObj.getWorldInfo().isClassicModeEnabled()) {
++			if(this.isBurning()) {
++				this.dropItem(Item.chickenCooked.shiftedIndex, 1);
++			} else {
++				this.dropItem(Item.chickenRaw.shiftedIndex, 1);
++			}
+ 		}
+ 
+ 	}
 --- net/minecraft/src/BiomeGenOcean.java
 +++ net/minecraft/src/BiomeGenOcean.java
 @@ -4,5 +4,6 @@
@@ -3477,6 +3554,17 @@
  					Iterator var5 = var4.iterator();
  
  					while(var5.hasNext()) {
+--- net/minecraft/src/EntityZombie.java
++++ net/minecraft/src/EntityZombie.java
+@@ -57,7 +57,7 @@
+ 	}
+ 
+ 	protected int getDropItemId() {
+-		return Item.rottenFlesh.shiftedIndex;
++		return this.worldObj.getWorldInfo().isClassicModeEnabled() ? Item.feather.shiftedIndex : Item.rottenFlesh.shiftedIndex;
+ 	}
+ 
+ 	public EnumCreatureAttribute getCreatureAttribute() {
 --- net/minecraft/src/MapGenCaves.java
 +++ net/minecraft/src/MapGenCaves.java
 @@ -8,6 +8,7 @@
@@ -3531,7 +3619,7 @@
  			this.entityDropItem(new ItemStack(Block.cloth.blockID, 1, this.getFleeceColor()), 0.0F);
  		}
  
-+		int var3 = this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
++		int var3 = this.worldObj.getWorldInfo().isClassicModeEnabled() ? 0 : this.rand.nextInt(3) + this.rand.nextInt(1 + var2);
 +		for(int var4 = 0; var4 < var3; ++var4) {
 +			if(this.isBurning()) {
 +				this.dropItem(Item.muttonCooked.shiftedIndex, 1);
@@ -3542,6 +3630,139 @@
  	}
  
  	protected int getDropItemId() {
+--- /dev/null
++++ net/minecraft/src/WorldChunkManagerBeta.java
+@@ -1,0 +1,130 @@
++package net.minecraft.src;
++
++import java.util.Arrays;
++import java.util.Random;
++
++public class WorldChunkManagerBeta extends WorldChunkManager {
++	private NoiseGeneratorOctaves2 field_4194_e;
++	private NoiseGeneratorOctaves2 field_4193_f;
++	private NoiseGeneratorOctaves2 field_4192_g;
++	private double[] temperature;
++	private double[] humidity;
++	private double[] field_4196_c;
++	private BiomeGenBase[] biomes;
++
++	public WorldChunkManagerBeta(World var1) {
++		super(var1);
++		this.field_4194_e = new NoiseGeneratorOctaves2(new Random(var1.getSeed() * 9871L), 4);
++		this.field_4193_f = new NoiseGeneratorOctaves2(new Random(var1.getSeed() * 39811L), 4);
++		this.field_4192_g = new NoiseGeneratorOctaves2(new Random(var1.getSeed() * 543321L), 2);
++	}
++
++	public float[] getTemperatures(float[] var1, int var2, int var3, int var4, int var5) {
++		if(var1 == null || var1.length < var4 * var5) {
++			var1 = new float[var4 * var5];
++		}
++
++		this.biomes = this.loadBlockGeneratorData(this.biomes, var2, var3, var4, var5);
++		int var6 = 0;
++		for(int var7 = 0; var7 < var4; ++var7) {
++			for(int var8 = 0; var8 < var5; ++var8) {
++				var1[var6] = (float)this.temperature[var7 + var8 * var4];
++				var6++;
++			}
++		}
++
++		return var1;
++	}
++
++	public float[] getRainfall(float[] var1, int var2, int var3, int var4, int var5) {
++		if(var1 == null || var1.length < var4 * var5) {
++			var1 = new float[var4 * var5];
++		}
++
++		this.biomes = this.loadBlockGeneratorData(this.biomes, var2, var3, var4, var5);
++		int var6 = 0;
++		for(int var7 = 0; var7 < var4; ++var7) {
++			for(int var8 = 0; var8 < var5; ++var8) {
++				var1[var6] = (float)this.humidity[var7 + var8 * var4];
++				var6++;
++			}
++		}
++
++		return var1;
++	}
++
++	public BiomeGenBase[] getBiomesForGeneration(BiomeGenBase[] var1, int var2, int var3, int var4, int var5) {
++		if(var1 == null || var1.length < var4 * var5) {
++			var1 = new BiomeGenBase[var4 * var5];
++		}
++		Arrays.fill(var1, BiomeGenBase.plains);
++		return var1;
++	}
++
++	public BiomeGenBase[] getBiomeGenAt(BiomeGenBase[] var1, int var2, int var3, int var4, int var5) {
++		return this.loadBlockGeneratorData(var1, var2, var3, var4, var5);
++	}
++
++	public BiomeGenBase[] loadBlockGeneratorData(BiomeGenBase[] var1, int var2, int var3, int var4, int var5) {
++		if(var1 == null || var1.length < var4 * var5) {
++			var1 = new BiomeGenBase[var4 * var5];
++		}
++
++		this.biomes = this.loadBlockGeneratorDataBeta(this.biomes, var2, var3, var4, var5);
++		int var6 = 0;
++		for(int var7 = 0; var7 < var4; ++var7) {
++			for(int var8 = 0; var8 < var5; ++var8) {
++				var1[var6] = this.biomes[var7 + var8 * var4];
++				var6++;
++			}
++		}
++
++		return var1;
++	}
++
++
++	public BiomeGenBase[] loadBlockGeneratorDataBeta(BiomeGenBase[] var1, int var2, int var3, int var4, int var5) {
++		if(var1 == null || var1.length < var4 * var5) {
++			var1 = new BiomeGenBase[var4 * var5];
++		}
++
++		this.temperature = this.field_4194_e.func_4112_a(this.temperature, (double)var2, (double)var3, var4, var4, (double)0.025F, (double)0.025F, 0.25D);
++		this.humidity = this.field_4193_f.func_4112_a(this.humidity, (double)var2, (double)var3, var4, var4, (double)0.05F, (double)0.05F, 1.0D / 3.0D);
++		this.field_4196_c = this.field_4192_g.func_4112_a(this.field_4196_c, (double)var2, (double)var3, var4, var4, 0.25D, 0.25D, 0.5882352941176471D);
++		int var6 = 0;
++
++		for(int var7 = 0; var7 < var4; ++var7) {
++			for(int var8 = 0; var8 < var5; ++var8) {
++				double var9 = this.field_4196_c[var6] * 1.1D + 0.5D;
++				double var11 = 0.01D;
++				double var13 = 1.0D - var11;
++				double var15 = (this.temperature[var6] * 0.15D + 0.7D) * var13 + var9 * var11;
++				var11 = 0.002D;
++				var13 = 1.0D - var11;
++				double var17 = (this.humidity[var6] * 0.15D + 0.5D) * var13 + var9 * var11;
++				var15 = 1.0D - (1.0D - var15) * (1.0D - var15);
++				if(var15 < 0.0D) {
++					var15 = 0.0D;
++				}
++
++				if(var17 < 0.0D) {
++					var17 = 0.0D;
++				}
++
++				if(var15 > 1.0D) {
++					var15 = 1.0D;
++				}
++
++				if(var17 > 1.0D) {
++					var17 = 1.0D;
++				}
++
++				this.temperature[var6] = var15;
++				this.humidity[var6] = var17;
++				var1[var6++] = BiomeGenBase.getBiomeFromLookup(var15, var17);
++			}
++		}
++
++		return var1;
++	}
++}
 --- net/minecraft/src/Packet15Place.java
 +++ net/minecraft/src/Packet15Place.java
 @@ -13,7 +13,7 @@
@@ -4033,7 +4254,7 @@
 +				: (var1.nextInt(10) == 0 ? this.worldGenBigTree : this.worldGenTrees);
 +	}
 +
-+	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double erosionValue, double simplexValue) {
++	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double sandValue, double gravelValue, double erosionValue, double simplexValue) {
 +		int height = blocks.length / 256;
 +		int chunkX = x & 15;
 +		int chunkZ = z & 15;
@@ -4048,7 +4269,7 @@
 +			this.topBlock = this.fillerBlock = (byte)Block.stone.blockID;
 +		}
 +
-+		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, erosionValue, simplexValue);
++		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, sandValue, gravelValue, erosionValue, simplexValue);
 +
 +		float tempOffset = (float)snowNoise.func_151601_a(x / 8.0D, z / 8.0D) * 4.0F;
 +		for (int y = Math.min(topTerrainHeight + 1, height - 1),
@@ -5608,7 +5829,7 @@
 +		super.decorate(var1, var2, var3, var4);
 +	}
 +
-+	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double erosionValue, double simplexValue) {
++	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double sandValue, double gravelValue, double erosionValue, double simplexValue) {
 +		if (doMutation((x + random.nextInt(4)) >> 2, (z + random.nextInt(4)) >> 2) && (erosionValue < -1.0D || erosionValue > 2.0D)) {
 +			this.topBlock = this.fillerBlock = (byte)Block.gravel.blockID;
 +		} else if (erosionValue > 1.0D) {
@@ -5618,7 +5839,7 @@
 +			this.fillerBlock = (byte)Block.dirt.blockID;
 +		}
 +
-+		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, erosionValue, simplexValue);
++		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, sandValue, gravelValue, erosionValue, simplexValue);
 +
 +		int height = blocks.length / 256;
 +		int chunkX = x & 15;
@@ -6871,7 +7092,7 @@
 +}
 --- net/minecraft/src/BiomeGenBase.java
 +++ net/minecraft/src/BiomeGenBase.java
-@@ -6,33 +6,311 @@
+@@ -6,33 +6,320 @@
  
  public abstract class BiomeGenBase {
  	public static final BiomeGenBase[] biomeList = new BiomeGenBase[256];
@@ -6899,6 +7120,7 @@
 -	public static final BiomeGenBase jungle = (new BiomeGenJungle(21)).setColor(5470985).setBiomeName("Jungle").func_4080_a(5470985).setTemperatureRainfall(1.2F, 0.9F).setMinMaxHeight(0.2F, 0.4F);
 -	public static final BiomeGenBase jungleHills = (new BiomeGenJungle(22)).setColor(2900485).setBiomeName("JungleHills").func_4080_a(5470985).setTemperatureRainfall(1.2F, 0.9F).setMinMaxHeight(1.8F, 0.2F);
 +	public static final boolean[] oceanList = new boolean[256];
++	private static BiomeGenBase[] biomeLookupTable = new BiomeGenBase[4096];
 +
 +	// Beta 1.8
 +	public static final BiomeGenBase ocean = new BiomeGenOcean(0)
@@ -7115,6 +7337,12 @@
 +			.setColor(0x596651)
 +			.setTemperatureRainfall(0.3F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F);
++	// aa1.2.5
++	public static final BiomeGenBase seasonalForest = new BiomeGenSeasonalForest(47)
++			.setBiomeName("Seasonal Forest")
++			.setColor(0x9BE023)
++			.setTemperatureRainfall(1.0F, 0.7F)
++			.setMinMaxHeight(0.1F, 0.6F);
 +	// Obsolete
 +	public static final BiomeGenBase desertHills = new BiomeGenDesert(17)
 +			.setBiomeName("Desert Hills")
@@ -7195,6 +7423,8 @@
 +		windsweptCrags.hasBeach = false;
 +		extremeHills.hasBeach = false;
 +		parchedForest.hasBeach = false;
++
++		generateBiomeLookup();
 +	}
 +
  	public String biomeName;
@@ -7206,7 +7436,7 @@
  	public int field_6161_q = 5169201;
  	public float minHeight = 0.1F;
  	public float maxHeight = 0.3F;
-@@ -40,6 +318,13 @@
+@@ -40,6 +327,13 @@
  	public float rainfall = 0.5F;
  	public int waterColorMultiplier = 16777215;
  	public BiomeDecorator biomeDecorator;
@@ -7220,20 +7450,22 @@
  	protected List spawnableMonsterList = new ArrayList();
  	protected List spawnableCreatureList = new ArrayList();
  	protected List spawnableWaterCreatureList = new ArrayList();
-@@ -50,6 +335,7 @@
+@@ -50,6 +344,8 @@
  	protected WorldGenBigTree worldGenBigTree = new WorldGenBigTree(false);
  	protected WorldGenForest worldGenForest = new WorldGenForest(false);
  	protected WorldGenSwamp worldGenSwamp = new WorldGenSwamp();
 +	private static NoiseGeneratorSimplexOctaves heightNoise = new NoiseGeneratorSimplexOctaves(new Random(), 4);
++	protected static boolean beta;
  
  	protected BiomeGenBase(int var1) {
  		this.biomeID = var1;
-@@ -68,18 +354,38 @@
+@@ -68,18 +364,39 @@
  		this.spawnableWaterCreatureList.add(new SpawnListEntry(EntitySquid.class, 10, 4, 4));
  	}
  
-+	public static void setupNoise(Random random) {
++	public static void setupNoise(Random random, boolean beta) {
 +		heightNoise = new NoiseGeneratorSimplexOctaves(random, 4);
++		BiomeGenBase.beta = beta;
 +	}
 +
 +	protected static float getHeightNoiseValue(double x, double z) {
@@ -7274,7 +7506,7 @@
  	}
  
  	private BiomeGenBase setMinMaxHeight(float var1, float var2) {
-@@ -93,6 +399,11 @@
+@@ -93,6 +410,11 @@
  		return this;
  	}
  
@@ -7286,7 +7518,7 @@
  	public WorldGenerator getRandomWorldGenForTrees(Random var1) {
  		return (WorldGenerator)(var1.nextInt(10) == 0 ? this.worldGenBigTree : this.worldGenTrees);
  	}
-@@ -101,7 +412,7 @@
+@@ -101,7 +423,7 @@
  		return new WorldGenTallGrass(Block.tallGrass.blockID, 1);
  	}
  
@@ -7295,7 +7527,7 @@
  		this.enableSnow = true;
  		return this;
  	}
-@@ -155,5 +466,85 @@
+@@ -155,5 +477,107 @@
  
  	public void decorate(World var1, Random var2, int var3, int var4) {
  		this.biomeDecorator.decorate(var1, var2, var3, var4);
@@ -7304,11 +7536,14 @@
 +	public boolean isOcean() {
 +		return oceanList[this.biomeID];
 +	}
-+	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double erosionValue, double simplexValue) {
-+		this.buildDefaultSurface(world, random, blocks, metadata, x, z, topTerrainHeight, erosionValue, simplexValue);
++
++	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight,
++	                              double sandValue, double gravelValue, double erosionValue, double simplexValue) {
++		this.buildDefaultSurface(world, random, blocks, metadata, x, z, topTerrainHeight, sandValue, gravelValue, erosionValue, simplexValue);
 +	}
 +
-+	public final void buildDefaultSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double erosionValue, double simplexValue) {
++	public final void buildDefaultSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z,
++	                                      int topTerrainHeight, double sandValue, double gravelValue, double erosionValue, double simplexValue) {
 +		int height = blocks.length / 256;
 +		int chunkX = x & 15;
 +		int chunkZ = z & 15;
@@ -7379,6 +7614,25 @@
 +
 +	public int hashCode() {
 +		return this.biomeName.hashCode();
++	}
++
++	private static BiomeGenBase getBetaBiome(float var0, float var1) {
++		var1 *= var0;
++		return var0 < 0.1F ? icePlains : (var1 < 0.2F ? (var0 < 0.5F ? icePlains : (var0 < 0.95F ? savanna : desert)) : (var1 > 0.5F && var0 < 0.7F ? savanna : (var0 < 0.5F ? snowyTaiga : (var0 < 0.97F ? (var1 < 0.35F ? savanna : forest) : (var1 < 0.45F ? plains : (var1 < 0.9F ? seasonalForest : rainforest))))));
++	}
++
++	public static void generateBiomeLookup() {
++		for(int var0 = 0; var0 < 64; ++var0) {
++			for(int var1 = 0; var1 < 64; ++var1) {
++				biomeLookupTable[var0 + var1 * 64] = getBetaBiome((float)var0 / 63.0F, (float)var1 / 63.0F);
++			}
++		}
++	}
++
++	public static BiomeGenBase getBiomeFromLookup(double var0, double var2) {
++		int var4 = (int)(var0 * 63.0D);
++		int var5 = (int)(var2 * 63.0D);
++		return biomeLookupTable[var4 + var5 * 64];
  	}
  }
 --- /dev/null
@@ -7597,7 +7851,7 @@
 +}
 --- net/minecraft/src/WorldType.java
 +++ net/minecraft/src/WorldType.java
-@@ -4,21 +4,30 @@
+@@ -4,21 +4,31 @@
  	public static final WorldType[] worldTypes = new WorldType[16];
  	public static final WorldType DEFAULT = (new WorldType(0, "default", 1)).func_48448_d();
  	public static final WorldType FLAT = new WorldType(1, "flat");
@@ -7606,8 +7860,9 @@
 +	public static final WorldType SMALL_BIOMES = new WorldType(3, "smallBiomes");
 +	public static final WorldType AMPLIFIED = new WorldType(4, "amplified");
 +	public static final WorldType LEGACY = new WorldType(5, "legacy").setLegacyWorldGen();
-+	public static final WorldTypeCustomized CUSTOMIZED = (WorldTypeCustomized)(new WorldTypeCustomized(6, "customized"));
-+	public static final WorldTypeCustomized SINGLE_BIOME = (WorldTypeCustomized)(new WorldTypeCustomized(7, "singleBiome").setCanBeCreated(false));
++	public static final WorldType BETA = new WorldType(6, "beta");
++	public static final WorldTypeCustomized CUSTOMIZED = (WorldTypeCustomized)(new WorldTypeCustomized(7, "customized"));
++	public static final WorldTypeCustomized SINGLE_BIOME = (WorldTypeCustomized)(new WorldTypeCustomized(8, "singleBiome").setCanBeCreated(false));
 +	public static final WorldType DEFAULT_1_1 = (new WorldType(8, "default_1_1", 0)).setCanBeCreated(false).setLegacyWorldGen();
  	private final String worldType;
  	private final int generatorVersion;
@@ -7632,7 +7887,7 @@
  	}
  
  	public String func_48449_a() {
-@@ -33,18 +42,34 @@
+@@ -33,18 +43,34 @@
  		return this == DEFAULT && var1 == 0 ? DEFAULT_1_1 : this;
  	}
  
@@ -8602,14 +8857,14 @@
 +		return var1.nextInt(5) == 0 ? this.biomeDecorator.bigMushroomGen : var1.nextInt(5) == 0 ? this.worldGenBigTree : this.worldGenTrees;
 +	}
 +
-+	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double erosionValue, double simplexValue) {
++	public void buildBiomeSurface(World world, Random random, byte[] blocks, byte[] metadata, int x, int z, int topTerrainHeight, double sandValue, double gravelValue, double erosionValue, double simplexValue) {
 +		if (Math.abs(erosionValue) > 3.0D) {
 +			this.topBlock = (byte)Block.mycelium.blockID;
 +		} else {
 +			this.topBlock = (byte)Block.grass.blockID;
 +		}
 +
-+		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, erosionValue, simplexValue);
++		super.buildBiomeSurface(world, random, blocks, metadata, x, z, topTerrainHeight, sandValue, gravelValue, erosionValue, simplexValue);
 +	}
 +}
 --- net/minecraft/src/GenLayerBiome.java
