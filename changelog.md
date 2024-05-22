@@ -1,3 +1,180 @@
+# 1.3
+Released: May 22nd 2024
+
+## Additions
+
+### Gameplay
+- Customized game modes
+    - Allows the player to change a variety of different options to play the game their own way
+    - Allows for hardcore mode and classic mode to be played correctly in multiplayer
+    - Added vanilla preset for a vanilla-style experience
+    - Options that are new to the mod:
+        - Hunger Type: readded vanilla hunger system but with Minecraft 1.11 exhaustion values and a saturation overlay over the hunger bar
+        - Plank Variants: allow different wood types to be crafted into different plank types or restrict planks to oak only
+        - End Portals: enabled by default excluding the classic preset
+
+### Biomes
+- Frosted Birch Forest
+    - Snowy variant of the Birch Forest
+- Snowcapped Forest
+    - Generates inside Snowcapped Hills
+    - Slightly taller elevation
+
+### Settings
+- Shading settings
+    - Replaced shading style with more customisability
+    - Moved colored water from video settings to shading settings
+    - Colored Lighting: on by default, gives block light a slight orange tint and night light a blue shade
+    - Non-Solid AO: on by default, allows for ambient occlusion to appear on transparent blocks like leaves
+    - Ambient Occlusion: 95% by default, controls strength/darkness of ambient occlusion
+    - Murky Swamps: off by default, gives swamps a dark look
+
+## Changes
+
+### Blocks
+- Cobblestone
+    - Changed texture
+- Cobblestone Stairs
+    - Renamed from Stone Stairs
+- Mossy Cobblestone
+    - Renamed from Moss Stone
+    - Changed Texture
+- Mushrooms
+    - Can now be placed in lit areas
+- Mushroom Block
+    - Drops with the respective cap or stem texture on all sides when mined with silk touch
+    - Can now be used with shears to obtain the variant with pores on all sides
+- Vines
+    - Reduced growth
+
+### Items
+- Golden Apple
+    - Increased health/hunger given to 10
+- Golden Tools
+    - Increased durability to 250
+    - Increased damage by 1
+    - Reduced efficiency to x10
+    - Reduced enchantability to 12
+- Pigman Flesh
+    - Increased length, reduced strength and reduced probability of hunger effect to match vanilla Rotten Flesh
+- Raw Porkchop
+    - No longer gives the hunger effect
+- Shears
+    - Increased durability to 250
+
+### Mobs
+- Creeper
+    - Reverted to pre-1.2 AI
+    - Can now move while exploding again
+    - Consequently, creepers no longer run away from cats and ocelots
+- Zombie
+    - No longer drops rare loot
+- Zombie Pigman
+    - No longer drops golden helmets
+
+### Enchantments
+- Bane of Arthropods
+    - Reduced effectiveness by 1/3
+- Fortune
+    - Reduced effectiveness on ore:
+        | Level | Old Chances | New Chances |
+        |---|---|---|
+        | 1 | 67% x1<br>33% x2<br>**AVG 1.33** | 67% x1<br>33% x2<br>**AVG 1.33** |
+        | 2 | 50% x1<br>25% x2<br>25% x3<br>**AVG 1.75** | 33% x1<br>67% x2<br><br>**AVG 1.67** |
+        | 3 | 40% x1<br>20% x2<br>20% x3<br>20% x4<br>**AVG 2.20** | 33% x1<br>33% x2<br>33% x3<br><br>**AVG 2.00** |
+- Protection (and other related enchantments):
+    - Reduced effectiveness by 1/3
+- Sharpness
+    - Reduced effectiveness by 1/3
+- Smite
+    - Reduced effectiveness by 1/4
+- Stamina
+    - Increased max level to V
+    - Half as effective with hunger type set to hungry
+- Velocity
+    - Increased max level to V
+    - Reduced speed increase per level from 8% to 5%
+- Increased rarity of higher level enchantments
+- Removed enchantment buff in hardcore mode
+
+### Gameplay
+- Classic and Hardcore gamemodes are now only available as customization presets
+- Animals respawn 400x as often, just like before Minecraft Beta 1.7 except animals do not despawn
+    - This change does not apply to hardcore mode
+- Changed game mode descriptions to be more accurate
+- The classic AI option now reverts all vanilla 1.2 mob AI changes
+- Increased length of sprint cooldown when taking damage (0.5 -> 2 seconds for easy, 1 -> 3 seconds for normal and 1.5 -> 4 seconds for hard)
+- Removed +1 extra damage from classic mode
+
+### Biomes
+- Desert
+    - Removed desert wells
+- Forest
+    - Slightly increased temperature
+- Jungle
+    - Reduced amount of vines
+    - Adjusted tree distribution
+    - Tall trees are slightly taller
+    - Big trees have a different shape
+- Rainforest
+    - Added underground vines
+    - Replaced small trees with tall swamp trees
+    - Big trees have a different shape
+- River
+    - No longer generates as a biome
+- Savanna
+    - Slightly increased temperature
+    - Slightly reduced humidity
+- Wooded Hills
+    - Climate now matches extreme hills
+
+### World Generation
+- Big trees
+    - Grown trees now have the same shape as naturally generated trees
+    - Reduced leaf decay by moving branch positions
+- Villages
+    - Now generate at surface level in superflat worlds
+- Slightly changed biome distribution
+- Temperate biomes are now more common
+- Adjusted height of some biomes
+- Biomes now use separate RNG for noise values
+
+### Structures
+- Village
+    - Cobblestone placed below village buildings has been changed to mossy cobblestone
+    - Can spawn in more biomes
+
+### Other
+- The texture of the hunger bar has been changed to feathers when hunger is set to sprint only
+- Reworked biome blending to no longer depend on world seed
+- Server world seeds are no longer shared to clients
+- Slightly reduced default ambient occlusion strength
+- Made light slightly brighter (fixes a visual error with smooth lighting disabled)
+- Reduced humidity in superflat worlds
+- Torches now glow up regardless of shading style
+- Pressing start and select at the same time on a controller toggles debug info
+- The creative inventory can now be scrolled using the right stick on a controller
+
+### Removals
+- Deprecated the Small Biomes, Large Biomes, AMPLIFIED and Legacy world types as they can easily be recreated with the Customized world type
+- Shading style removed from options in favour of more customizable style settings
+- Deprecated biomes (e.g. hills variants) are no longer shown on the custom world type menu 
+
+### Bug Fixes
+- Night time is now dark with shading style set to beta
+- Swamp trees can now grow above Y 128
+- Screenshotting at lower resolutions no longer prevents screenshotting at larger resolutions under 3x the size of the original resolution
+- Quitting settings menus now correctly saves options
+- Removed the "Already decorating!" crash
+- Pick block now works correctly for bookshelves and glowstone blocks
+- Fixed upside-down slab lighting bug
+- Exhaustion is no longer applied when taking damage with hunger type set to sprint only
+- Some mobs in multiplayer are now correctly affected by the health multiplier
+- Sprint cooldown now works correctly in multiplayer
+- Picking up xperience orbs now play the same popping sound in multiplayer as it does in singleplayer
+
+---
+
 # 1.2.5
 Released: March 17th 2024
 
@@ -8,7 +185,7 @@ Released: March 17th 2024
 ## Changes
 
 ### Biomes
-- Redjusted the height of forests, taigas and birch forests
+- Readjusted the height of forests, taigas and birch forests
 - Increased the frequency of ice mountains
 - Removed plains from inside of forests
 - Removed birch trees from rainforests
@@ -493,12 +670,11 @@ Released: May 17th 2023
     - Applies to leggings
     - Reduces exhaustion by 10% for each level
     - Cannot be used with Velocity
-
-- Stamina
+- Velocity
     - Maximum level: III
     - Applies to leggings
     - Increases walking speed by 8% for each level
-    - Cannot be used with Velocity
+    - Cannot be used with Stamina
 
 ### Biomes
 - Highlands
