@@ -521,12 +521,12 @@
  	}
  
  	protected void entityInit() {
-@@ -40,12 +40,31 @@
+@@ -40,12 +40,30 @@
  
  	}
  
 +	protected void attackBlockedEntity(Entity var1, float var2) {
-+		if(!this.worldObj.isRemote && this.worldObj.getGameMode().classicAI) {
++		if(!this.worldObj.isRemote && !this.isAIEnabledInWorld()) {
 +			if(this.timeSinceIgnited > 0) {
 +				this.setCreeperState(-1);
 +				--this.timeSinceIgnited;
@@ -544,16 +544,15 @@
  	}
  
  	public void onUpdate() {
-+		if (this.worldObj.getGameMode().classicAI) {
++		if (!this.isAIEnabledInWorld()) {
 +			this.classicUpdate();
 +			return;
 +		}
 +
-+
  		if(this.isEntityAlive()) {
  			this.lastActiveTime = this.timeSinceIgnited;
  			int var1 = this.getCreeperState();
-@@ -75,6 +94,34 @@
+@@ -75,6 +93,34 @@
  		super.onUpdate();
  	}
  
@@ -588,13 +587,13 @@
  	protected String getHurtSound() {
  		return "mob.creeper";
  	}
-@@ -90,6 +137,39 @@
+@@ -90,6 +136,39 @@
  		}
  
  	}
 +
 +	protected void attackEntity(Entity var1, float var2) {
-+		if(!this.worldObj.isRemote && this.worldObj.getGameMode().classicAI) {
++		if(!this.worldObj.isRemote && !this.isAIEnabledInWorld()) {
 +			int var3 = this.getCreeperState();
 +			if(var3 <= 0 && var2 < 3.0F || var3 > 0 && var2 < 7.0F) {
 +				if(this.timeSinceIgnited == 0) {
@@ -891,7 +890,7 @@
  				}
 --- net/minecraft/src/GenLayer.java
 +++ net/minecraft/src/GenLayer.java
-@@ -1,71 +1,134 @@
+@@ -1,58 +1,134 @@
  package net.minecraft.src;
  
 +import java.util.function.Function;
@@ -903,19 +902,6 @@
  	private long chunkSeed;
  	private long baseSeed;
  
--	public static GenLayer[] func_48425_a_authadvstyle(long l, WorldType wt) {
--		GenLayer genLayer = new GenLayerIsland(1L);
--		genLayer = new GenLayerFuzzyZoom(2000L, genLayer);
--		genLayer = new GenLayerAddIsland(1L, genLayer);
--		genLayer = new GenLayerZoom(2001L, genLayer);
--		genLayer = new GenLayerAddIsland(2L, genLayer);
--		genLayer = new GenLayerAddSnow(2L, genLayer);
--		genLayer = new GenLayerZoom(2002L, genLayer);
--		genLayer = new GenLayerAddIsland(3L, genLayer);
--		genLayer = new GenLayerZoom(2003L, genLayer);
--		genLayer = new GenLayerAddIsland(4L, genLayer);
--	}
--
 -	public static GenLayer[] func_48391_a(long var0, WorldType var2) {
 -		GenLayerIsland var3 = new GenLayerIsland(1L);
 -		GenLayerFuzzyZoom var9 = new GenLayerFuzzyZoom(2000L, var3);
@@ -1083,7 +1069,7 @@
  		this.baseSeed = var1;
  		this.baseSeed *= this.baseSeed * 6364136223846793005L + 1442695040888963407L;
  		this.baseSeed += var1;
-@@ -110,6 +173,10 @@
+@@ -97,6 +173,10 @@
  		this.chunkSeed *= this.chunkSeed * 6364136223846793005L + 1442695040888963407L;
  		this.chunkSeed += this.worldGenSeed;
  		return var2;

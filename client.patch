@@ -1028,7 +1028,7 @@
  	}
  
  	public void onUpdate() {
-+		if (this.worldObj.getGameMode().classicAI) {
++		if (!this.isAIEnabledInWorld()) {
 +			this.classicUpdate();
 +			return;
 +		}
@@ -1079,7 +1079,7 @@
 +	}
 +
 +	protected void attackEntity(Entity var1, float var2) {
-+		if(!this.worldObj.isRemote && this.worldObj.getGameMode().classicAI) {
++		if(!this.worldObj.isRemote && !this.isAIEnabledInWorld()) {
 +			int var3 = this.getCreeperState();
 +			if(var3 <= 0 && var2 < 3.0F || var3 > 0 && var2 < 7.0F) {
 +				if(this.timeSinceIgnited == 0) {
