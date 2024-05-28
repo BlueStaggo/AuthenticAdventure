@@ -1,3 +1,19 @@
+# 1.3.1
+Released: May 28th 2024
+
+## Additions
+- Added sprint cooldown multiplier to custom gamemode settings
+
+## Changes
+- Gamemodes can now be assigned presets so that they update with the correct properties in later versions
+- Increased default ambient occlusion strength to 95%
+
+## Bug Fixes
+- HUD icons now display correctly with various game settings
+- Restored beta seed parity (will create chunk borders in default worlds)
+- Gamemodes with missing properties can now be loaded
+- Sprint cooldown from taking damage now works in multiplayer
+
 # 1.3
 Released: May 22nd 2024
 
@@ -26,7 +42,7 @@ Released: May 22nd 2024
     - Moved colored water from video settings to shading settings
     - Colored Lighting: on by default, gives block light a slight orange tint and night light a blue shade
     - Non-Solid AO: on by default, allows for ambient occlusion to appear on transparent blocks like leaves
-    - Ambient Occlusion: 95% by default, controls strength/darkness of ambient occlusion
+    - Ambient Occlusion: 90% by default, controls strength/darkness of ambient occlusion
     - Murky Swamps: off by default, gives swamps a dark look
 
 ## Changes
@@ -155,12 +171,12 @@ Released: May 22nd 2024
 - Pressing start and select at the same time on a controller toggles debug info
 - The creative inventory can now be scrolled using the right stick on a controller
 
-### Removals
+## Removals
 - Deprecated the Small Biomes, Large Biomes, AMPLIFIED and Legacy world types as they can easily be recreated with the Customized world type
 - Shading style removed from options in favour of more customizable style settings
 - Deprecated biomes (e.g. hills variants) are no longer shown on the custom world type menu 
 
-### Bug Fixes
+## Bug Fixes
 - Night time is now dark with shading style set to beta
 - Swamp trees can now grow above Y 128
 - Screenshotting at lower resolutions no longer prevents screenshotting at larger resolutions under 3x the size of the original resolution
@@ -170,7 +186,7 @@ Released: May 22nd 2024
 - Fixed upside-down slab lighting bug
 - Exhaustion is no longer applied when taking damage with hunger type set to sprint only
 - Some mobs in multiplayer are now correctly affected by the health multiplier
-- Sprint cooldown now works correctly in multiplayer
+- Sprint cooldown for attacking mobs now works correctly in multiplayer
 - Picking up xperience orbs now play the same popping sound in multiplayer as it does in singleplayer
 
 ---

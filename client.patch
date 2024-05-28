@@ -1851,7 +1851,7 @@
 +		this.worldType = var1.getWorldInfo().getTerrainType();
  		this.mapFeaturesEnabled = var4;
  		this.rand = new Random(var2);
-+		Random biomeRandom = new Random(this.rand.nextLong());
++		Random biomeRandom = new Random(new Random(var2).nextLong());
  		this.noiseGen1 = new NoiseGeneratorOctaves(this.rand, 16);
  		this.noiseGen2 = new NoiseGeneratorOctaves(this.rand, 16);
  		this.noiseGen3 = new NoiseGeneratorOctaves(this.rand, 8);
@@ -3110,7 +3110,7 @@
  	private long lastSyncHRClock;
 --- /dev/null
 +++ net/minecraft/src/GuiCustomizeGameMode.java
-@@ -1,0 +1,239 @@
+@@ -1,0 +1,260 @@
 +package net.minecraft.src;
 +
 +import java.util.function.Consumer;
@@ -3171,13 +3171,30 @@
 +				this.addButton(3, i18ncgm("endPortals", this.gameMode.endPortals));
 +				this.addButton(4, i18ncgm("sprintCooldown", this.gameMode.sprintCooldown));
 +				this.addSlider(5, i18ncgm("passiveSpawnRate"), this.gameMode.passiveSpawnRate, 0.0F, 400.0F, 5.0F,
-+						v -> this.gameMode.passiveSpawnRate = (int)(float)v);
++						v -> {
++							this.gameMode.passiveSpawnRate = (int)(float)v;
++							this.gameMode.preset = "";
++						});
 +				this.addSlider(6, i18ncgm("healthMultiplier"), this.gameMode.healthMultiplier, 1.0F, 2.0F, 0.05F,
-+						v -> this.gameMode.healthMultiplier = v);
++						v -> {
++							this.gameMode.healthMultiplier = v;
++							this.gameMode.preset = "";
++						});
 +				this.addSlider(7, i18ncgm("oreMultiplier"), this.gameMode.oreMultiplier, 0.0F, 1.0F, 0.05F,
-+						v -> this.gameMode.oreMultiplier = v);
++						v -> {
++							this.gameMode.oreMultiplier = v;
++							this.gameMode.preset = "";
++						});
 +				this.addSlider(8, i18ncgm("exhaustionMultiplier"), this.gameMode.exhaustionMultiplier, 0.0F, 2.0F, 0.05F,
-+						v -> this.gameMode.exhaustionMultiplier = v);
++						v -> {
++							this.gameMode.exhaustionMultiplier = v;
++							this.gameMode.preset = "";
++						});
++				this.addSlider(9, i18ncgm("sprintCooldownMultiplier"), this.gameMode.sprintCooldownMultiplier, 0.0F, 5.0F, 0.05F,
++						v -> {
++							this.gameMode.sprintCooldownMultiplier = v;
++							this.gameMode.preset = "";
++						});
 +		}
 +	}
 +
@@ -3318,6 +3335,10 @@
 +				this.page = 0;
 +				newScreen = true;
 +				break;
++		}
++
++		if (var1.id >= 0 && var1.id < 1000){
++			this.gameMode.preset = "";
 +		}
 +
 +		if (newScreen) {
@@ -3904,7 +3925,7 @@
  		}
  
  		this.gameType = var1.getInteger("GameType");
-@@ -59,12 +61,19 @@
+@@ -59,12 +61,41 @@
  		this.raining = var1.getBoolean("raining");
  		this.thunderTime = var1.getInteger("thunderTime");
  		this.thundering = var1.getBoolean("thundering");
@@ -3915,17 +3936,39 @@
  		}
  
 +		this.gamemode = new GameMode();
-+		if(var1.hasKey("Gamemode")) {
++		if(var1.hasKey("GamemodePreset") && !(this.gamemode.preset = var1.getString("GamemodePreset")).isEmpty()) {
++			if (this.gamemode.preset.equals("classic")) {
++				this.gamemode = GameMode.classic();
++			} else if (this.gamemode.preset.equals("hardcore")) {
++				this.gamemode = GameMode.hardcore();
++			} else if (this.gamemode.preset.equals("vanilla")) {
++				this.gamemode = GameMode.vanilla();
++			} else if (!this.gamemode.preset.equals("default")) {
++				this.gamemode.preset = "";
++			}
++		} else if(var1.hasKey("Gamemode")) {
 +			this.gamemode.readData(var1.getCompoundTag("Gamemode"));
 +		} else if (var1.getBoolean("hardcore")) {
 +			this.gamemode = GameMode.hardcore();
 +		} else if (var1.getBoolean("classic")) {
 +			this.gamemode = GameMode.classic();
 +		}
++
++		if (!var1.hasKey("GamemodePreset")) {
++			if (this.gamemode.isDefaultPreset()) {
++				this.gamemode.preset = "default";
++			} else if (this.gamemode.isClassicPreset()) {
++				this.gamemode.preset = "classic";
++			} else if (this.gamemode.isHardcorePreset()) {
++				this.gamemode.preset = "hardcore";
++			} else if (this.gamemode.isVanillaPreset()) {
++				this.gamemode.preset = "vanilla";
++			}
++		}
  	}
  
  	public WorldInfo(WorldSettings var1, String var2) {
-@@ -72,7 +81,7 @@
+@@ -72,7 +103,7 @@
  		this.gameType = var1.getGameType();
  		this.mapFeaturesEnabled = var1.isMapFeaturesEnabled();
  		this.levelName = var2;
@@ -3934,7 +3977,7 @@
  		this.terrainType = var1.getTerrainType();
  	}
  
-@@ -95,7 +104,7 @@
+@@ -95,7 +126,7 @@
  		this.raining = var1.raining;
  		this.thunderTime = var1.thunderTime;
  		this.thundering = var1.thundering;
@@ -3943,7 +3986,7 @@
  	}
  
  	public NBTTagCompound getNBTTagCompound() {
-@@ -139,11 +148,17 @@
+@@ -139,11 +170,18 @@
  		var1.setBoolean("raining", this.raining);
  		var1.setInteger("thunderTime", this.thunderTime);
  		var1.setBoolean("thundering", this.thundering);
@@ -3959,10 +4002,11 @@
 +		NBTTagCompound gamemode = new NBTTagCompound();
 +		this.gamemode.writeData(gamemode);
 +		var1.setCompoundTag("Gamemode", gamemode);
++		var1.setString("GamemodePreset", this.gamemode.preset);
  	}
  
  	public long getSeed() {
-@@ -264,8 +279,8 @@
+@@ -264,8 +302,8 @@
  		return this.mapFeaturesEnabled;
  	}
  
@@ -4768,7 +4812,7 @@
  package net.minecraft.src;
  
  public abstract class NetHandler {
-+	public static final int PROTOCOL_VERSION = 4070002;
++	public static final int PROTOCOL_VERSION = 4070003;
 +
  	public abstract boolean isServerHandler();
  
@@ -9405,35 +9449,43 @@
  					short var21 = 182;
  					var22 = (int)(this.mc.thePlayer.experience * (float)(var21 + 1));
  					var23 = var7 - 32 + 3;
-@@ -104,7 +108,10 @@
+@@ -104,6 +108,10 @@
  				}
  
  				var45 = var7 - 39;
--				var22 = var45 - 10;
 +				if (!xpBar) {
 +					var45 += 7;
 +				}
-+				var22 = gamemode.xpEnabled ? var45 - 10 : var45;
++//				var22 = xpBar ? var45 - 10 : var45;
+ 				var22 = var45 - 10;
  				var23 = this.mc.thePlayer.getTotalArmorValue();
  				int var24 = -1;
- 				if(this.mc.thePlayer.isPotionActive(Potion.regeneration)) {
-@@ -117,13 +124,13 @@
+@@ -117,17 +125,20 @@
  				int var29;
  				for(var25 = 0; var25 < 10; ++var25) {
  					if(var23 > 0) {
 -						var26 = var18 + var25 * 8;
-+						var26 = !gamemode.xpEnabled ? var19 - var25 * 8 - 9 : var18 + var25 * 8;
++						int y = var22;
++						if (gamemode.hungerType == GameMode.HungerType.DISABLED) y += 10;
++
++						var26 = gamemode.hungerType == GameMode.HungerType.DISABLED ? var19 - var25 * 8 - 9 : var18 + var25 * 8;
  						if(var25 * 2 + 1 < var23) {
- 							this.drawTexturedModalRect(var26, var22, 34, 9, 9, 9);
+-							this.drawTexturedModalRect(var26, var22, 34, 9, 9, 9);
++							this.drawTexturedModalRect(var26, y, 34, 9, 9, 9);
  						}
  
  						if(var25 * 2 + 1 == var23) {
 -							this.drawTexturedModalRect(var26, var22, 25, 9, 9, 9);
-+							this.drawTexturedModalRect(var26, var22, !gamemode.xpEnabled ? 43 : 25, 9, 9, 9);
++							this.drawTexturedModalRect(var26, y, gamemode.hungerType == GameMode.HungerType.DISABLED ? 43 : 25, 9, 9, 9);
  						}
  
  						if(var25 * 2 + 1 > var23) {
-@@ -152,7 +159,7 @@
+-							this.drawTexturedModalRect(var26, var22, 16, 9, 9, 9);
++							this.drawTexturedModalRect(var26, y, 16, 9, 9, 9);
+ 						}
+ 					}
+ 
+@@ -152,7 +163,7 @@
  					}
  
  					byte var30 = 0;
@@ -9442,7 +9494,7 @@
  						var30 = 5;
  					}
  
-@@ -177,41 +184,41 @@
+@@ -177,41 +188,37 @@
  				}
  
  				int var51;
@@ -9495,10 +9547,6 @@
 +							var26 = var45 + (this.rand.nextInt(3) - 1);
 +						}
 +
-+						if(!xpBar) {
-+							var26 += 7;
-+						}
-+
 +						int texture = hungry ? 36 : 27;
 +
 +						var29 = var19 - var25 * 8 - 9;
@@ -9523,12 +9571,12 @@
  					var26 = (int)Math.ceil((double)(var25 - 2) * 10.0D / 300.0D);
  					var51 = (int)Math.ceil((double)var25 * 10.0D / 300.0D) - var26;
  
-+					if (!gamemode.xpEnabled) {
-+						var22 -= 9;
++					if (!xpBar) {
++						var22 -= 10;
 +					}
 +
  					for(var28 = 0; var28 < var26 + var51; ++var28) {
-+						int pos = !gamemode.xpEnabled ? var18 + var28 * 8 : var19 - var28 * 8 - 9;
++						int pos = gamemode.hungerType == GameMode.HungerType.DISABLED ? var18 + var28 * 8 : var19 - var28 * 8 - 9;
  						if(var28 < var26) {
 -							this.drawTexturedModalRect(var19 - var28 * 8 - 9, var22, 16, 18, 9, 9);
 +							this.drawTexturedModalRect(pos, var22, 16, 18, 9, 9);
@@ -10722,7 +10770,7 @@
  }
 --- /dev/null
 +++ net/minecraft/src/GameMode.java
-@@ -1,0 +1,157 @@
+@@ -1,0 +1,253 @@
 +package net.minecraft.src;
 +
 +import java.io.DataInputStream;
@@ -10730,6 +10778,7 @@
 +import java.io.IOException;
 +
 +public class GameMode {
++	public String preset = "";
 +	public boolean xpEnabled = true;
 +	public boolean sprintingEnabled = true;
 +	public HungerType hungerType = HungerType.SPRINT_ONLY;
@@ -10749,6 +10798,7 @@
 +	public float healthMultiplier = 1.0F;
 +	public float oreMultiplier = 1.0F;
 +	public float exhaustionMultiplier = 1.0F;
++	public float sprintCooldownMultiplier = 1.0F;
 +
 +	public enum HungerType {
 +		HUNGRY,
@@ -10758,6 +10808,7 @@
 +
 +	public static GameMode classic() {
 +		GameMode gameMode = new GameMode();
++		gameMode.preset = "classic";
 +		gameMode.xpEnabled = false;
 +		gameMode.sprintingEnabled = false;
 +		gameMode.hungerType = HungerType.DISABLED;
@@ -10775,6 +10826,7 @@
 +
 +	public static GameMode hardcore() {
 +		GameMode gameMode = new GameMode();
++		gameMode.preset = "hardcore";
 +		gameMode.sprintingEnabled = false;
 +		gameMode.hungerType = HungerType.DISABLED;
 +		gameMode.hardcore = true;
@@ -10786,6 +10838,7 @@
 +
 +	public static GameMode vanilla() {
 +		GameMode gameMode = new GameMode();
++		gameMode.preset = "vanilla";
 +		gameMode.hungerType = HungerType.HUNGRY;
 +		gameMode.sprintCooldown = false;
 +		gameMode.passiveSpawnRate = 400;
@@ -10793,25 +10846,26 @@
 +	}
 +
 +	public void readData(NBTTagCompound var1) {
-+		this.xpEnabled = var1.getBoolean("xpEnabled");
-+		this.sprintingEnabled = var1.getBoolean("sprintingEnabled");
-+		this.hungerType = HungerType.values()[var1.getByte("hungerType") & 0xFF];
-+		this.hardcore = var1.getBoolean("hardcore");
-+		this.classicAI = var1.getBoolean("classicAI");
-+		this.animalDespawning = var1.getBoolean("animalDespawning");
-+		this.reducedFood = var1.getBoolean("reducedFood");
-+		this.criticalHits = var1.getBoolean("criticalHits");
-+		this.classicHurtSound = var1.getBoolean("classicHurtSound");
-+		this.instantEating = var1.getBoolean("instantEating");
-+		this.foodStackable = var1.getBoolean("foodStackable");
-+		this.swordBlocking = var1.getBoolean("swordBlocking");
-+		this.plankVariants = var1.getBoolean("plankVariants");
-+		this.endPortals = var1.getBoolean("endPortals");
-+		this.sprintCooldown = var1.getBoolean("sprintCooldown");
-+		this.passiveSpawnRate = var1.getInteger("passiveSpawnRate");
-+		this.healthMultiplier = var1.getFloat("healthMultiplier");
-+		this.oreMultiplier = var1.getFloat("oreMultiplier");
-+		this.exhaustionMultiplier = var1.getFloat("exhaustionMultiplier");
++		if (var1.hasKey("xpEnabled")) this.xpEnabled = var1.getBoolean("xpEnabled");
++		if (var1.hasKey("sprintingEnabled")) this.sprintingEnabled = var1.getBoolean("sprintingEnabled");
++		if (var1.hasKey("hungerType")) this.hungerType = HungerType.values()[var1.getByte("hungerType") & 0xFF];
++		if (var1.hasKey("hardcore")) this.hardcore = var1.getBoolean("hardcore");
++		if (var1.hasKey("classicAI")) this.classicAI = var1.getBoolean("classicAI");
++		if (var1.hasKey("animalDespawning")) this.animalDespawning = var1.getBoolean("animalDespawning");
++		if (var1.hasKey("reducedFood")) this.reducedFood = var1.getBoolean("reducedFood");
++		if (var1.hasKey("criticalHits")) this.criticalHits = var1.getBoolean("criticalHits");
++		if (var1.hasKey("classicHurtSound")) this.classicHurtSound = var1.getBoolean("classicHurtSound");
++		if (var1.hasKey("instantEating")) this.instantEating = var1.getBoolean("instantEating");
++		if (var1.hasKey("foodStackable")) this.foodStackable = var1.getBoolean("foodStackable");
++		if (var1.hasKey("swordBlocking")) this.swordBlocking = var1.getBoolean("swordBlocking");
++		if (var1.hasKey("plankVariants")) this.plankVariants = var1.getBoolean("plankVariants");
++		if (var1.hasKey("endPortals")) this.endPortals = var1.getBoolean("endPortals");
++		if (var1.hasKey("sprintCooldown")) this.sprintCooldown = var1.getBoolean("sprintCooldown");
++		if (var1.hasKey("passiveSpawnRate")) this.passiveSpawnRate = var1.getInteger("passiveSpawnRate");
++		if (var1.hasKey("healthMultiplier")) this.healthMultiplier = var1.getFloat("healthMultiplier");
++		if (var1.hasKey("oreMultiplier")) this.oreMultiplier = var1.getFloat("oreMultiplier");
++		if (var1.hasKey("exhaustionMultiplier")) this.exhaustionMultiplier = var1.getFloat("exhaustionMultiplier");
++		if (var1.hasKey("sprintCooldownMultiplier")) this.sprintCooldownMultiplier = var1.getFloat("sprintCooldownMultiplier");
 +	}
 +
 +	public void writeData(NBTTagCompound var1) {
@@ -10856,28 +10910,118 @@
 +		this.healthMultiplier = var1.readFloat();
 +		this.oreMultiplier = var1.readFloat();
 +		this.exhaustionMultiplier = var1.readFloat();
++		this.sprintCooldownMultiplier = var1.readFloat();
 +	}
 +
 +	public void writeData(DataOutputStream var1) throws IOException {
-+		var1.writeBoolean(xpEnabled);
-+		var1.writeBoolean(sprintingEnabled);
-+		var1.write(hungerType.ordinal());
-+		var1.writeBoolean(hardcore);
-+		var1.writeBoolean(classicAI);
-+		var1.writeBoolean(animalDespawning);
-+		var1.writeBoolean(reducedFood);
-+		var1.writeBoolean(criticalHits);
-+		var1.writeBoolean(classicHurtSound);
-+		var1.writeBoolean(instantEating);
-+		var1.writeBoolean(foodStackable);
-+		var1.writeBoolean(swordBlocking);
-+		var1.writeBoolean(plankVariants);
-+		var1.writeBoolean(endPortals);
-+		var1.writeBoolean(sprintCooldown);
-+		var1.writeInt(passiveSpawnRate);
-+		var1.writeFloat(healthMultiplier);
-+		var1.writeFloat(oreMultiplier);
-+		var1.writeFloat(exhaustionMultiplier);
++		var1.writeBoolean(this.xpEnabled);
++		var1.writeBoolean(this.sprintingEnabled);
++		var1.write(this.hungerType.ordinal());
++		var1.writeBoolean(this.hardcore);
++		var1.writeBoolean(this.classicAI);
++		var1.writeBoolean(this.animalDespawning);
++		var1.writeBoolean(this.reducedFood);
++		var1.writeBoolean(this.criticalHits);
++		var1.writeBoolean(this.classicHurtSound);
++		var1.writeBoolean(this.instantEating);
++		var1.writeBoolean(this.foodStackable);
++		var1.writeBoolean(this.swordBlocking);
++		var1.writeBoolean(this.plankVariants);
++		var1.writeBoolean(this.endPortals);
++		var1.writeBoolean(this.sprintCooldown);
++		var1.writeInt(this.passiveSpawnRate);
++		var1.writeFloat(this.healthMultiplier);
++		var1.writeFloat(this.oreMultiplier);
++		var1.writeFloat(this.exhaustionMultiplier);
++		var1.writeFloat(this.sprintCooldownMultiplier);
++	}
++
++	public boolean isDefaultPreset() {
++		return xpEnabled
++				&& sprintingEnabled
++				&& hungerType == HungerType.SPRINT_ONLY
++				&& !hardcore
++				&& !classicAI
++				&& !animalDespawning
++				&& !reducedFood
++				&& criticalHits
++				&& !classicHurtSound
++				&& !instantEating
++				&& foodStackable
++				&& swordBlocking
++				&& plankVariants
++				&& endPortals
++				&& sprintCooldown
++				&& passiveSpawnRate == 0
++				&& healthMultiplier == 1.0F
++				&& oreMultiplier == 1.0F
++				&& exhaustionMultiplier == 1.0F;
++	}
++
++	public boolean isClassicPreset() {
++		return !xpEnabled
++				&& !sprintingEnabled
++				&& hungerType == HungerType.DISABLED
++				&& !hardcore
++				&& classicAI
++				&& animalDespawning
++				&& reducedFood
++				&& !criticalHits
++				&& classicHurtSound
++				&& instantEating
++				&& !foodStackable
++				&& !swordBlocking
++				&& plankVariants
++				&& !endPortals
++				&& sprintCooldown
++				&& passiveSpawnRate == 0
++				&& healthMultiplier == 1.0F
++				&& oreMultiplier == 1.0F
++				&& exhaustionMultiplier == 1.0F;
++	}
++
++	public boolean isHardcorePreset() {
++		return xpEnabled
++				&& !sprintingEnabled
++				&& hungerType == HungerType.DISABLED
++				&& hardcore
++				&& !classicAI
++				&& !animalDespawning
++				&& !reducedFood
++				&& criticalHits
++				&& !classicHurtSound
++				&& !instantEating
++				&& foodStackable
++				&& swordBlocking
++				&& plankVariants
++				&& endPortals
++				&& sprintCooldown
++				&& passiveSpawnRate == 400
++				&& healthMultiplier == 1.5F
++				&& oreMultiplier == 0.75F
++				&& exhaustionMultiplier == 1.0F;
++	}
++
++	public boolean isVanillaPreset() {
++		return xpEnabled
++				&& sprintingEnabled
++				&& hungerType == HungerType.HUNGRY
++				&& !hardcore
++				&& !classicAI
++				&& !animalDespawning
++				&& !reducedFood
++				&& criticalHits
++				&& !classicHurtSound
++				&& !instantEating
++				&& foodStackable
++				&& swordBlocking
++				&& plankVariants
++				&& endPortals
++				&& !sprintCooldown
++				&& passiveSpawnRate == 400
++				&& healthMultiplier == 1.0F
++				&& oreMultiplier == 1.0F
++				&& exhaustionMultiplier == 1.0F;
 +	}
 +}
 --- net/minecraft/src/AnvilSaveConverter.java
@@ -11017,7 +11161,7 @@
  import org.lwjgl.util.glu.GLU;
  
  public abstract class Minecraft implements Runnable {
-+	public static final String version = "AuthAdv 1.3";
++	public static final String version = "AuthAdv 1.3.1";
 +	public static final boolean panoramaMode = false;
 +	public static final boolean biomeTestMode = false;
  	public static byte[] field_28006_b = new byte[10485760];
@@ -11752,27 +11896,21 @@
  	public EntityItem dropPlayerItem(ItemStack var1) {
  		return this.dropPlayerItemWithRandomChoice(var1, false);
  	}
-@@ -575,6 +590,11 @@
- 						this.alertWolves((EntityLiving)var4, false);
- 					}
- 
-+					if (this.worldObj.difficultySetting > 0 && this.worldObj.getGameMode().sprintCooldown) {
-+						this.setSprinting(false);
-+						this.sprintCooldown = this.worldObj.difficultySetting * 20 + 20;
-+					}
-+
- 					this.addStat(StatList.damageTakenStat, var2);
- 					return super.attackEntityFrom(var1, var2);
- 				}
-@@ -659,7 +679,7 @@
+@@ -659,8 +674,13 @@
  
  		var2 = this.applyArmorCalculations(var1, var2);
  		var2 = this.applyPotionDamageCalculations(var1, var2);
 -		this.addExhaustion(var1.getHungerDamage());
 +		this.addHungerExhaustion(var1.getHungerDamage());
  		this.health -= var2;
++
++		if (this.worldObj.difficultySetting > 0 && this.worldObj.getGameMode().sprintCooldown) {
++			this.setSprinting(false);
++			this.sprintCooldown = (int)((this.worldObj.difficultySetting * 20 + 20) * this.worldObj.getGameMode().sprintCooldownMultiplier);
++		}
  	}
  
+ 	public void displayGUIFurnace(TileEntityFurnace var1) {
 @@ -732,19 +752,31 @@
  			}
  
@@ -11802,7 +11940,7 @@
 +
 +						if (this.worldObj.getGameMode().sprintCooldown) {
 +							this.setSprinting(false);
-+							this.sprintCooldown = 10;
++							this.sprintCooldown = (int)(10 * this.worldObj.getGameMode().sprintCooldownMultiplier);
 +						}
  					}
  
@@ -14285,7 +14423,7 @@
  }
 --- net/minecraft/src/GuiCreateWorld.java
 +++ net/minecraft/src/GuiCreateWorld.java
-@@ -8,20 +8,23 @@
+@@ -8,25 +8,29 @@
  	private GuiTextField textboxWorldName;
  	private GuiTextField textboxSeed;
  	private String folderName;
@@ -14311,7 +14449,13 @@
  
  	public GuiCreateWorld(GuiScreen var1) {
  		this.parentGuiScreen = var1;
-@@ -46,6 +49,10 @@
+ 		this.seed = "";
+ 		this.localizedNewWorldText = StatCollector.translateToLocal("selectWorld.newWorld");
++		this.gameMode.preset = "default";
+ 	}
+ 
+ 	public void updateScreen() {
+@@ -46,6 +50,10 @@
  		this.generateStructuresButton.drawButton = false;
  		this.controlList.add(this.worldTypeButton = new GuiButton(5, this.width / 2 + 5, 100, 150, 20, var1.translateKey("selectWorld.mapType")));
  		this.worldTypeButton.drawButton = false;
@@ -14322,7 +14466,7 @@
  		this.textboxWorldName = new GuiTextField(this.fontRenderer, this.width / 2 - 100, 60, 200, 20);
  		this.textboxWorldName.func_50033_b(true);
  		this.textboxWorldName.setText(this.localizedNewWorldText);
-@@ -74,9 +81,9 @@
+@@ -74,9 +82,9 @@
  
  	private void func_35363_g() {
  		StringTranslate var1 = StringTranslate.getInstance();
@@ -14335,7 +14479,7 @@
  		this.generateStructuresButton.displayString = var1.translateKey("selectWorld.mapFeatures") + " ";
  		if(this.field_35365_g) {
  			this.generateStructuresButton.displayString = this.generateStructuresButton.displayString + var1.translateKey("options.on");
-@@ -85,6 +92,14 @@
+@@ -85,6 +93,14 @@
  		}
  
  		this.worldTypeButton.displayString = var1.translateKey("selectWorld.mapType") + " " + var1.translateKey(WorldType.worldTypes[this.field_46030_z].getTranslateName());
@@ -14350,7 +14494,7 @@
  	}
  
  	public static String func_25097_a(ISaveFormat var0, String var1) {
-@@ -123,50 +138,34 @@
+@@ -123,50 +139,34 @@
  				}
  
  				byte var9 = 0;
@@ -14411,7 +14555,7 @@
  				++this.field_46030_z;
  				if(this.field_46030_z >= WorldType.worldTypes.length) {
  					this.field_46030_z = 0;
-@@ -179,7 +178,19 @@
+@@ -179,7 +179,19 @@
  					}
  				}
  
@@ -15977,7 +16121,7 @@
 +	public int lightingFixes = 1;
 +	public boolean coloredLighting = true;
 +	public boolean nonSolidAO = true;
-+	public float aoStrength = 0.9F;
++	public float aoStrength = 0.95F;
 +	public boolean murkySwamps = false;
  	public String skin = "Default";
 -	public KeyBinding keyBindForward = new KeyBinding("key.forward", 17);
