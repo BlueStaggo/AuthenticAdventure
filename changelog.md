@@ -1,3 +1,94 @@
+# 1.3.2
+Released: September 29th 2024
+
+## Changes
+
+### Blocks
+- Enchantment table
+    - Can now re-enchant items that already have enchantments
+    - Re-enchanting an item adds levels to pre-existing enchantments and adds new enchantments that weren't already there
+- Sapling
+    - Jungle saplings now grow into palm trees in archipelagos
+
+### Mobs
+- Despawning
+    - Animals now despawn in the default and hardcore presets
+    - Animals will never despawn if they've been bred with or if they are products of breeding, regardless of settings
+
+### Enchantments
+- Bane of Arthropods
+    - Now compatible with sharpness
+    - Reduced effectiveness by 2/3
+- Protection
+    - Reduced damage reduction:
+        | Level | Old | New |
+        |---|---|---|
+        | x | (6 + x^2) / 3 | x
+        | 1 | 2 | 1 |
+        | 2 | 3 | 2 |
+        | 3 | 5 | 3 |
+        | 4 | 7 | 4 |
+    - Adjusted enchantability
+- Smite
+    - Now compatible with sharpness
+    - Reduced effectiveness by 2/3
+- Stamina
+    - Adjusted enchantability
+- Velocity
+    - Increased effectiveness per level by 1%
+    - Adjusted enchantability
+- Enchantments no longer have caps on their maximum available enchantability per level
+    - This means that lower level enchantments can be obtained from higher levels of enchanting
+
+### Gameplay
+- Sprint jumping no longer increases exhaustion with hunger set to sprint only, but sprinting in mid-air does
+
+### Biomes
+- Desert
+    - Made slightly more common
+- Frosted Birch Forest
+    - Adjusted biome colors
+- Parched Forest
+    - Doubled chance of generating big trees
+- Rainforest
+    - Added a chance for regular big trees to generate
+    - No longer generates with vines in beta worlds
+- Seasonal Forest
+    - Readded to world generation
+    - Adjusted climate
+- Snowcapped Forest
+    - No longer generates with beaches
+- Snowcapped Peaks
+    - Replaced with taigas in world generation
+    - Snowcapped Peaks will likely be replaced by a different biome in a later update
+- Adjusted height of some biomes
+- Fixed climate values for beaches and highlands edges being inconsistent with plains and highlands respectively
+
+### World Generation
+- Customized world type
+    - Added a "Beta Terrain" option
+    - Random biome selection with beta terrain results in beta biome distribution
+    - The size of landmasses in beta terrain scales with biome size
+- Crop generation in villages has been reduced by a half
+- Adjusted branch generation in big trees
+- Ores generate 4 blocks higher
+
+### Other
+- Reduced arm swing speed by 2 ticks
+- Selecting a single biome in the world customization menu now displays "Biome Selection" as "Single"
+- Clicking and dragging with items has been added
+- Fixed texture alignment of diamonds
+- Reduced FOV modifier with speed effects by 50%
+- Tweaked block light color
+- Reduced volume of level up sound
+- Biome height is no longer displayed in the debug menu
+
+## Bug Fixes
+- Fixed legacy world generation option in customized worlds
+- Fixed sword blocking being inverted
+- Fixed air bubbles in the hotbar in the wrong position
+- Fixed controller support on Linux maybe?
+
 # 1.3.1
 Released: May 28th 2024
 
@@ -90,7 +181,7 @@ Released: May 22nd 2024
 
 ### Enchantments
 - Bane of Arthropods
-    - Reduced effectiveness by 1/3
+    - Reduced effectiveness by 1/4
 - Fortune
     - Reduced effectiveness on ore:
         | Level | Old Chances | New Chances |
@@ -153,7 +244,7 @@ Released: May 22nd 2024
 - Slightly changed biome distribution
 - Temperate biomes are now more common
 - Adjusted height of some biomes
-- Biomes now use separate RNG for noise values
+- Biomes now use different seeds for noise values
 
 ### Structures
 - Village
@@ -174,7 +265,7 @@ Released: May 22nd 2024
 ## Removals
 - Deprecated the Small Biomes, Large Biomes, AMPLIFIED and Legacy world types as they can easily be recreated with the Customized world type
 - Shading style removed from options in favour of more customizable style settings
-- Deprecated biomes (e.g. hills variants) are no longer shown on the custom world type menu 
+- Obsolete biomes (e.g. hills variants) are no longer shown on the custom world type menu 
 
 ## Bug Fixes
 - Night time is now dark with shading style set to beta
@@ -187,7 +278,7 @@ Released: May 22nd 2024
 - Exhaustion is no longer applied when taking damage with hunger type set to sprint only
 - Some mobs in multiplayer are now correctly affected by the health multiplier
 - Sprint cooldown for attacking mobs now works correctly in multiplayer
-- Picking up xperience orbs now play the same popping sound in multiplayer as it does in singleplayer
+- Picking up experience orbs now play the same popping sound in multiplayer as it does in singleplayer
 
 ---
 
@@ -336,7 +427,7 @@ Released: December 25th 2023
 
 ### Mobs
 - Spawning
-    - Animals spawn much more frequently and despawn in classic mode
+    - Animals in classic mode spawn much more frequently and are able to despawn
 
 ### World Generation
 - Changed the shape of the land
@@ -419,7 +510,7 @@ Released: December 25th 2023
 ## Bug Fixes
 - Rendering no longer completely breaks down on old graphics drivers
 - Chests are now held correctly
-- More blocks are pick blcoked correctly in creative mode
+- More blocks are pick blocked correctly in creative mode
 - Warning text for far render distance on 32 bit systems now renders correctly
 
 ---
