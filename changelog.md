@@ -72,6 +72,7 @@ Released: September 29th 2024
 - Crop generation in villages has been reduced by a half
 - Adjusted branch generation in big trees
 - Ores generate 4 blocks higher
+- Increased the size of palm trees
 
 ### Other
 - Reduced arm swing speed by 2 ticks
