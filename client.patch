@@ -883,17 +883,6 @@
  	private final int terrainType;
  
  	public MapGenVillage(int var1) {
-@@ -13,8 +27,8 @@
- 	}
- 
- 	protected boolean canSpawnStructureAtCoords(int var1, int var2) {
--		byte var3 = 32;
--		byte var4 = 8;
-+		byte var3 = 32 / 4;
-+		byte var4 = 8 / 4;
- 		int var5 = var1;
- 		int var6 = var2;
- 		if(var1 < 0) {
 --- net/minecraft/src/CanvasIsomPreview.java
 +++ net/minecraft/src/CanvasIsomPreview.java
 @@ -94,7 +94,7 @@
