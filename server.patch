@@ -896,7 +896,7 @@
  				}
 --- net/minecraft/src/GenLayer.java
 +++ net/minecraft/src/GenLayer.java
-@@ -1,58 +1,134 @@
+@@ -1,58 +1,136 @@
  package net.minecraft.src;
  
 +import java.util.function.Function;
@@ -1012,8 +1012,10 @@
 +				genLayer = new GenLayerAddIsland(8L, genLayer).smooth();
 +				genLayer = new GenLayerAddIsland(9L, genLayer);
 +				if (!isSingleBiome && !randomDist) genLayer = new GenLayerTemperateBorder(genLayer);
-+//				genLayer = new GenLayerZoom(2002L, genLayer);
-+//				genLayer = new GenLayerAddIsland(10L, genLayer);
++			} else {
++				if (!isSingleBiome) genLayer = randomDist ? new GenLayerAddSnow(1001L, genLayer) : new GenLayerClimate(1001L, genLayer);
++				genLayer = new GenLayerZoom(2001L, genLayer);
++				if (!isSingleBiome && !randomDist) genLayer = new GenLayerTemperateBorder(genLayer);
 +			}
 +	        if (genOceans && genOceanBiomes) genLayer = new GenLayerAddMushroomIsland(1002L, genLayer);
 +		}
@@ -1075,7 +1077,7 @@
  		this.baseSeed = var1;
  		this.baseSeed *= this.baseSeed * 6364136223846793005L + 1442695040888963407L;
  		this.baseSeed += var1;
-@@ -97,6 +173,10 @@
+@@ -97,6 +175,10 @@
  		this.chunkSeed *= this.chunkSeed * 6364136223846793005L + 1442695040888963407L;
  		this.chunkSeed += this.worldGenSeed;
  		return var2;
@@ -1687,14 +1689,14 @@
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 8, 1, var4, var3);
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 10, 1, var4, var3);
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 11, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 1, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 2, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 4, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 5, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 7, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 8, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 10, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 11, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 1, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 2, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 4, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 5, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 7, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 8, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 10, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 11, 1, var4, var3);
  		}
  
  		for(var4 = 0; var4 < 9; ++var4) {
@@ -2903,10 +2905,10 @@
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 2, 1, var4, var3);
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 4, 1, var4, var3);
 -			this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 5, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 1, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 2, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 4, 1, var4, var3);
-+			if (var2.nextInt(2) == 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 5, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 1, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 2, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 4, 1, var4, var3);
++			if (var2.nextInt(3) != 0) this.placeBlockAtCurrentPosition(var1, Block.crops.blockID, MathHelper.getRandomIntegerInRange(var2, 2, 7), 5, 1, var4, var3);
  		}
  
  		for(var4 = 0; var4 < 9; ++var4) {
@@ -4423,16 +4425,20 @@
  									for(int var50 = var38 - 1; var50 >= var56; --var50) {
 --- net/minecraft/src/ComponentVillage.java
 +++ net/minecraft/src/ComponentVillage.java
-@@ -47,7 +47,7 @@
+@@ -47,7 +47,11 @@
  		for(int var5 = this.boundingBox.minZ; var5 <= this.boundingBox.maxZ; ++var5) {
  			for(int var6 = this.boundingBox.minX; var6 <= this.boundingBox.maxX; ++var6) {
  				if(var2.isVecInside(var6, 64, var5)) {
 -					var3 += Math.max(var1.getTopSolidOrLiquidBlock(var6, var5), var1.worldProvider.getAverageGroundLevel());
-+					var3 += Math.max(var1.getTopSolidOrLiquidBlock(var6, var5), var1.getSeaLevel());
++					int top = var1.getTopSolidOrLiquidBlock(var6, var5);
++					if (top < var1.getSeaLevel()) {
++						return -1;
++					}
++					var3 += top;
  					++var4;
  				}
  			}
-@@ -65,6 +65,8 @@
+@@ -65,6 +69,8 @@
  	}
  
  	protected void spawnVillagers(World var1, StructureBoundingBox var2, int var3, int var4, int var5, int var6) {
@@ -10373,6 +10379,16 @@
  		if(var1.isRemote) {
  			return true;
  		} else {
+--- net/minecraft/src/ComponentVillagePathGen.java
++++ net/minecraft/src/ComponentVillagePathGen.java
+@@ -84,6 +84,7 @@
+ 			for(int var5 = this.boundingBox.minZ; var5 <= this.boundingBox.maxZ; ++var5) {
+ 				if(var3.isVecInside(var4, 64, var5)) {
+ 					int var6 = var1.getTopSolidOrLiquidBlock(var4, var5) - 1;
++					if (var6 < var1.getSeaLevel() - 1) continue;
+ 					var1.setBlock(var4, var6, var5, Block.gravel.blockID);
+ 				}
+ 			}
 --- /dev/null
 +++ net/minecraft/src/WorldGenCrags.java
 @@ -1,0 +1,35 @@

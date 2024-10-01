@@ -1,3 +1,14 @@
+# 1.3.3
+Released: October 1st 2024
+
+## Changes
+- Reverted desert spawning changes from 1.3.2
+
+## Bug Fixes
+- Climate zones now correctly generate in oceanless worlds
+- Village buildings can no longer generate over water
+    - However, this causes an issue where village buildings can generate sliced up
+
 # 1.3.2
 Released: September 29th 2024
 
