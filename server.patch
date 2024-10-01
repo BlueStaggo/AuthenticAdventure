@@ -7664,7 +7664,7 @@
  }
 --- /dev/null
 +++ net/minecraft/src/GameMode.java
-@@ -1,0 +1,253 @@
+@@ -1,0 +1,252 @@
 +package net.minecraft.src;
 +
 +import java.io.DataInputStream;
@@ -7723,7 +7723,6 @@
 +		gameMode.sprintingEnabled = false;
 +		gameMode.hungerType = HungerType.DISABLED;
 +		gameMode.hardcore = true;
-+		gameMode.passiveSpawnRate = 400;
 +		gameMode.healthMultiplier = 1.5F;
 +		gameMode.oreMultiplier = 0.75F;
 +		return gameMode;
