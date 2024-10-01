@@ -1513,7 +1513,7 @@
 +					double temp = this.worldObj.getWorldChunkManager().getTemperature((var2 + var14) * 4, (var4 + var15) * 4);
 +					double rain = this.worldObj.getWorldChunkManager().getRainfall((var2 + var14) * 4, (var4 + var15) * 4) * temp;
 +					if (!(this.worldObj.getWorldChunkManager() instanceof WorldChunkManagerBeta)) {
-+						rain = (this.noise5[var13] + 256.0D) / 512.0D;
++						rain = 1.0D;
 +					}
 +					double rainOff = 1.0D - rain;
 +					rainOff *= rainOff;

@@ -3,6 +3,7 @@ Released: October 1st 2024
 
 ## Changes
 - Reverted desert spawning changes from 1.3.2
+- Fixed terrain height in beta worlds not as high as intended in customized worlds without beta biomes
 
 ## Bug Fixes
 - Climate zones now correctly generate in oceanless worlds
