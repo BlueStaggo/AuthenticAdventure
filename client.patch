@@ -6154,7 +6154,7 @@
  			this.handleKeyboardInput();
  		}
  
-+		while(Controllers.next()) {
++		while(this.mc.gameSettings.controllerSupport && Controllers.next()) {
 +			this.handleControllerInput();
 +		}
 +
@@ -6427,7 +6427,7 @@
  				if(var2.isVecInside(var6, 64, var5)) {
 -					var3 += Math.max(var1.getTopSolidOrLiquidBlock(var6, var5), var1.worldProvider.getAverageGroundLevel());
 +					int top = var1.getTopSolidOrLiquidBlock(var6, var5);
-+					if (top < var1.getSeaLevel()) {
++					if (top < var1.getSeaLevel() && var1.getWorldInfo().getTerrainType().useBetaTerrain()) {
 +						return -1;
 +					}
 +					var3 += top;
@@ -9115,7 +9115,7 @@
  						int var28 = var44 + var16;
 --- /dev/null
 +++ net/minecraft/src/ControllerBinding.java
-@@ -1,0 +1,154 @@
+@@ -1,0 +1,156 @@
 +package net.minecraft.src;
 +
 +import net.minecraft.client.Minecraft;
@@ -9262,7 +9262,9 @@
 +
 +	public static boolean anyTriggerDown() {
 +		Controller controller = Minecraft.getInstance().controller;
-+		if (Minecraft.os == EnumOS2.windows) {
++		if (controller == null) {
++			return false;
++		} else if (Minecraft.os == EnumOS2.windows) {
 +			return Math.abs(controller.getZAxisValue()) > controller.getZAxisDeadZone();
 +		} else {
 +			return controller.getZAxisValue() > controller.getZAxisDeadZone()
@@ -11580,7 +11582,7 @@
  import org.lwjgl.util.glu.GLU;
  
  public abstract class Minecraft implements Runnable {
-+	public static final String version = "AuthAdv 1.3.3";
++	public static final String version = "AuthAdv 1.3.4";
 +	public static final EnumOS2 os = getOs();
 +	public static final boolean panoramaMode = false;
 +	public static final boolean biomeTestMode = false;
@@ -11737,16 +11739,18 @@
  							}
  						}
  
-@@ -1320,6 +1202,204 @@
+@@ -1320,6 +1202,206 @@
  					}
  				}
  			}
 +
-+			Profiler.endStartSection("controller");
++			if (this.gameSettings.controllerSupport) {
++				Profiler.endStartSection("controller");
++			}
 +
 +			label362:
-+			while(true) {
-+				while(true) {
++			while(this.gameSettings.controllerSupport) {
++				while(this.gameSettings.controllerSupport) {
 +					do {
 +						if(!Controllers.next()) {
 +							if (this.controller != null) {
@@ -11942,7 +11946,7 @@
  		}
  
  		if(this.theWorld != null) {
-@@ -1331,7 +1411,7 @@
+@@ -1331,7 +1413,7 @@
  				}
  			}
  
@@ -11951,7 +11955,7 @@
  				this.theWorld.difficultySetting = 3;
  			} else {
  				this.theWorld.difficultySetting = this.gameSettings.difficulty;
-@@ -1361,6 +1441,8 @@
+@@ -1361,6 +1443,8 @@
  			}
  
  			if(!this.isGamePaused || this.isMultiplayerWorld()) {
@@ -11960,7 +11964,7 @@
  				this.theWorld.setAllowedSpawnTypes(this.theWorld.difficultySetting > 0, true);
  				this.theWorld.tick();
  			}
-@@ -1577,7 +1659,7 @@
+@@ -1577,7 +1661,7 @@
  		this.loadingScreen.printText("Converting World to " + this.saveLoader.getFormatName());
  		this.loadingScreen.displayLoadingString("This may take a while :)");
  		this.saveLoader.convertMapFormat(var1, this.loadingScreen);
@@ -11969,7 +11973,7 @@
  	}
  
  	private void preloadWorld(String var1) {
-@@ -1644,7 +1726,11 @@
+@@ -1644,7 +1728,11 @@
  		} else if(var4.equalsIgnoreCase("music")) {
  			this.sndManager.addMusic(var1, var2);
  		} else if(var4.equalsIgnoreCase("newmusic")) {
@@ -11982,7 +11986,7 @@
  		}
  
  	}
-@@ -1735,15 +1821,17 @@
+@@ -1735,15 +1823,17 @@
  	}
  
  	public static void startMainThread(String var0, String var1, String var2) throws LWJGLException {
@@ -12002,7 +12006,7 @@
  		Thread var8 = new Thread(var7, "Minecraft main thread");
  		var8.setPriority(10);
  		var7.minecraftUri = "www.minecraft.net";
-@@ -1783,6 +1871,10 @@
+@@ -1783,6 +1873,10 @@
  		startMainThread1(var1, var2);
  	}
  
@@ -12013,7 +12017,7 @@
  	public static boolean isGuiEnabled() {
  		return theMinecraft == null || !theMinecraft.gameSettings.hideGUI;
  	}
-@@ -1799,6 +1891,18 @@
+@@ -1799,6 +1893,18 @@
  		return theMinecraft != null && theMinecraft.gameSettings.showDebugInfo;
  	}
  
@@ -12032,7 +12036,7 @@
  	public boolean lineIsCommand(String var1) {
  		if(var1.startsWith("/")) {
  		}
-@@ -1809,47 +1913,57 @@
+@@ -1809,47 +1915,57 @@
  	private void clickMiddleMouseButton() {
  		if(this.objectMouseOver != null) {
  			boolean var1 = this.thePlayer.capabilities.isCreativeMode;
@@ -13693,13 +13697,13 @@
 +			.setColor(0x056621)
 +			.setTemperatureRainfall(0.8F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase taiga = new BiomeGenTaiga(28)
 +			.setBiomeName("Taiga")
 +			.setColor(0x0b6659)
 +			.setTemperatureRainfall(0.3F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase swampland = new BiomeGenSwamp(6)
 +			.setBiomeName("Swampland")
 +			.setColor(0x10e655)
@@ -13765,7 +13769,7 @@
 +			.setColor(0x7fffff)
 +			.setTemperatureRainfall(0.0F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F)
++			.setHeightVariation(0.2F, 0.7F)
 +			.setEnableSnow();
 +	public static final BiomeGenBase beach = new BiomeGenBeach(16)
 +			.setBiomeName("Beach")
@@ -13805,8 +13809,8 @@
 +			.setBiomeName("Archipelago")
 +			.setColor(0x0000a0)
 +			.setTemperatureRainfall(0.8F, 0.9F)
-+			.setMinMaxHeight(-1.0F, 0.8F)
-+			.setHeightVariation(0.0F, 0.2F)
++			.setMinMaxHeight(-1.0F, 1.0F)
++			.setHeightVariation(0.0F, 0.0F)
 +			.setOcean();
 +	// aa1.1
 +	public static final BiomeGenBase rainforest = new BiomeGenRainforest(27)
@@ -13870,7 +13874,7 @@
 +			.setColor(0x307444)
 +			.setTemperatureRainfall(0.6F, 0.6F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase mushroomValley = new BiomeGenMushroomValley(44)
 +			.setBiomeName("Mushroom Valley")
 +			.setColor(0xff007f)
@@ -13886,21 +13890,21 @@
 +			.setColor(0x596651)
 +			.setTemperatureRainfall(0.3F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	// aa1.2.5
 +	public static final BiomeGenBase seasonalForest = new BiomeGenSeasonalForest(47)
 +			.setBiomeName("Seasonal Forest")
 +			.setColor(0x9BE023)
 +			.setTemperatureRainfall(0.9F, 0.5F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	// aa1.3
 +	public static final BiomeGenBase frostedBirchForest = new BiomeGenBirchForest(48)
 +			.setBiomeName("Frosted Birch Forest")
 +			.setColor(0x7af8c7)
 +			.setTemperatureRainfall(0.1F, 0.4F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F)
++			.setHeightVariation(0.2F, 0.7F)
 +			.setEnableSnow();
 +	public static final BiomeGenBase snowcappedForest = new BiomeGenSnowcappedHills(49)
 +			.addTrees()
@@ -15920,7 +15924,7 @@
  			for(int var5 = this.boundingBox.minZ; var5 <= this.boundingBox.maxZ; ++var5) {
  				if(var3.isVecInside(var4, 64, var5)) {
  					int var6 = var1.getTopSolidOrLiquidBlock(var4, var5) - 1;
-+					if (var6 < var1.getSeaLevel() - 1) continue;
++					if (var6 < var1.getSeaLevel() - 2) continue;
  					var1.setBlock(var4, var6, var5, Block.gravel.blockID);
  				}
  			}
@@ -16677,7 +16681,7 @@
  		} else {
 --- net/minecraft/src/GameSettings.java
 +++ net/minecraft/src/GameSettings.java
-@@ -26,21 +26,29 @@
+@@ -26,21 +26,30 @@
  	public boolean fancyGraphics = true;
  	public boolean ambientOcclusion = true;
  	public boolean clouds = true;
@@ -16687,6 +16691,7 @@
 +	public boolean nonSolidAO = true;
 +	public float aoStrength = 0.95F;
 +	public boolean murkySwamps = false;
++	public boolean controllerSupport = false;
  	public String skin = "Default";
 -	public KeyBinding keyBindForward = new KeyBinding("key.forward", 17);
 -	public KeyBinding keyBindLeft = new KeyBinding("key.left", 30);
@@ -16721,7 +16726,7 @@
  	protected Minecraft mc;
  	private File optionsFile;
  	public int difficulty = 2;
-@@ -69,14 +77,14 @@
+@@ -69,14 +78,14 @@
  	public GameSettings() {
  	}
  
@@ -16741,7 +16746,7 @@
  	}
  
  	public static String getKeyDisplayString(int var0) {
-@@ -88,6 +96,11 @@
+@@ -88,6 +97,11 @@
  		this.saveOptions();
  	}
  
@@ -16753,7 +16758,7 @@
  	public void setOptionFloatValue(EnumOptions var1, float var2) {
  		if(var1 == EnumOptions.MUSIC) {
  			this.musicVolume = var2;
-@@ -111,6 +124,11 @@
+@@ -111,6 +125,11 @@
  			this.gammaSetting = var2;
  		}
  
@@ -16765,7 +16770,7 @@
  	}
  
  	public void setOptionValue(EnumOptions var1, int var2) {
-@@ -127,7 +145,7 @@
+@@ -127,7 +146,7 @@
  		}
  
  		if(var1 == EnumOptions.PARTICLES) {
@@ -16774,7 +16779,7 @@
  		}
  
  		if(var1 == EnumOptions.VIEW_BOBBING) {
-@@ -166,29 +184,56 @@
+@@ -166,29 +185,56 @@
  			this.mc.renderGlobal.loadRenderers();
  		}
  
@@ -16847,7 +16852,7 @@
  		}
  	}
  
-@@ -206,12 +251,37 @@
+@@ -206,12 +252,37 @@
  		String var3 = var2.translateKey(var1.getEnumString()) + ": ";
  		if(var1.getEnumFloat()) {
  			float var5 = this.getOptionFloatValue(var1);
@@ -16887,7 +16892,7 @@
  		}
  	}
  
-@@ -228,6 +298,7 @@
+@@ -228,6 +299,7 @@
  				var2 = var1.readLine();
  				if(var2 == null) {
  					KeyBinding.resetKeyBindingArrayAndHash();
@@ -16895,7 +16900,7 @@
  					var1.close();
  					break;
  				}
-@@ -314,11 +385,56 @@
+@@ -314,11 +386,60 @@
  						this.language = var3[1];
  					}
  
@@ -16938,6 +16943,10 @@
 +						this.murkySwamps = var3[1].equals("true");
 +					}
 +
++					if(var3[0].equals("experimental-controllerSupport")) {
++						this.controllerSupport = var3[1].equals("true");
++					}
++
  					for(int var4 = 0; var4 < this.keyBindings.length; ++var4) {
  						if(var3[0].equals("key_" + this.keyBindings[var4].keyDescription)) {
  							this.keyBindings[var4].keyCode = Integer.parseInt(var3[1]);
@@ -16952,7 +16961,7 @@
  				} catch (Exception var5) {
  					System.out.println("Skipping bad option: " + var2);
  				}
-@@ -354,12 +470,22 @@
+@@ -354,12 +475,23 @@
  			var1.println("fancyGraphics:" + this.fancyGraphics);
  			var1.println("ao:" + this.ambientOcclusion);
  			var1.println("clouds:" + this.clouds);
@@ -16962,6 +16971,7 @@
 +			var1.println("nonSolidAO:" + this.nonSolidAO);
 +			var1.println("aoStrength:" + this.aoStrength);
 +			var1.println("murkySwamps:" + this.murkySwamps);
++			var1.println("experimental-controllerSupport:" + this.controllerSupport);
  			var1.println("skin:" + this.skin);
  			var1.println("lastServer:" + this.lastServer);
  			var1.println("lang:" + this.language);

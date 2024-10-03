@@ -4431,7 +4431,7 @@
  				if(var2.isVecInside(var6, 64, var5)) {
 -					var3 += Math.max(var1.getTopSolidOrLiquidBlock(var6, var5), var1.worldProvider.getAverageGroundLevel());
 +					int top = var1.getTopSolidOrLiquidBlock(var6, var5);
-+					if (top < var1.getSeaLevel()) {
++					if (top < var1.getSeaLevel() && var1.getWorldInfo().getTerrainType().useBetaTerrain()) {
 +						return -1;
 +					}
 +					var3 += top;
@@ -8763,13 +8763,13 @@
 +			.setColor(0x056621)
 +			.setTemperatureRainfall(0.8F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase taiga = new BiomeGenTaiga(28)
 +			.setBiomeName("Taiga")
 +			.setColor(0x0b6659)
 +			.setTemperatureRainfall(0.3F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase swampland = new BiomeGenSwamp(6)
 +			.setBiomeName("Swampland")
 +			.setColor(0x10e655)
@@ -8835,7 +8835,7 @@
 +			.setColor(0x7fffff)
 +			.setTemperatureRainfall(0.0F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2f, 0.5F)
++			.setHeightVariation(0.2f, 0.7F)
 +			.setEnableSnow();
 +	public static final BiomeGenBase beach = new BiomeGenBeach(16)
 +			.setBiomeName("Beach")
@@ -8875,8 +8875,8 @@
 +			.setBiomeName("Archipelago")
 +			.setColor(0x0000a0)
 +			.setTemperatureRainfall(0.8F, 0.9F)
-+			.setMinMaxHeight(-1.0F, 0.8F)
-+			.setHeightVariation(0.0F, 0.2F)
++			.setMinMaxHeight(-1.0F, 1.0F)
++			.setHeightVariation(0.0F, 0.0F)
 +			.setOcean();
 +	// aa1.1
 +	public static final BiomeGenBase rainforest = new BiomeGenRainforest(27)
@@ -8940,7 +8940,7 @@
 +			.setColor(0x307444)
 +			.setTemperatureRainfall(0.6F, 0.6F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	public static final BiomeGenBase mushroomValley = new BiomeGenMushroomValley(44)
 +			.setBiomeName("Mushroom Valley")
 +			.setColor(0xff007f)
@@ -8956,21 +8956,21 @@
 +			.setColor(0x596651)
 +			.setTemperatureRainfall(0.3F, 0.8F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	// aa1.2.5
 +	public static final BiomeGenBase seasonalForest = new BiomeGenSeasonalForest(47)
 +			.setBiomeName("Seasonal Forest")
 +			.setColor(0x9BE023)
 +			.setTemperatureRainfall(0.9F, 0.5F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F);
++			.setHeightVariation(0.2F, 0.7F);
 +	// aa1.3
 +	public static final BiomeGenBase frostedBirchForest = new BiomeGenBirchForest(48)
 +			.setBiomeName("Frosted Birch Forest")
 +			.setColor(0x7af8c7)
 +			.setTemperatureRainfall(0.1F, 0.4F)
 +			.setMinMaxHeight(0.1F, 0.5F)
-+			.setHeightVariation(0.2F, 0.5F)
++			.setHeightVariation(0.2F, 0.7F)
 +			.setEnableSnow();
 +	public static final BiomeGenBase snowcappedForest = new BiomeGenSnowcappedHills(49)
 +			.addTrees()
@@ -10384,7 +10384,7 @@
  			for(int var5 = this.boundingBox.minZ; var5 <= this.boundingBox.maxZ; ++var5) {
  				if(var3.isVecInside(var4, 64, var5)) {
  					int var6 = var1.getTopSolidOrLiquidBlock(var4, var5) - 1;
-+					if (var6 < var1.getSeaLevel() - 1) continue;
++					if (var6 < var1.getSeaLevel() - 2) continue;
  					var1.setBlock(var4, var6, var5, Block.gravel.blockID);
  				}
  			}

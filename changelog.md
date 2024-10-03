@@ -1,3 +1,15 @@
+# 1.3.4
+Released: October 3rd 2024
+
+## Changes
+- Controller support is now disabled by default
+    - This is due to its experimental and messy nature and it being prone to crashes
+    - It can be re-enabled manually in options.txt, but it is recommended to use an Xbox styled controller
+- Villages can now generate deeper underwater without beta terrain
+    - This removes the cutoff bug from normal world generation
+- Village paths can now generate one block deeper underwater
+- Adjusted height values of some forest type biomes and archipelagos
+
 # 1.3.3
 Released: October 1st 2024
 
