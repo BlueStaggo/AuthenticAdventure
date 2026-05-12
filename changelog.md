@@ -1,4 +1,4 @@
-# 1.4
+# 1.4: Endless Horizons
 Released: May 12th 2026
 
 [![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw)
