@@ -4,26 +4,37 @@
 </p>
 <br>
 
-Minecraft Authentic Adventure (latest version: 1.3.4) is a minimalistic mod for 1.2.5 that reverts the game to a more Beta-esque aesthetic with hilly terrain generation, sandbox gameplay and an overall enjoyable experience for player from both the golden age and the modern era.
-
-*Why don't you check out Authentic Adventure's sister project, [Minecraft Diverge](https://github.com/BlueStaggo/MCDiverge)?*
+Authentic Adventure is a minimalistic mod for 1.2.5 that reverts the game to a more Beta-esque aesthetic with hilly terrain generation, sandbox gameplay and an overall enjoyable experience for players interested in both the golden age and the adventure update era. For a blind playthrough, it is suggested to look at the achievements menu to learn a bit about how to access new progression content.
 
 ## Features
-- Overhauled world generation, making it more hilly and Beta-esque
+- Overhauled world generation with extra hills and Beta-esque features
 - Plenty of customisation options for world generation, gameplay and visuals to fine tune your experience
-- Reworked hunger system and new classic mode
-- Added extra challenge to Hardcore mode alongside extra benefits
-- Improved lighting engine
-- A few new items and enchantments
+- More content added to the End to give it more purpose than merely being boss arena
+- Added and tweaked tool and armor tiers for more interesting gear variety
+- Reworked hunger and enchanting that brings the game closer to its roots
+- Added extra challenge to hardcore mode with greater XP rewards
+- Improved lighting via the Starlight engine
+- A few new enchantments
 
-## Trailer for 1.0 (Youtube)
-[![](https://img.youtube.com/vi/xrIBDVWmcqs/0.jpg)](https://youtu.be/xrIBDVWmcqs)
+## Trailers
+| 1.4 Update | Initial Release |
+| - | - |
+| [![](https://img.youtube.com/vi/xrIBDVWmcqs/0.jpg)](https://youtu.be/xrIBDVWmcqs) | [![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw) | 
 
 ## Screenshots
-![](<img/Screenshot 2024-05-22 203352.png>)
+![](img/2026-05-11_19.17.16.png)
 ![](img/2024-05-28_12.06.47.png)
 ![](img/2024-05-21_17.19.42.png)
-![](img/2024-05-23_18.12.03.png)
+![](img/2026-05-11_19.28.22.png)
 ![](img/2024-05-28_12.03.15.png)
-![](img/2023-06-30_20.37.32.png)
+![](img/2026-05-11_18.51.59.png)
 ![](img/2024-05-28_12.11.06.png)
+![](img/2026-05-11_19.04.09.png)
+![](img/2026-05-11_19.26.50.png)
+![](img/2026-05-11_19.07.52.png)
+
+## Source Code
+
+You need to use RetroMCP v1.2. Set up a 1.2.5 project without decompiling it, then place the "mappings.tiny", "exceptions.exc" and "merged-initial.patch" (to be renamed to "merged.patch") files in the "conf" folder while replacing all existing files. Make sure your setup is on merged side and decompile. Then put the "merged-authadv.patch" file into the "patches" folder in the root project directory (create it if it does not exist) then go to MCP > More tasks > Apply patch.
+
+The mappings used for Authentic Adventure are slightly modified [Feather mappings](https://github.com/OrnitheMC/feather) which are used under the Creative Commons Zero license.

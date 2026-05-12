@@ -1,3 +1,526 @@
+# 1.4
+Released: May 12th 2026
+
+[![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw)
+
+## Additions
+
+### Blocks
+- Gabbro
+    - End Stone variant
+    - Can be found in stripes in the End or in a platform when returning to the Overworld in an awkward place
+- Sulfur
+    - End Stone variant
+    - Can be found in stripes in End Springs
+- Geyser
+    - Naturally generates in End Springs
+    - Thrusts entities upwards on contact
+    - Has a passive fizzing particle effect
+- End Crystal Block
+    - Drops one End Crystal when broken without Silk Touch
+- Titanium Ore
+    - Can be found embedded in Gabbro in the End
+    - Can be smelted into titanium ingots
+- Bark
+    - Log variant with bark texture on all three sides
+    - Has oak, spruce, birch and jungle variants
+    - 3 bark can be crafted from 4 log blocks in a square formation
+- Blaze Remains
+    - Generates in the Nether with higher frequency closer to the bottom of the world
+    - Drops 1 blaze powder and creates a block of lava when mined
+    - Can be crafted from 1 glowstone block and 1 blaze powder
+- Block of Coal
+    - Crafted from a reversible recipe of 8 coal in a circle
+    - Can be used as fuel in a furnace to smelt 64 items
+- Block of Charcoal
+    - Identical to a block of coal but crafted with charcoal instead 
+- Block of Redstone
+    - Crafted from a reversible recipe of 9 redstone dust
+    - Emits a redstone signal when placed
+- Coarse Dirt
+    - Variant of dirt that cannot grow grass
+    - Can be found in mega taigas or crafted with two dirt and two gravel in a checkerboard fashion
+    - Can be converted into regular dirt using a hoe
+- Smooth Sandstone
+    - Obtained by smelting sandstone
+    - Has the top face texture on all six sides
+- Smooth Stone
+    - Crafted from two stone slabs on top of each other
+    - Has the top texture of stone slabs on all six sides
+- Wet Sponge
+    - A form of sponge that has already absorbed water
+    - Can be dried by smelted in a furnace
+
+### Items
+- Blazing Steel Ingot
+    - New tool tier:
+        - Mining Tier: 2 (Iron)
+        - Durability: 512
+        - Mining Speed: 16
+        - Attack Damage Bonus: 4
+        - Enchantability: 5
+        - Base Enchantments: Fire Aspect I
+    - New armor tier:
+        - Durability: 220, 320, 300, 260
+        - Protection: 2, 6, 5, 2
+        - Enchantability: 7
+        - Base Enchantments (per piece): Blast Protection I, Fire Protection I
+    - Obtained by crafting with nuggets
+    - Can be crafted into high-speed tools with moderate durability and attack damage
+    - Can also be crafted into low durability armor with the same strength and slightly higher durability compared to iron armor
+    - Tools come with the fire aspect enchantment and armor comes with the blast protection and fire protection enchantments
+- Blazing Steel Nugget
+    - Obtained by either smelting an iron ingot in a furnace with blaze rods or powder as fuel or smelting blazing steel tools and armor
+- Blazing Arrow
+    - Crafted like a regular arrow with a blazing steel ingot and blaze rod
+    - Comes with Flame I and Punch II enchantments
+- Cosmite Blend
+    - Crafted from 2 titanium ore and 6 End crystals (shapeless)
+    - Can be smelted in a furnace to create cosmite ingots
+- Cosmite Ingot
+    - New tool tier:
+        - Mining Tier: 3 (Diamond)
+        - Durability: 3840
+        - Mining Speed: 7
+        - Attack Damage Bonus: 3
+        - Enchantability: 15
+        - Base Enchantments: None
+    - New armor tier:
+        - Durability: 660, 960, 900, 780
+        - Protection: 3, 7, 5, 3
+        - Enchantability: 15
+        - Base Enchantments (per piece): Stamina I, Void Guard I (full set reduces exhaustion by 40% and ender pearl damage by 60%)
+    - Obtained by smelting cosmite blend with blaze rods or powder in a furnace
+    - Can be crafted into highly durable tools and armor with tools requiring titanium rods instead of sticks
+    - Armor comes with the Stamina enchantment
+- Cultured Meal
+    - Obtained by using bone meal on farmland
+    - Allows growing trees from saplings as if they were in a different biome
+- End Crystal
+    - Obtained from breaking End crystal blocks
+    - Can be crafted back into blocks by being placed in a 2x2 grid
+- Light Cart
+    - Crafted like a regular minecart but with titanium ingots instead of iron ingots
+    - Has twice the speed of normal minecarts
+- Iron Nugget
+    - Obtained by either crafting from iron ingots or smelting iron tools and armor
+- Titanium Ingot
+    - Obtained from smelting titanium ore
+- Titanium Rod
+    - Crafted from two titanium ingots on top of each other
+    - Used for crafting cosmite tools
+- Titanium Arrow
+    - Crafted like a regular arrow with a titanium ingot and titanium rod
+    - Comes with Power I and Punch I enchantments
+- Titanium Bow
+    - Crafted like a regular bow but with titanium rods instead of sticks
+    - Has twice the durability and comes with Sharpshooter II and Quick Draw II enchantments
+- Potion of Haste
+    - Obtained by combining awkward potions with blazing steel ingots in a brewing stand
+- Potion of Dullness
+    - Obtained by combining potions of haste with fermented spider eyes in a brewing stand
+    - Grants the mining fatigue status effect
+
+### Mobs
+- End Guardian
+    - Takes the form of a rotating end crystal
+    - Flies around the outer End
+    - Has 20 health
+    - When provoked, it uses a beam attack that lasts 4 seconds
+    - If the victim does not get out of the way of the beam, 6 hearts of damage are dealt
+    - Drops 2-4 End crystals
+
+### Enchantments
+- Quick Draw
+    - Max Level: III
+    - Exclusive to bows
+    - Each level reduces bow draw time by 16%
+    - If level IV is obtained then time is only reduced by 10% and any further levels have no effect
+    - Mutually exclusive with Sharpshooter
+- Sharpshooter
+    - Max Level: III
+    - Exclusive to bows
+    - Each level increases arrow velocity by 20%
+    - Mutually exclusive with Quick Draw
+- Void Guard
+    - Max Level: III
+    - Exclusive to chestplates
+    - Reduces damage taken from ender pearls by 1 per level
+- Negative Enchantments
+    - The following enchantments are negative parallels to existing enchantments and can only be obtainable when enchanting with experience disabled:
+    - Efficiency -> Feebleness
+        - Max Level: V
+        - Reduces mining speed by level²/2
+    - Power -> Detriment
+        - Max Level: III
+        - Reduces arrow damage by 10% per level
+    - Protection -> Exposure
+        - Max Level: IV
+        - Reduces defense by one point per level
+    - Quick Draw -> Long Draw
+        - Max Level: III
+        - Each level increases bow draw time by 16%
+    - Sharpness -> Bluntness
+        - Max Level: V
+        - Reduces damage by 20% for each level
+    - Sharpshooter -> Weak Shot
+        - Max Level: III
+        - Each level reduces arrow velocity by 10%
+    - Unbreaking -> Crumbling
+        - Max Level: III
+        - Reduces durability by 33% at level I, 50% at level II and 67% at level III
+    - Velocity -> Weight
+        - Max Level: II
+        - Reduces movement speed by 6% per level
+        - Can be applied to any piece of armor 
+
+### Biomes
+- Dark Forest
+    - A forest biome with trees that branch out wide to form a thick canopy where monsters spawn underneath
+    - Features a tree type with spruce logs and oak leaves
+- Snowy Mega Taiga
+    - Snowy variant of the Mega Taiga
+    - The ground is completely covered with coarse dirt
+- End Formations
+    - Exclusive to the End
+    - Features end crystal spikes and stripes of gabbro and obsidian
+- End Springs
+    - Exclusive to the End
+    - Generates with sulfur, water pools and geysers
+- End Glacier
+    - Exclusive to the End
+    - Primarily made of gabbro with stripes of end stone and ice
+    - Features large ice spikes, small ice pools and patches of snow
+
+### World Generation
+- End Meteorites
+    - Spawn rarely across the surface of the overworld
+    - A small deposit of End stone and gabbro
+- Underground Rivers
+    - Spawn rarely deep underground (roughly the same rarity as ravines)
+    - Very long cave tunnels filled with water at a gradual downwards slope
+- Biome Filters
+    - Can be accessed through the world type customization screen where the "select biome" button used to be (single biome worlds can still be created by cycling through the "biome selection" option)
+    - Allows for specific biomes to stop generating
+
+### Achievements
+- The End!
+    - Description: Using Eyes of Ender, locate the Ender Dragon within the End
+    - Requirements: Find the Ender Dragon
+    - Prerequisite: The End? (Enter the End)
+- Hotsteel the Ingot
+    - Description: Acquire blazing steel by smelting iron with blaze rods or powder
+    - Requirements: Smelt iron ingots with blaze rods or powder to get blazing steel nuggets
+    - Prerequisite: Into Fire (Relieve a Blaze of its rod)
+- They See Me Rollin'
+    - Description: Maintain maximum speed in a minecart made out of titanium
+    - Requirements: Craft a light cart out of titanium, travel to maximum speed and maintain this speed for five seconds
+    - Prerequisite: The End? (Enter the End)
+- Anomalous Materials
+    - Description: Coat titanium ore with end crystals and smelt the resulting blend to produce a sturdy alloy
+    - Requirements: Craft cosmite blend with one titanium ore surrounded by eight end crystals and smelt the blend in a furnace to make a cosmite ingot
+    - Prerequisite: The End? (Enter the End)
+
+### Gameplay
+- Experience is now disabled by default
+    - This affects existing worlds that use any of the gamemode presets
+- Added a Stamina hunger type
+    - Eating heals the player directly and does not affect the energy bar
+    - The player can sprint until the energy bar is empty
+    - When the player is not sprinting, the energy bar exponentially refills
+    - How fast the player sprints is dependent on how full the energy bar is, with maximum speed being buffed to compensate
+- Added an eating duration slider
+    - Defaults to 1.6 seconds
+    - Setting to 0 makes food get eaten instantly
+- Added an option to control what happens to items when the player dies (either drop, destroy or keep items)
+- Added an option to restrict food stacks sizes to 8
+- Base enchantments can be disabled in the game mode customization menu
+- The enchanting table's functionality can be changed in the game mode customization menu
+- Getting attacked now resets the eating animation
+    - Can be disabled in the game mode customization menu
+    - Disabled for the classic game mode preset
+
+### Settings
+- Entity Distance
+    - Adjusts how far away entities and particles can be rendered from
+    - Found in video settings, defaults to 100% and can be changed from 100% to 500%
+- FOV Effects
+    - Adjusts the change in FOV when sprinting or using items
+    - Found in style settings, defaults to 100% and can be changed from 0% to 100%
+
+### Miscellaneous
+- Added the full C418 soundtrack from release 1.7
+- Added one new panorama
+- The game is now throttled to 40 FPS when the window is unfocused
+
+## Changes
+
+### Blocks
+- Enchanting Table
+    - Now usable with a new menu when experience is disabled:
+        - Up to 6 items can be placed beside an item to enchant based on the amount of bookshelves around the table
+        - Enchantments are derived from the type of item inserted, e.g. flint adds sharpness, blazing steel adds velocity and fish adds respiration
+        - The following items are valid ingredients: Blaze Powder, Blazing Steel Ingot, Cobblestone, Cooked Fish, Cosmite Ingot, Diamond, Ender Pearl, Feather, Fermented Spider Eye, Flint, Glistening Melon, Gold Ingot, Iron Ingot, Obsidian, Raw Fish, Rotten Flesh, Spider Eye, Stick, Stone, String, Titanium Ingot, Titanium Rod 
+        - One lapis lazuli is required for each ingredient provided
+- End Portal Frame
+    - Can now be mined with a diamond pickaxe
+    - Blast resistance reduced to 2000 (same as an enchanting table)
+    - No longer needs to be assembled in a circle to spawn an end portal: inserting a single eye of ender into a portal frame spawns two portal blocks above it
+    - Breaking the frame destroys end portals on top of it
+    - Now craftable like so:
+        ```
+         X    - X = Ender Pearl
+        O#O   - O = Diamond
+        ###   - # = End Stone
+        ```
+- End Portal
+    - Changed shape into a cube
+    - When in the End, it glows blue if it leads back to the Overworld, purple if it leads elsewhere in the End and white if it plays the credits and sends the player back to their spawn point
+    - Trans-dimensional End portals no longer send the player to a single location in either end and instead sends them to a location in an End island that is close to the coordinates of the portal in the Overworld
+- Sponge
+    - Now rarely generates on ocean floors
+    - Removes connected water blocks up to a taxicab distance of 6
+    - Turns into wet sponge after absorbing water
+- Bed
+    - Can now be used to set spawn point regardless of time of day
+- Chiseled Stone Bricks
+    - Now craftable with two stone brick slabs on top of each other
+- Coal Ore
+    - Now drops 0-2 experience
+- Cocoa Beans
+    - Can now be placed and grown on jungle logs
+- Cobblestone
+    - Adjusted texture to have vanilla colors while retaining the same pattern
+- Diamond Ore
+    - Now drops 3-7 experience
+- Lapis Lazuli Ore
+    - Now drops 2-5 experience
+- Melon
+    - Can now be picked directly in creative mode
+    - Can now be mined quicker with an axe
+- Mossy Cobblestone
+    - Adjusted texture to have vanilla colors while retaining the same pattern
+- Leaves
+    - Can now be mined quicker with an axe
+- Log
+    - Can now be rotated
+- Snow Layer
+    - Now craftable from 3 snow blocks in a row
+    - Can now be manually stacked
+- Water
+    - Can now form source blocks when flowing on top of other water blocks
+
+### Items
+- Tools
+    - Increased the enchantability of gold tools to the vanilla level
+    - Gold pickaxes can now mine the same blocks as iron pickaxes
+    - Slightly adjusted all tool durabilities to be multiples of 64:
+        | Material | Old | New |
+        |---|---|---|
+        | Wood | 59 | 64 |
+        | Stone | 131 | 128 |
+        | Iron | 250 | 256 |
+        | Diamond | 1561 | 1536 |
+        | Gold | 250 | 256 |
+    - With experience disabled, different tool tiers have different base enchantments:
+        - Gold: Silk Touch I, Looting I
+    - Iron, gold and blazing steel tools can be smelted into nuggets with the amount corresponding to the amount of ingots used to craft them
+- Armor
+    - With experience disabled, different armor tiers have different base enchantments applied per piece:
+        - Leather: Feather Falling I (Full set reduces fall damage by 40%)
+        - Chainmail: Projectile Protection I
+        - Gold: Velocity I (Full set increases movement speed by 24%)
+    - Iron, gold and blazing steel armor can be smelted into nuggets with the amount corresponding to the amount of ingots used to craft them
+    - Reduced defense given from wearing a gold chestplate by one
+- Eye of Ender
+    - No longer guides players to stronghold
+    - Instead guides players directly to portals in the End that lead to the Ender Dragon
+    - If it is too far away from any players, it will seek the nearest player
+    - The eye breaks once it reaches its destination
+    - Now always renders in front of everything
+- Boat
+    - Improved handling and acceleration
+    - Fixed texture alignment
+- Blaze Rod
+    - Now cooks items twice as fast in a furnace
+- Blaze Powder
+    - Can now be used as fuel to smelt 6 items
+    - Cooks items twice as fast in a furnace
+- Charcoal
+    - Now accessible in the creative inventory
+- Cookie
+    - Maximum stack size increased to 8 when stackable food is disabled
+    - Now grants 5 seconds of Speed II when eaten
+    - Now gets eaten twice as fast
+- Fishing Rod
+    - The player earns 1-6 experience when catching a fish
+- Flint
+    - Crafting with a 2x2 arrangement of flint results in 4 gravel
+- Flint and Steel
+    - Recipe is now shapeless
+- Melon Slice
+    - Now gets eaten twice as fast
+- Raw Chicken
+    - Now gives Hunger I for 30 seconds (same as vanilla)
+- Raw Fish
+    - No longer gives the hunger status effect
+- Raw & Cooked Mutton
+    - Made textures slimmer
+- Rotten Flesh
+    - Now gives Hunger I for 30 seconds (same as vanilla)
+- Potion
+    - Maximum stack size increased to 16
+
+### Mobs
+- Blaze
+    - Now spawns rarely anywhere in the Nether
+    - Now drops 0-2 glowstone dust
+- Enderman
+    - Now spawns very rarely in the Nether
+- Ender Dragon
+    - Tends to move towards end crystals
+    - Made slightly more aggressive towards the player
+    - Increased damage from end crystal explosion from 10 to 25
+    - Takes double damage from melee attacks
+    - Now shoots fireballs when charging
+- Magma Cube
+    - Increased spawn rate
+- Zombie
+    - Now has a 10% chance to drop flint (this chance is re-rolled for every level of Looting)
+- Zombie Pigman
+    - Now drop cooked porkchops when killed while burning
+- Monsters now move 20% faster if sprinting is enabled
+
+### Enchantments
+- Fire Aspect
+    - Now gets applied before the target mob gets damaged, allowing for cooked meat to drop from mobs that are killed in one hit
+- Unbreaking
+    - Now applicable to all enchantable items
+- Velocity
+    - Reduced maximum level from 5 to 3
+
+### Biomes
+- Ice Plains
+    - Adjusted height values to be slightly less watery and slightly less hilly
+- Jungle
+    - Now has melons
+- Mega Taiga
+    - Now has large patches of coarse dirt on the ground
+- Rainforest
+    - Now has melons
+- Snowcapped Peaks
+    - Now generates again
+    - Snowy peaks are no longer entirely made out of snow
+- The End
+    - Renamed from Sky
+    - Added cracks of gabbro and obsidian
+    - Obsidian pillars generate more frequently
+
+### World Generation
+- Overhauled End generation
+    - There are now many islands with one generating every 1024 blocks
+    - Each island has one of three random biomes: End Formations, End Springs and End Glacier
+    - The obsidian spawning platform comes with a return End portal that sends the player back to where they came from if the player traveled from a portal in the Overworld
+    - Added floating blobs of End portals scattered around islands
+        - These portals send the player to a neighboring island
+        - The blobs point up towards the direction that they send the player to
+    - The center End island containing the Ender Dragon is no longer in the center of the world -- eyes of ender can be used to find it
+- Stronghold
+    - The End portal in the portal room has been replaced with an End meteorite
+    - Two singular End portal frame blocks remain in the portal room
+    - Every stronghold now has a meteorite room
+- Village
+    - Some cobblestone and wood blocks are replaced with slabs to make villages look more run down
+- The Nether
+    - Nether Wart can now rarely generate outside of Nether fortresses
+- Beta style beaches can now occasionally generate in normal terrain
+- Adjusted biome distribution all-round (this will cause chunk borders with pre-existing terrain, sorry!)
+- Mushroom islands can now generate if ocean biomes are disabled
+- Fancy oak trees make use of rotated logs
+
+### Status Effects
+- Hunger
+    - Now reduces health gained when the hunger type is set to anything other than hungry
+    - Health given from food is divided by the level of hunger + 1 (e.g. Hunger I halves the amount of health gained)
+
+### Achievements
+- The End?
+    - Modified description: Enter the End through a portal crafted with an ender pearl, end stone and diamonds (like an enchanting table)
+- Time to Mine! / Time to Farm! / Time to Strike!
+    - Respective tools of any tier can now be crafted to acquire these achievements
+
+### Gameplay
+- Gamemode customization
+    - Entering customization now displays presets by default instead of individual options
+    - The currently selected preset is now displayed
+    - Presets now have descriptions attached to them
+    - Adjusted ordering of items to group them better
+- Reduced food eating time from 2.4 seconds to 1.6 seconds (same as vanilla)
+- Reverted sprint jumping change from 1.3.2: sprint jumping now increases exhaustion again with hunger set to sprint only
+- Made mining one tick faster
+- Minimum passive spawn rate increased from 0 to 1 to reduce confusion (1 is effectively the same as 0)
+- Items no longer consume stack size and durability when used in creative mode
+- The player's arm can now be swung while it is already being swung
+- Reduced drag when swimming up a column of water that is adjacent to solid blocks
+
+### Miscellaneous
+- Development environments switched from separate client and server code to a merged codebase with slightly modified [Feather](https://github.com/OrnitheMC/feather) mappings 
+- Potions now appear in the creative inventory
+- Reworked The End's skybox to be animated
+- Replaced the lighting engine with [Starlight](https://github.com/Spottedleaf/canyon/blob/master/CraftBukkit-Patches/0031-Starlight.patch) by [Spottedleaf](https://github.com/Spottedleaf) for better performance
+    - Spottedleaf has been added to the credits in the End poem
+- Backported chunk update code from release 1.8
+- Made the loading screen smoother
+- Made the saturation outline around hunger points darker
+- Having status effects applied no longer shifts the inventory
+- Panoramas are now saved as JPEGs to save on file size while keeping the in-game appearance indistinguishable to its uncompressed appearance
+- Status effects are now applied before food is eaten rather than after
+- The hunger/feather bar now shakes when sprinting is on cooldown
+- Made blending of grass, leaves and water colors smoother between biomes
+- Tools now break when their durability is equal to the maximum, not just greater than
+
+## Removals
+
+- The lighting fixes option in the client and the fast-lighting setting in server.properties have been removed
+    - This is because the Starlight engine provides accurate lighting immediately without the need for a second pass
+- Game mode settings
+    - Removed instant eating: replaced with eating duration
+    - Removed sprint cooldown: can now be disabled by setting the sprint cooldown multiplier to 0
+
+## Bug Fixes
+
+- Bane of Arthropods is now obtainable again
+- Tall birch trees can now grow from saplings in frosted birch forests 
+- Grown oak trees now update neighboring blocks
+- The credits screen now scrolls more smoothly
+- Fixed the default gamemode preset not being correctly selected in the gamemode customization screen
+- The Ender Dragon now properly dies when experience is disabled
+- The bottom face of water blocks are now tinted when colored water is enabled
+- Removed the random pockets of air that generate above mineshaft rooms
+- Creepers no longer float two pixels off the ground
+- Water and lava springs now generate again
+- Amplified beta worlds now have consistently tall terrain
+- Fixed zombie and skeleton mob spawners causing crashes
+- Chunks are more likely to be rendered, especially in multiplayer
+- Fixed various visual bugs in multiplayer:
+    - The following particle effects have been restored:
+        - Trails from teleporting dragon eggs
+        - Smoke from burning out redstone torches
+        - Smoke from mixing water and lava
+        - Smoke from inserting an eye of Ender into an End portal frame
+        - Debris from summoning snow golems and iron golems
+        - Hearts from animals giving birth
+        - Smoke from mobs spawning from a spawner
+    - Saturation values are now displayed correctly
+    - Knockback tilt is now in the correct direction
+    - Thunder now darkens the sky
+    - Ambient darkness effects are now properly applied
+    - Hearts lost when taking damage now flash
+    - Movement of entities is now smoother
+    - Smoothed head turning
+
+---
+
 # 1.3.4
 Released: October 3rd 2024
 
@@ -9,6 +532,8 @@ Released: October 3rd 2024
     - This removes the cutoff bug from normal world generation
 - Village paths can now generate one block deeper underwater
 - Adjusted height values of some forest type biomes and archipelagos
+
+---
 
 # 1.3.3
 Released: October 1st 2024
@@ -22,6 +547,8 @@ Released: October 1st 2024
 - Climate zones now correctly generate in oceanless worlds
 - Village buildings can no longer generate over water
     - However, this causes an issue where village buildings can generate sliced up
+
+---
 
 # 1.3.2
 Released: September 29th 2024
@@ -115,6 +642,8 @@ Released: September 29th 2024
 - Fixed air bubbles in the hotbar in the wrong position
 - Fixed controller support on Linux maybe?
 
+---
+
 # 1.3.1
 Released: May 28th 2024
 
@@ -130,6 +659,8 @@ Released: May 28th 2024
 - Restored beta seed parity (will create chunk borders in default worlds)
 - Gamemodes with missing properties can now be loaded
 - Sprint cooldown from taking damage now works in multiplayer
+
+---
 
 # 1.3
 Released: May 22nd 2024
@@ -790,6 +1321,8 @@ Released: May 19th 2023
 
 # 1.0
 Released: May 17th 2023
+
+[![](https://img.youtube.com/vi/xrIBDVWmcqs/0.jpg)](https://youtu.be/xrIBDVWmcqs)
 
 ## Additions
 

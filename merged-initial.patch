@@ -1,0 +1,87 @@
+--- net/minecraft/client/options/GameOptions.java
++++ net/minecraft/client/options/GameOptions.java
+@@ -376,7 +376,7 @@
+ 		return this.viewDistance < 2 && this.renderClouds;
+ 	}
+ 
+-	class C_67871314 {
++	static class C_67871314 {
+ 		static final int[] f_94081458 = new int[GameOptions.Option.values().length];
+ 
+ 		static {
+--- net/minecraft/isom/IsomPreviewCanvas.java
++++ net/minecraft/isom/IsomPreviewCanvas.java
+@@ -393,7 +393,7 @@
+ 		}
+ 	}
+ 
+-	class C_40088635 {
++	static class C_40088635 {
+ 		static final int[] f_60229145 = new int[IsomPreviewCanvas.OS.values().length];
+ 
+ 		static {
+--- net/minecraft/world/storage/EmptyWorldStorage.java
++++ net/minecraft/world/storage/EmptyWorldStorage.java
+@@ -24,6 +24,13 @@
+ 	public void saveData(WorldData var1) {
+ 	}
+ 
++	public PlayerDataStorage getPlayerDataStorage() {
++		return null;
++	}
++
++	public void forceSave() {
++	}
++
+ 	public File getDataFile(String var1) {
+ 		return null;
+ 	}
+--- net/minecraft/stat/achievement/AchievementStat.java
++++ net/minecraft/stat/achievement/AchievementStat.java
+@@ -80,12 +80,4 @@
+ 	public boolean isChallenge() {
+ 		return this.challenge;
+ 	}
+-
+-	public Stat register() {
+-		return this.register();
+-	}
+-
+-	public Stat setLocal() {
+-		return this.setLocal();
+-	}
+ }
+--- net/minecraft/client/Minecraft.java
++++ net/minecraft/client/Minecraft.java
+@@ -1941,7 +1941,7 @@
+ 		}
+ 	}
+ 
+-	public class C_47397631 {
++	public static class C_47397631 {
+ 		public static final int[] f_42587729 = new int[Minecraft.OS.values().length];
+ 
+ 		static {
+--- net/minecraft/world/gen/structure/StrongholdPieces.java
++++ net/minecraft/world/gen/structure/StrongholdPieces.java
+@@ -212,7 +212,7 @@
+ 		}
+ 	}
+ 
+-	class C_21168123 {
++	static class C_21168123 {
+ 		static final int[] f_27206980 = new int[StrongholdPieces.StrongholdPiece.EntranceType.values().length];
+ 
+ 		static {
+--- net/minecraft/server/entity/mob/player/ServerPlayerEntity.java
++++ net/minecraft/server/entity/mob/player/ServerPlayerEntity.java
+@@ -583,6 +583,9 @@
+ 		var2.sendPacketToAll(this, new EntityAnimationPacket(var1, 7));
+ 	}
+ 
++	public void addRespawnParticles() {
++	}
++
+ 	public void syncAbilities() {
+ 		if(this.networkHandler != null) {
+ 			this.networkHandler.sendPacket(new PlayerAbilitiesPacket(this.abilities));
