@@ -19,7 +19,7 @@ Authentic Adventure is a minimalistic mod for 1.2.5 that reverts the game to a m
 ## Trailers
 | 1.4 Update | Initial Release |
 | - | - |
-| [![](https://img.youtube.com/vi/xrIBDVWmcqs/0.jpg)](https://youtu.be/xrIBDVWmcqs) | [![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw) | 
+| [![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw) | [![](https://img.youtube.com/vi/xrIBDVWmcqs/0.jpg)](https://youtu.be/xrIBDVWmcqs) |
 
 ## Screenshots
 ![](img/2026-05-11_19.17.16.png)
