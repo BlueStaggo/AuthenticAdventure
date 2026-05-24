@@ -1,4 +1,56 @@
-# 1.4: Endless Horizons
+# 1.4.1
+Released: May 24th 2026
+
+## Additions
+
+### Game Mode Settings
+- Day Length
+    - Controls how long each in-game day is from 1 minute to 100 minutes
+    - Default: 20 minutes (24000 ticks)
+- Day/Night Cycle
+    - Controls whether time passes or not
+    - If set to false, time of day is locked to initial time of day
+    - Default: On
+- Initial Time
+    - Sets the time of day on world creation
+    - Default: 06:00 (0 ticks)
+- Weather
+    - Controls whether weather can happen
+    - Default: On
+- Nether Access
+    - Controls whether the Nether can be accessed
+    - Default: On
+- End Access
+    - Controls whether the End can be accessed
+    - Default: On
+- Extra Tool Tiers
+    - Enables access to blazing steel and cosmite tools and armor
+    - Default: On
+- Faster Iron Carts
+    - Makes regular minecarts as fast as light carts made from titanium
+    - Default: Off
+
+### Miscellaneous
+- Added monster eggs to the creative mode inventory
+
+## Changes
+- Maximum Ore Multiplier increased to 2
+- Ore veins now have a maximum size of 32 (this allows for higher ore multipliers)
+
+## Bug Fixes
+- Fixed changing the "murky swamps" setting not working for chunks that are already loaded
+- Fixed sprint cooldown multiplier not being saved
+- The same modification made to fix chunk rendering on multiplier now applies to singleplayer
+    - An example where the issue could be observed in singleplayer is where a piston distance pushes a block into a new chunk section 
+- Monster eggs and end portals now have names
+- Fixed falling blocks appearing to come from the world origin on the first frame of rendering
+- Fixed cocoa beans not being directly placeable on the north faces of logs
+- Fixed wolves not despawning under the correct conditions
+- Potentially fixed a crash with placing signs in multiplayer
+
+---
+
+# 1.4
 Released: May 12th 2026
 
 [![](https://img.youtube.com/vi/6IrG7LEM5Pw/0.jpg)](https://youtu.be/6IrG7LEM5Pw)

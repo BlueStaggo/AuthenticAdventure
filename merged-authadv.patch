@@ -719,7 +719,7 @@
  	public boolean isCube() {
  		return false;
  	}
-@@ -49,7 +45,67 @@
+@@ -49,7 +45,69 @@
  
  	public void onEntityCollision(World var1, int var2, int var3, int var4, Entity var5) {
  		if(var5.vehicle == null && var5.rider == null && var5 instanceof PlayerEntity && !var1.isMultiplayer) {
@@ -737,11 +737,11 @@
 +
 +			switch(blockEntity.destination) {
 +				case TRANSDIMENSIONAL:
-+					if(!var1.doPortalsWork()) {
++					boolean overworld = player.dimension != 1;
++					if(!var1.doPortalsWork() || overworld && !var1.getGameMode().endAccess) {
 +						return;
 +					}
 +
-+					boolean overworld = player.dimension != 1;
 +					if(overworld) {
 +						int direction = MathHelper.floor((double)(var5.yaw * 4.0F / 360.0F) + 0.5D) & 3;
 +						switch(direction) {
@@ -782,13 +782,15 @@
 +					PortalForcer.spawnEndPlatform(var1, player);
 +					break;
 +				case SPAWN_POINT:
-+					player.changeDimension(1);
++                    if(player.dimension == 1) {
++                        player.changeDimension(1);
++                    }
 +					break;
 +			}
  		}
  
  	}
-@@ -62,17 +118,24 @@
+@@ -62,17 +120,24 @@
  		double var14 = 0.0D;
  		double var16 = 0.0D;
  		var1.addParticle("smoke", var6, var8, var10, var12, var14, var16);
@@ -1943,7 +1945,7 @@
  
  	public boolean isEmpty() {
 -		return !this.compiled ? false : this.empty[0] && this.empty[1];
-+		return this.compiled && (!this.expectEmptyChunks || !this.dirty) && this.empty[0] && this.empty[1];
++		return this.compiled && !this.dirty && this.empty[0] && this.empty[1];
  	}
  
  	public void markDirty() {
@@ -2883,12 +2885,16 @@
  		int var2 = 0;
  		ItemStack var3 = null;
  		ItemStack var4 = null;
-@@ -218,7 +246,12 @@
+@@ -218,7 +246,16 @@
  			for(var5 = 0; var5 < this.recipes.size(); ++var5) {
  				Recipe var11 = (Recipe)this.recipes.get(var5);
  				if(var11.matches(var1)) {
 -					return var11.getResult(var1);
 +					ItemStack item = var11.getResult(var1);
++                    if(!item.getItem().isObtainable(item.getDamage())) {
++                        continue;
++                    }
++
 +					if(!gameMode.plankVariants && item.id == Block.PLANKS.id) {
 +						item.setDamage(0);
 +					}
@@ -4249,94 +4255,6 @@
  	}
  }
 --- /dev/null
-+++ net/minecraft/entity/vehicle/LightCartEntity.java
-@@ -1,0 +1,85 @@
-+package net.minecraft.entity.vehicle;
-+
-+import net.minecraft.block.RailBlock;
-+import net.minecraft.entity.mob.player.PlayerEntity;
-+import net.minecraft.item.Item;
-+import net.minecraft.stat.achievement.Achievements;
-+import net.minecraft.util.math.MathHelper;
-+import net.minecraft.world.World;
-+
-+public class LightCartEntity extends MinecartEntity {
-+    private byte velocitySustainTicks;
-+
-+    public LightCartEntity(World var1) {
-+        super(var1);
-+    }
-+
-+    public LightCartEntity(World var1, double var2, double var4, double var6, int var8) {
-+        super(var1, var2, var4, var6, var8);
-+    }
-+
-+    protected int getDroppedItem() {
-+        return Item.LIGHT_CART.id;
-+    }
-+
-+    protected double getInclineStrength() {
-+        return 0.5D;
-+    }
-+
-+    public void tick() {
-+        double prevVelocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
-+
-+        int blockX = MathHelper.floor(this.x);
-+        int blockY = MathHelper.floor(this.y);
-+        int blockZ = MathHelper.floor(this.z);
-+        boolean onRail = RailBlock.isRail(this.world.getBlock(blockX, blockY, blockZ));
-+
-+        if(this.getDamagedTimer() > 0) {
-+            this.setDamagedTimer(this.getDamagedTimer() + 1);
-+        }
-+
-+        if(this.getDamage() > 0) {
-+            this.setDamage(this.getDamage() + 1);
-+        }
-+
-+        double firstX = this.x;
-+        double firstY = this.y;
-+        double firstZ = this.z;
-+
-+        super.tick();
-+
-+        if(onRail) {
-+            if(this.rider != null) {
-+                this.velocityX /= 0.997D;
-+                this.velocityZ /= 0.997D;
-+            } else {
-+                this.velocityX /= 0.96D;
-+                this.velocityZ /= 0.96D;
-+            }
-+        } else if(!this.onGround) {
-+            this.velocityX /= 0.95D;
-+            this.velocityY /= 0.95D;
-+            this.velocityZ /= 0.95D;
-+        }
-+
-+        super.tick();
-+
-+        this.lastX = firstX;
-+        this.lastY = firstY;
-+        this.lastZ = firstZ;
-+
-+        double velocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
-+
-+        if(velocitySquared > 0.4D * 0.4D && prevVelocitySquared > velocitySquared) {
-+            this.velocitySustainTicks++;
-+            if(this.velocitySustainTicks > 100) {
-+                this.velocitySustainTicks = 0;
-+                if(this.rider instanceof PlayerEntity) {
-+                    ((PlayerEntity)this.rider).incrementStat(Achievements.RIDE_LIGHT_CART_FAST);
-+                }
-+            }
-+        } else {
-+            this.velocitySustainTicks = 0;
-+        }
-+    }
-+}
---- /dev/null
 +++ net/minecraft/world/biome/BirchForestBiome.java
 @@ -1,0 +1,39 @@
 +package net.minecraft.world.biome;
@@ -5078,6 +4996,15 @@
  	}
  
  	public void addCritParticles(Entity var1) {
+@@ -865,7 +953,7 @@
+ 				return PlayerEntity.SleepAllowedStatus.NOT_POSSIBLE_HERE;
+ 			}
+ 
+-			if(this.world.isSunny()) {
++			if(this.world.isSunny() || !this.world.getGameMode().doDaylightCycle) {
+ 				return PlayerEntity.SleepAllowedStatus.NOT_POSSIBLE_NOW;
+ 			}
+ 
 @@ -1045,12 +1133,17 @@
  	protected void jump() {
  		super.jump();
@@ -5760,20 +5687,12 @@
  	public abstract int[] getArea(int var1, int var2, int var3, int var4);
 --- net/minecraft/client/render/entity/MinecartRenderer.java
 +++ net/minecraft/client/render/entity/MinecartRenderer.java
-@@ -5,6 +5,7 @@
- import net.minecraft.client.render.model.Model;
- import net.minecraft.client.render.model.entity.MinecartModel;
- import net.minecraft.entity.Entity;
-+import net.minecraft.entity.vehicle.LightCartEntity;
- import net.minecraft.entity.vehicle.MinecartEntity;
- import net.minecraft.util.math.MathHelper;
- import net.minecraft.util.math.Vec3d;
-@@ -90,7 +91,7 @@
+@@ -90,7 +90,7 @@
  			GL11.glScalef(1.0F / var30, 1.0F / var30, 1.0F / var30);
  		}
  
 -		this.bindTexture("/item/cart.png");
-+		this.bindTexture(var1 instanceof LightCartEntity ? "/item/light_cart.png" : "/item/cart.png");
++		this.bindTexture(var1.getTexture());
  		GL11.glScalef(-1.0F, -1.0F, 1.0F);
  		this.model.render(var1, 0.0F, 0.0F, -0.1F, 0.0F, 0.0F, 1.0F / 16.0F);
  		GL11.glPopMatrix();
@@ -5934,7 +5853,7 @@
  		} else {
  			this.biomeSource = new BiomeSource(this.world);
  		}
-@@ -50,12 +58,13 @@
+@@ -50,17 +58,24 @@
  	}
  
  	public ChunkSource createChunkGenerator() {
@@ -5948,9 +5867,35 @@
 -		return var3 == Block.GRASS.id;
 +		return var3 == Block.GRASS.id || var3 == Block.SAND.id || var3 == Block.GRAVEL.id;
  	}
++
++    public int getDayLength() {
++        return this.world.getGameMode().dayLength;
++    }
  
  	public float getTimeOfDay(long var1, float var3) {
-@@ -154,5 +163,9 @@
+-		int var4 = (int)(var1 % 24000L);
+-		float var5 = ((float)var4 + var3) / 24000.0F - 0.25F;
++		int var4 = (int)(var1 % (long)this.getDayLength());
++		float var5 = this.world.getGameMode().doDaylightCycle ? ((float)var4 + var3) / (float)this.getDayLength() : this.world.getGameMode().initialTimeOfDay;
++        var5 -= 0.25F;
++
+ 		if(var5 < 0.0F) {
+ 			++var5;
+ 		}
+@@ -76,7 +91,11 @@
+ 	}
+ 
+ 	public int getMoonPhase(long var1, float var3) {
+-		return (int)(var1 / 24000L) % 8;
++        if(!this.world.getGameMode().doDaylightCycle) {
++            return 0;
++        }
++
++		return (int)(var1 / (long)this.getDayLength()) % 8;
+ 	}
+ 
+ 	public boolean isNatural() {
+@@ -154,5 +173,9 @@
  
  	public boolean isFogThick(int var1, int var2) {
  		return false;
@@ -6197,10 +6142,12 @@
  
  public class EnderEyeItem extends Item {
  	public EnderEyeItem(int var1) {
-@@ -18,97 +25,48 @@
+@@ -17,98 +24,49 @@
+ 	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
  		int var8 = var3.getBlock(var4, var5, var6);
  		int var9 = var3.getBlockMetadata(var4, var5, var6);
- 		if(var2.canUseItemOn(var4, var5, var6) && var8 == Block.END_PORTAL_FRAME.id && !EndPortalFrameBlock.hasEye(var9)) {
+-		if(var2.canUseItemOn(var4, var5, var6) && var8 == Block.END_PORTAL_FRAME.id && !EndPortalFrameBlock.hasEye(var9)) {
++		if(var2.canUseItemOn(var4, var5, var6) && var8 == Block.END_PORTAL_FRAME.id && var3.getGameMode().endAccess && !EndPortalFrameBlock.hasEye(var9)) {
 +			if(!var3.isAir(var4, var5 + 1, var6) || !var3.isAir(var4, var5 + 2, var6)) {
 +				return false;
 +			}
@@ -6956,7 +6903,7 @@
  import net.minecraft.entity.projectile.SmallFireballEntity;
  import net.minecraft.entity.projectile.SnowballEntity;
  import net.minecraft.entity.vehicle.BoatEntity;
-+import net.minecraft.entity.vehicle.LightCartEntity;
++import net.minecraft.entity.vehicle.TitaniumCartEntity;
  import net.minecraft.entity.vehicle.MinecartEntity;
  import net.minecraft.item.ItemStack;
  import net.minecraft.network.packet.AddEntityPacket;
@@ -6965,7 +6912,7 @@
  			return new AddPlayerPacket((PlayerEntity)this.entity);
  		} else {
 -			if(this.entity instanceof MinecartEntity) {
-+			if(this.entity instanceof LightCartEntity) {
++			if(this.entity instanceof TitaniumCartEntity) {
 +				return new AddEntityPacket(this.entity, 13);
 +			} else if(this.entity instanceof MinecartEntity) {
  				MinecartEntity var1 = (MinecartEntity)this.entity;
@@ -7322,7 +7269,7 @@
  		super(var1, 3, var2, EFFECTIVE_BLOCKS);
 --- net/minecraft/item/Item.java
 +++ net/minecraft/item/Item.java
-@@ -4,13 +4,17 @@
+@@ -4,13 +4,18 @@
  import java.util.Random;
  import net.minecraft.block.Block;
  import net.minecraft.block.material.Material;
@@ -7332,15 +7279,16 @@
  import net.minecraft.entity.mob.effect.PotionHelper;
  import net.minecraft.entity.mob.effect.StatusEffect;
  import net.minecraft.entity.mob.player.PlayerEntity;
-+import net.minecraft.entity.vehicle.LightCartEntity;
++import net.minecraft.entity.vehicle.FastCartEntity;
 +import net.minecraft.entity.vehicle.MinecartEntity;
++import net.minecraft.entity.vehicle.TitaniumCartEntity;
  import net.minecraft.locale.I18n;
  import net.minecraft.locale.Language;
 +import net.minecraft.world.GameMode;
  import net.minecraft.stat.Stats;
  import net.minecraft.util.math.MathHelper;
  import net.minecraft.util.math.Vec3d;
-@@ -25,8 +29,8 @@
+@@ -25,8 +30,8 @@
  	public static Item IRON_AXE = (new AxeItem(2, Item.Tier.IRON)).setSprite(2, 7).setKey("hatchetIron");
  	public static Item FLINT_AND_STEEL = (new FlintAndSteelItem(3)).setSprite(5, 0).setKey("flintAndSteel");
  	public static Item APPLE = (new FoodItem(4, 4, 0.3F, false)).setSprite(10, 0).setKey("apple");
@@ -7351,7 +7299,7 @@
  	public static Item COAL = (new CoalItem(7)).setSprite(7, 0).setKey("coal");
  	public static Item DIAMOND = (new Item(8)).setSprite(7, 3).setKey("emerald");
  	public static Item IRON_INGOT = (new Item(9)).setSprite(7, 1).setKey("ingotIron");
-@@ -86,13 +90,13 @@
+@@ -86,13 +91,13 @@
  	public static Item PORKCHOP = (new FoodItem(63, 3, 0.3F, true)).setSprite(7, 5).setKey("porkchopRaw");
  	public static Item COOKED_PORKCHOP = (new FoodItem(64, 8, 0.8F, true)).setSprite(8, 5).setKey("porkchopCooked");
  	public static Item PAINTING = (new PaintingItem(65)).setSprite(10, 1).setKey("painting");
@@ -7363,22 +7311,22 @@
  	public static Item WATER_BUCKET = (new BucketItem(70, Block.FLOWING_WATER.id)).setSprite(11, 4).setKey("bucketWater").setRecipeRemainder(BUCKET);
  	public static Item LAVA_BUCKET = (new BucketItem(71, Block.FLOWING_LAVA.id)).setSprite(12, 4).setKey("bucketLava").setRecipeRemainder(BUCKET);
 -	public static Item MINECART = (new MinecartItem(72, 0)).setSprite(7, 8).setKey("minecart");
-+	public static Item MINECART = (new MinecartItem(72, 0, MinecartEntity::new)).setSprite(7, 8).setKey("minecart");
++    public static Item MINECART = (new MinecartItem(72, 0, Item::newMinecartEntity)).setSprite(7, 8).setKey("minecart");
  	public static Item SADDLE = (new SaddleItem(73)).setSprite(8, 6).setKey("saddle");
  	public static Item IRON_DOOR = (new DoorItem(74, Material.IRON)).setSprite(12, 2).setKey("doorIron");
  	public static Item REDSTONE = (new RedstoneItem(75)).setSprite(8, 3).setKey("redstone").setPotionIngredient(PotionHelper.REDSTONE);
-@@ -106,8 +110,8 @@
+@@ -106,8 +111,8 @@
  	public static Item PAPER = (new Item(83)).setSprite(10, 3).setKey("paper");
  	public static Item BOOK = (new Item(84)).setSprite(11, 3).setKey("book");
  	public static Item SLIMEBALL = (new Item(85)).setSprite(14, 1).setKey("slimeball");
 -	public static Item CHEST_MINECART = (new MinecartItem(86, 1)).setSprite(7, 9).setKey("minecartChest");
 -	public static Item FURNACE_MINECART = (new MinecartItem(87, 2)).setSprite(7, 10).setKey("minecartFurnace");
-+	public static Item CHEST_MINECART = (new MinecartItem(86, 1, MinecartEntity::new)).setSprite(7, 9).setKey("minecartChest");
-+	public static Item FURNACE_MINECART = (new MinecartItem(87, 2, MinecartEntity::new)).setSprite(7, 10).setKey("minecartFurnace");
++	public static Item CHEST_MINECART = (new MinecartItem(86, 1, Item::newMinecartEntity)).setSprite(7, 9).setKey("minecartChest");
++	public static Item FURNACE_MINECART = (new MinecartItem(87, 2, Item::newMinecartEntity)).setSprite(7, 10).setKey("minecartFurnace");
  	public static Item EGG = (new EggItem(88)).setSprite(12, 0).setKey("egg");
  	public static Item COMPASS = (new Item(89)).setSprite(6, 3).setKey("compass");
  	public static Item FISHING_ROD = (new FishingRodItem(90)).setSprite(5, 4).setKey("fishingRod");
-@@ -121,10 +125,10 @@
+@@ -121,10 +126,10 @@
  	public static Item CAKE = (new PlaceableItem(98, Block.CAKE)).setMaxStackSize(1).setSprite(13, 1).setKey("cake");
  	public static Item BED = (new BedItem(99)).setMaxStackSize(1).setSprite(13, 2).setKey("bed");
  	public static Item REPEATER = (new PlaceableItem(100, Block.REPEATER)).setSprite(6, 5).setKey("diode");
@@ -7391,7 +7339,7 @@
  	public static Item PUMPKIN_SEEDS = (new WheatSeedsItem(105, Block.PUMPKIN_STEM.id, Block.FARMLAND.id)).setSprite(13, 3).setKey("seeds_pumpkin");
  	public static Item MELON_SEEDS = (new WheatSeedsItem(106, Block.MELON_STEM.id, Block.FARMLAND.id)).setSprite(14, 3).setKey("seeds_melon");
  	public static Item BEEF = (new FoodItem(107, 3, 0.3F, true)).setSprite(9, 6).setKey("beefRaw");
-@@ -134,7 +138,7 @@
+@@ -134,7 +139,7 @@
  	public static Item ROTTEN_FLESH = (new FoodItem(111, 4, 0.1F, true)).setStatusEffect(StatusEffect.HUNGER.id, 30, 0, 0.8F).setSprite(11, 5).setKey("rottenFlesh");
  	public static Item ENDER_PEARL = (new EnderPearlItem(112)).setSprite(11, 6).setKey("enderPearl");
  	public static Item BLAZE_ROD = (new Item(113)).setSprite(12, 6).setKey("blazeRod");
@@ -7400,7 +7348,7 @@
  	public static Item GOLD_NUGGET = (new Item(115)).setSprite(12, 7).setKey("goldNugget");
  	public static Item NETHER_WART = (new WheatSeedsItem(116, Block.NETHER_WART.id, Block.SOUL_SAND.id)).setSprite(13, 7).setKey("netherStalkSeeds").setPotionIngredient("+4");
  	public static PotionItem POTION = (PotionItem)(new PotionItem(117)).setSprite(13, 8).setKey("potion");
-@@ -150,6 +154,39 @@
+@@ -150,6 +155,39 @@
  	public static Item SPAWN_EGG = (new SpawnEggItem(127)).setSprite(9, 9).setKey("monsterPlacer");
  	public static Item EXPERIENCE_BOTTLE = (new ExperienceBottleItem(128)).setSprite(11, 10).setKey("expBottle");
  	public static Item FIRE_CHARGE = (new FireChargeItem(129)).setSprite(14, 2).setKey("fireball");
@@ -7436,19 +7384,58 @@
 +	public static Item COSMITE_BOOTS = (new ArmorItem(159, ArmorItem.Tier.COSMITE, 6, 3)).setSprite(3, 11).setKey("bootsCosmite");
 +	public static Item TITANIUM_BOW = (new BowItem(160, 768, Enchantment.SHARPSHOOTER.id, Enchantment.SHARPSHOOTER.id, Enchantment.QUICK_DRAW.id, Enchantment.QUICK_DRAW.id)).setSprite(12, 11).setKey("titaniumBow");
 +	public static Item NETHER_BRICK = (new Item(161)).setSprite(8, 10).setKey("netherBrick");
-+	public static Item LIGHT_CART = (new MinecartItem(162, 0, LightCartEntity::new)).setSprite(8, 9).setKey("lightCart");
++	public static Item LIGHT_CART = (new MinecartItem(162, 0, TitaniumCartEntity::new)).setSprite(8, 9).setKey("lightCart");
  	public static Item RECORD_13 = (new MusicDiscItem(2000, "13")).setSprite(0, 15).setKey("record");
  	public static Item RECORD_CAT = (new MusicDiscItem(2001, "cat")).setSprite(1, 15).setKey("record");
  	public static Item RECORD_BLOCKS = (new MusicDiscItem(2002, "blocks")).setSprite(2, 15).setKey("record");
-@@ -170,6 +207,7 @@
+@@ -161,6 +199,31 @@
+ 	public static Item RECORD_STRAD = (new MusicDiscItem(2008, "strad")).setSprite(8, 15).setKey("record");
+ 	public static Item RECORD_WARD = (new MusicDiscItem(2009, "ward")).setSprite(9, 15).setKey("record");
+ 	public static Item RECORD_11 = (new MusicDiscItem(2010, "11")).setSprite(10, 15).setKey("record");
++    public static final Item[] EXTRA_TIERS_ITEMS = {
++        BLAZING_STEEL_INGOT,
++        BLAZING_STEEL_SWORD,
++        BLAZING_STEEL_SHOVEL,
++        BLAZING_STEEL_PICKAXE,
++        BLAZING_STEEL_AXE,
++        BLAZING_STEEL_HOE,
++        BLAZING_STEEL_HELMET,
++        BLAZING_STEEL_CHESTPLATE,
++        BLAZING_STEEL_LEGGINGS,
++        BLAZING_STEEL_BOOTS,
++        BLAZING_STEEL_NUGGET,
++        COSMITE_BLEND,
++        COSMITE_INGOT,
++        COSMITE_SWORD,
++        COSMITE_SHOVEL,
++        COSMITE_PICKAXE,
++        COSMITE_AXE,
++        COSMITE_HOE,
++        COSMITE_HELMET,
++        COSMITE_CHESTPLATE,
++        COSMITE_LEGGINGS,
++        COSMITE_BOOTS,
++        TITANIUM_BOW
++    };
+ 	public final int id;
+ 	protected int maxStackSize = 64;
+ 	private int maxDamage = 0;
+@@ -170,6 +233,14 @@
  	private Item recipeRemainder = null;
  	private String potionIngredient = null;
  	private String key;
 +	protected int[] baseEnchantments;
++    protected boolean obtainable = true;
++
++    private static Entity newMinecartEntity(World world, double x, double y, double z, int type) {
++        return world.getGameMode().fastBaseMinecarts
++            ? new FastCartEntity(world, x, y, z, type)
++            : new MinecartEntity(world, x, y, z, type);
++    }
  
  	protected Item(int var1) {
  		this.id = 256 + var1;
-@@ -382,6 +420,24 @@
+@@ -382,6 +453,24 @@
  		return this.getMaxStackSize() == 1 && this.isDamageable();
  	}
  
@@ -7473,25 +7460,33 @@
  	protected HitResult getUseTarget(World var1, PlayerEntity var2, boolean var3) {
  		float var4 = 1.0F;
  		float var5 = var2.lastPitch + (var2.pitch - var2.lastPitch) * var4;
-@@ -414,29 +470,50 @@
+@@ -414,29 +503,58 @@
  		return this.getSprite(var1);
  	}
  
 +	public static void setAllGamemodeTweaks(GameMode var0) {
-+		Item[] var1 = BY_ID;
-+		int var2 = var1.length;
-+
-+		for(int var3 = 0; var3 < var2; ++var3) {
-+			Item var4 = var1[var3];
-+			if(var4 != null) {
-+				var4.setGamemodeTweaks(var0);
++        for(Item item : BY_ID) {
++			if(item != null) {
++				item.setGamemodeTweaks(var0);
 +			}
 +		}
++
++        for(Item item : EXTRA_TIERS_ITEMS) {
++            item.obtainable = var0.extraTiers;
++        }
 +
 +	}
 +
 +	protected void setGamemodeTweaks(GameMode var1) {
 +	}
++
++    public boolean isObtainable() {
++        return this.obtainable;
++    }
++
++    public boolean isObtainable(int meta) {
++        return this.isObtainable();
++    }
 +
  	static {
  		Stats.initItemStats();
@@ -7530,7 +7525,7 @@
  		}
  
  		public int getDurability() {
-@@ -457,6 +534,10 @@
+@@ -457,6 +575,10 @@
  
  		public int getEnchantability() {
  			return this.enchantability;
@@ -9419,7 +9414,20 @@
  	public int compareTo(Object var1) {
 --- net/minecraft/entity/vehicle/MinecartEntity.java
 +++ net/minecraft/entity/vehicle/MinecartEntity.java
-@@ -86,6 +86,10 @@
+@@ -47,7 +47,11 @@
+ 		this.eyeHeight = this.height / 2.0F;
+ 	}
+ 
+-	protected boolean makesSteps() {
++    public String getTexture() {
++        return "/item/cart.png";
++    }
++
++    protected boolean makesSteps() {
+ 		return false;
+ 	}
+ 
+@@ -86,6 +90,10 @@
  		return (double)this.height * 0.0D - (double)0.3F;
  	}
  
@@ -9430,7 +9438,7 @@
  	public boolean takeDamage(DamageSource var1, int var2) {
  		if(!this.world.isMultiplayer && !this.removed) {
  			this.setDamagedSwingDirection(-this.getDamagedSwingDirection());
-@@ -98,7 +102,7 @@
+@@ -98,7 +106,7 @@
  				}
  
  				this.remove();
@@ -9439,7 +9447,7 @@
  				if(this.type == 1) {
  					MinecartEntity var3 = this;
  
-@@ -180,6 +184,10 @@
+@@ -180,6 +188,10 @@
  		super.remove();
  	}
  
@@ -9450,7 +9458,7 @@
  	public void tick() {
  		if(this.getDamagedTimer() > 0) {
  			this.setDamagedTimer(this.getDamagedTimer() - 1);
-@@ -234,7 +242,7 @@
+@@ -234,7 +246,7 @@
  			}
  
  			double var4 = 0.4D;
@@ -9459,7 +9467,7 @@
  			int var8 = this.world.getBlock(var1, var2, var3);
  			if(RailBlock.isRail(var8)) {
  				Vec3d var9 = this.snapPositionToRail(this.x, this.y, this.z);
-@@ -384,7 +392,7 @@
+@@ -384,7 +396,7 @@
  
  				Vec3d var51 = this.snapPositionToRail(this.x, this.y, this.z);
  				if(var51 != null && var9 != null) {
@@ -10069,7 +10077,16 @@
  			this.difficulty = 3;
  		}
  
-@@ -1972,7 +2004,7 @@
+@@ -1965,14 +1997,14 @@
+ 			}
+ 
+ 			if(!var1) {
+-				var2 = this.data.getTime() + 24000L;
+-				this.data.setTime(var2 - var2 % 24000L);
++				var2 = this.data.getTime() + (long)this.dimension.getDayLength();
++				this.data.setTime(var2 - var2 % (long)this.dimension.getDayLength());
+ 				this.wakeUpAllPlayers();
+ 			}
  		}
  
  		Profiler.push("mobSpawner");
@@ -10078,6 +10095,24 @@
  		Profiler.swap("chunkSource");
  		this.chunkSource.tick();
  		int var4 = this.calculateAmbientDarkness(1.0F);
+@@ -2023,7 +2055,7 @@
+ 			} else {
+ 				--var1;
+ 				this.data.setThunderTime(var1);
+-				if(var1 <= 0) {
++				if(var1 <= 0 && this.getGameMode().doWeatherCycle) {
+ 					this.data.setThundering(!this.data.isThundering());
+ 				}
+ 			}
+@@ -2038,7 +2070,7 @@
+ 			} else {
+ 				--var2;
+ 				this.data.setRainTime(var2);
+-				if(var2 <= 0) {
++				if(var2 <= 0 && this.getGameMode().doWeatherCycle) {
+ 					this.data.setRaining(!this.data.isRaining());
+ 				}
+ 			}
 @@ -2072,8 +2104,8 @@
  			if(this.thunder > 1.0F) {
  				this.thunder = 1.0F;
@@ -10500,7 +10535,23 @@
  	public void updatePlayersSleepingStatus() {
  		this.allPlayersSleeping = !this.players.isEmpty();
  		Iterator var1 = this.players.iterator();
-@@ -3056,6 +3128,11 @@
+@@ -3021,11 +3093,13 @@
+ 			}
+ 		}
+ 
+-		this.clearWeather();
++        if(this.getGameMode().doWeatherCycle) {
++            this.clearWeather();
++        }
+ 	}
+ 
+ 	public boolean canSleepThroughNights() {
+-		if(this.allPlayersSleeping && !this.isMultiplayer) {
++		if(this.getGameMode().doDaylightCycle && this.allPlayersSleeping && !this.isMultiplayer) {
+ 			Iterator var1 = this.players.iterator();
+ 
+ 			PlayerEntity var2;
+@@ -3056,6 +3130,11 @@
  		this.rain = var1;
  	}
  
@@ -10512,7 +10563,7 @@
  	public boolean isThundering() {
  		return (double)this.getThunder(1.0F) > 0.9D;
  	}
-@@ -3132,7 +3209,38 @@
+@@ -3132,7 +3211,38 @@
  		return false;
  	}
  
@@ -11806,6 +11857,15 @@
  		this.getPathNavigation().setCanFloat(true);
  		this.goals.addGoal(1, new SwimGoal(this));
  		this.goals.addGoal(2, this.sitGoal);
+@@ -103,7 +103,7 @@
+ 	}
+ 
+ 	protected boolean canDespawn() {
+-		return this.isAngry();
++		return !this.isTamed() && (super.canDespawn() || this.isAngry());
+ 	}
+ 
+ 	protected String getAmbientSound() {
 --- net/minecraft/world/biome/SwampBiome.java
 +++ net/minecraft/world/biome/SwampBiome.java
 @@ -1,36 +1,61 @@
@@ -13997,7 +14057,7 @@
  	public int getSize() {
 --- /dev/null
 +++ net/minecraft/world/GameMode.java
-@@ -1,0 +1,371 @@
+@@ -1,0 +1,438 @@
 +package net.minecraft.world;
 +
 +import java.io.DataInputStream;
@@ -14012,6 +14072,8 @@
 +import net.minecraft.nbt.NbtCompound;
 +
 +public class GameMode {
++    public static final int SIZE_IN_BYTES = 49;
++
 +	public String preset = "";
 +	public boolean xpEnabled = false;
 +	public boolean sprintingEnabled = true;
@@ -14035,6 +14097,14 @@
 +	public EnchantingType enchantingType = EnchantingType.LOGICAL;
 +	public boolean baseEnchantments = true;
 +	public ItemsOnDeath itemsOnDeath = ItemsOnDeath.DROP;
++    public int dayLength = 24000;
++    public boolean doDaylightCycle = true;
++    public boolean doWeatherCycle = true;
++    public float initialTimeOfDay = 0.0F;
++    public boolean netherAccess = true;
++    public boolean endAccess = true;
++    public boolean extraTiers = true;
++    public boolean fastBaseMinecarts = false;
 +
 +	public static GameMode classic() {
 +		GameMode var0 = new GameMode();
@@ -14177,6 +14247,38 @@
 +			this.itemsOnDeath = this.hardcore ? ItemsOnDeath.DESTROY : ItemsOnDeath.DROP;
 +		}
 +
++        if(var1.contains("dayLength")) {
++            this.dayLength = var1.getInt("dayLength");
++        }
++
++        if(var1.contains("doDaylightCycle")) {
++            this.doDaylightCycle = var1.getBoolean("doDaylightCycle");
++        }
++
++        if(var1.contains("initialTimeOfDay")) {
++            this.initialTimeOfDay = var1.getFloat("initialTimeOfDay");
++        }
++
++        if(var1.contains("doWeatherCycle")) {
++            this.doWeatherCycle = var1.getBoolean("doWeatherCycle");
++        }
++
++        if(var1.contains("netherAccess")) {
++            this.netherAccess = var1.getBoolean("netherAccess");
++        }
++
++        if(var1.contains("endAccess")) {
++            this.endAccess = var1.getBoolean("endAccess");
++        }
++
++        if(var1.contains("extraTiers")) {
++            this.extraTiers = var1.getBoolean("extraTiers");
++        }
++
++        if(var1.contains("fastBaseMinecarts")) {
++            this.fastBaseMinecarts = var1.getBoolean("fastBaseMinecarts");
++        }
++
 +	}
 +
 +	public void writeData(NbtCompound var1) {
@@ -14197,10 +14299,19 @@
 +		var1.putInt("passiveSpawnRate", this.passiveSpawnRate);
 +		var1.putFloat("healthMultiplier", this.healthMultiplier);
 +		var1.putFloat("oreMultiplier", this.oreMultiplier);
-+		var1.putFloat("exhaustionMultiplier", this.exhaustionMultiplier);
++        var1.putFloat("exhaustionMultiplier", this.exhaustionMultiplier);
++        var1.putFloat("sprintCooldownMultiplier", this.sprintCooldownMultiplier);
 +		var1.putByte("enchantingType", (byte)this.enchantingType.ordinal());
 +		var1.putBoolean("baseEnchantments", this.baseEnchantments);
 +		var1.putByte("itemsOnDeath", (byte)this.itemsOnDeath.ordinal());
++        var1.putInt("dayLength", this.dayLength);
++        var1.putBoolean("doDaylightCycle", this.doDaylightCycle);
++        var1.putFloat("initialTimeOfDay", this.initialTimeOfDay);
++        var1.putBoolean("doWeatherCycle", this.doWeatherCycle);
++        var1.putBoolean("netherAccess", this.netherAccess);
++        var1.putBoolean("endAccess", this.endAccess);
++        var1.putBoolean("extraTiers", this.extraTiers);
++        var1.putBoolean("fastBaseMinecarts", this.fastBaseMinecarts);
 +	}
 +
 +	public void readData(DataInputStream var1) throws IOException {
@@ -14226,6 +14337,14 @@
 +		this.enchantingType = EnchantingType.values()[var1.readByte() & 0xFF];
 +		this.baseEnchantments = var1.readBoolean();
 +		this.itemsOnDeath = ItemsOnDeath.values()[var1.readByte() & 0xFF];
++        this.dayLength = var1.readInt();
++        this.doDaylightCycle = var1.readBoolean();
++        this.initialTimeOfDay = var1.readFloat();
++        this.doWeatherCycle = var1.readBoolean();
++        this.netherAccess = var1.readBoolean();
++        this.endAccess = var1.readBoolean();
++        this.extraTiers = var1.readBoolean();
++        this.fastBaseMinecarts = var1.readBoolean();
 +	}
 +
 +	public void writeData(DataOutputStream var1) throws IOException {
@@ -14251,6 +14370,14 @@
 +		var1.write(this.enchantingType.ordinal());
 +		var1.writeBoolean(this.baseEnchantments);
 +		var1.write(this.itemsOnDeath.ordinal());
++        var1.writeInt(this.dayLength);
++        var1.writeBoolean(this.doDaylightCycle);
++        var1.writeFloat(this.initialTimeOfDay);
++        var1.writeBoolean(this.doWeatherCycle);
++        var1.writeBoolean(this.netherAccess);
++        var1.writeBoolean(this.endAccess);
++        var1.writeBoolean(this.extraTiers);
++        var1.writeBoolean(this.fastBaseMinecarts);
 +	}
 +
 +	public boolean legacyCompat_isDefaultPreset() {
@@ -14778,6 +14905,19 @@
 +}
 --- net/minecraft/entity/FallingBlockEntity.java
 +++ net/minecraft/entity/FallingBlockEntity.java
+@@ -24,9 +24,9 @@
+ 		this.velocityX = 0.0D;
+ 		this.velocityY = 0.0D;
+ 		this.velocityZ = 0.0D;
+-		this.lastX = var2;
+-		this.lastY = var4;
+-		this.lastZ = var6;
++		this.prevX = this.lastX = var2;
++		this.prevY = this.lastY = var4;
++		this.prevZ = this.lastZ = var6;
+ 	}
+ 
+ 	protected boolean makesSteps() {
 @@ -72,12 +72,12 @@
  						this.dropItem(this.block, 1);
  					}
@@ -15131,15 +15271,17 @@
  import net.minecraft.client.Minecraft;
  import net.minecraft.client.MultiplayerInteractionManager;
  import net.minecraft.client.entity.mob.player.ClientPlayerEntity;
-@@ -56,6 +51,7 @@
+@@ -56,7 +51,9 @@
  import net.minecraft.entity.projectile.SmallFireballEntity;
  import net.minecraft.entity.projectile.SnowballEntity;
  import net.minecraft.entity.vehicle.BoatEntity;
-+import net.minecraft.entity.vehicle.LightCartEntity;
++import net.minecraft.entity.vehicle.FastCartEntity;
  import net.minecraft.entity.vehicle.MinecartEntity;
++import net.minecraft.entity.vehicle.TitaniumCartEntity;
  import net.minecraft.inventory.SimpleInventory;
  import net.minecraft.inventory.menu.InventoryMenu;
-@@ -64,59 +60,7 @@
+ import net.minecraft.item.Item;
+@@ -64,59 +61,7 @@
  import net.minecraft.item.MapItem;
  import net.minecraft.network.Connection;
  import net.minecraft.network.PacketHandler;
@@ -15200,7 +15342,7 @@
  import net.minecraft.stat.Stats;
  import net.minecraft.util.math.MathHelper;
  import net.minecraft.util.math.Vec3i;
-@@ -158,7 +102,7 @@
+@@ -158,7 +103,7 @@
  	public void handleLogin(LoginPacket var1) {
  		this.minecraft.interactionManager = new MultiplayerInteractionManager(this.minecraft, this);
  		this.minecraft.stats.increment(Stats.MULTIPLAYER_GAMES_JOINED, 1);
@@ -15209,16 +15351,30 @@
  		this.world.isMultiplayer = true;
  		this.minecraft.setWorld(this.world);
  		this.minecraft.player.dimension = var1.dimension;
-@@ -193,6 +137,8 @@
- 			var8 = new MinecartEntity(this.world, var2, var4, var6, 1);
+@@ -188,11 +133,19 @@
+ 		double var6 = (double)var1.z / 32.0D;
+ 		Object var8 = null;
+ 		if(var1.type == 10) {
+-			var8 = new MinecartEntity(this.world, var2, var4, var6, 0);
++			var8 = this.world.getGameMode().fastBaseMinecarts
++                ? new FastCartEntity(this.world, var2, var4, var6, 0)
++                : new MinecartEntity(this.world, var2, var4, var6, 0);
+ 		} else if(var1.type == 11) {
+-			var8 = new MinecartEntity(this.world, var2, var4, var6, 1);
++			var8 = this.world.getGameMode().fastBaseMinecarts
++                ? new FastCartEntity(this.world, var2, var4, var6, 1)
++                : new MinecartEntity(this.world, var2, var4, var6, 1);
  		} else if(var1.type == 12) {
- 			var8 = new MinecartEntity(this.world, var2, var4, var6, 2);
+-			var8 = new MinecartEntity(this.world, var2, var4, var6, 2);
++			var8 = this.world.getGameMode().fastBaseMinecarts
++                ? new FastCartEntity(this.world, var2, var4, var6, 2)
++                : new MinecartEntity(this.world, var2, var4, var6, 2);
 +		} else if(var1.type == 13) {
-+			var8 = new LightCartEntity(this.world, var2, var4, var6, 0);
++			var8 = new TitaniumCartEntity(this.world, var2, var4, var6, 0);
  		} else if(var1.type == 90) {
  			var8 = new FishingBobberEntity(this.world, var2, var4, var6);
  		} else if(var1.type == 60) {
-@@ -371,6 +317,7 @@
+@@ -371,6 +324,7 @@
  			float var3 = (float)(var1.headYaw * 360) / 256.0F;
  			var2.setHeadYaw(var3);
  		}
@@ -15226,7 +15382,7 @@
  	}
  
  	public void handleRemoveEntity(RemoveEntityPacket var1) {
-@@ -425,23 +372,23 @@
+@@ -425,23 +379,23 @@
  
  			try {
  				for(int var5 = 0; var5 < var1.blockChangeCount; ++var5) {
@@ -15256,7 +15412,7 @@
  		WorldChunk var2 = this.world.getChunkAt(var1.chunkX, var1.chunkZ);
  		if(var1.full && var2 == null) {
  			this.world.updateChunk(var1.chunkX, var1.chunkZ, true);
-@@ -449,8 +396,8 @@
+@@ -449,8 +403,8 @@
  		}
  
  		if(var2 != null) {
@@ -15267,7 +15423,7 @@
  			if(!var1.full || !(this.world.dimension instanceof OverworldDimension)) {
  				var2.resetBorderLightChecks();
  			}
-@@ -475,6 +422,7 @@
+@@ -475,6 +429,7 @@
  			this.minecraft.setWorld((World)null);
  			this.minecraft.openScreen(new DisconnectedScreen("disconnect.lost", var1, var2));
  		}
@@ -15275,7 +15431,7 @@
  	}
  
  	public void sendPacketAndDisconnect(Packet var1) {
-@@ -482,12 +430,14 @@
+@@ -482,12 +437,14 @@
  			this.connection.send(var1);
  			this.connection.close();
  		}
@@ -15290,7 +15446,7 @@
  	}
  
  	public void handleEntityPickup(EntityPickupPacket var1) {
-@@ -499,7 +449,7 @@
+@@ -499,7 +456,7 @@
  
  		if(var2 != null) {
  			if(var2 instanceof ExperienceOrbEntity) {
@@ -15299,7 +15455,7 @@
  			} else {
  				this.world.playSound(var2, "random.pop", 0.2F, ((this.random.nextFloat() - this.random.nextFloat()) * 0.7F + 1.0F) * 2.0F);
  			}
-@@ -536,8 +486,8 @@
+@@ -536,8 +493,8 @@
  				this.minecraft.particleManager.add(var4);
  			} else if(var1.action == 5 && var2 instanceof RemoteClientPlayerEntity) {
  			}
@@ -15309,7 +15465,7 @@
  	}
  
  	public void handlePlayerSleep(PlayerSleepPacket var1) {
-@@ -547,8 +497,8 @@
+@@ -547,8 +504,8 @@
  				PlayerEntity var3 = (PlayerEntity)var2;
  				var3.trySleep(var1.x, var1.y, var1.z);
  			}
@@ -15319,7 +15475,7 @@
  	}
  
  	public void handleHandshake(HandshakePacket var1) {
-@@ -569,7 +519,7 @@
+@@ -569,7 +526,7 @@
  		if(!var2) {
  			this.connection.close("disconnect.genericReason", new Object[]{"The server responded with an invalid server key"});
  		} else if(var1.key.equals("-")) {
@@ -15328,7 +15484,7 @@
  		} else {
  			try {
  				URL var4 = new URL("http://session.minecraft.net/game/joinserver.jsp?user=" + this.minecraft.session.username + "&sessionId=" + this.minecraft.session.id + "&serverId=" + var1.key);
-@@ -577,7 +527,7 @@
+@@ -577,7 +534,7 @@
  				String var6 = var5.readLine();
  				var5.close();
  				if(var6.equalsIgnoreCase("ok")) {
@@ -15337,7 +15493,7 @@
  				} else {
  					this.connection.close("disconnect.loginFailedInfo", new Object[]{var6});
  				}
-@@ -644,6 +594,7 @@
+@@ -644,6 +601,7 @@
  		if(var2 != null) {
  			((Entity)var2).startRiding(var3);
  		}
@@ -15345,7 +15501,7 @@
  	}
  
  	public void handleEntityEvent(EntityEventPacket var1) {
-@@ -671,7 +622,7 @@
+@@ -671,7 +629,7 @@
  	public void handlePlayerRespawn(PlayerRespawnPacket var1) {
  		if(var1.dimension != this.minecraft.player.dimension) {
  			this.started = false;
@@ -15354,7 +15510,7 @@
  			this.world.isMultiplayer = true;
  			this.minecraft.setWorld(this.world);
  			this.minecraft.player.dimension = var1.dimension;
-@@ -690,13 +641,19 @@
+@@ -690,13 +648,19 @@
  
  	public void handleOpenInventoryMenu(OpenInventoryMenuPacket var1) {
  		ClientPlayerEntity var2 = this.minecraft.player;
@@ -15375,7 +15531,7 @@
  			var2.menu.networkId = var1.menuId;
  			break;
  		case 2:
-@@ -708,7 +665,7 @@
+@@ -708,7 +672,7 @@
  			var2.menu.networkId = var1.menuId;
  			break;
  		case 4:
@@ -15384,7 +15540,7 @@
  			var2.menu.networkId = var1.menuId;
  			break;
  		case 5:
-@@ -783,13 +740,27 @@
+@@ -783,13 +747,27 @@
  	}
  
  	public void handleBlockEntityUpdate(BlockEntityUpdatePacket var1) {
@@ -15419,7 +15575,7 @@
  	}
  
  	public void handleInventoryMenuData(InventoryMenuDataPacket var1) {
-@@ -834,8 +805,13 @@
+@@ -834,8 +812,13 @@
  			((MultiplayerInteractionManager)this.minecraft.interactionManager).setGameMode(var1.data == 1);
  		} else if(var3 == 4) {
  			this.minecraft.openScreen(new CreditsScreen());
@@ -15434,7 +15590,7 @@
  	}
  
  	public void handleMapData(MapDataPacket var1) {
-@@ -860,6 +836,7 @@
+@@ -860,6 +843,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).addStatusEffect(new StatusEffectInstance(var1.effect, var1.duration, var1.amplifier));
  		}
@@ -15442,7 +15598,7 @@
  	}
  
  	public void handleEntityRemoveStatusEffect(EntityRemoveStatusEffectPacket var1) {
-@@ -867,6 +844,7 @@
+@@ -867,6 +851,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).removeEffect(var1.effect);
  		}
@@ -15450,7 +15606,7 @@
  	}
  
  	public boolean isServer() {
-@@ -902,5 +880,9 @@
+@@ -902,5 +887,9 @@
  		var2.abilities.creativeMode = var1.creativeMode;
  		var2.abilities.invulnerable = var1.invulnerable;
  		var2.abilities.canFly = var1.allowFlying;
@@ -15595,6 +15751,17 @@
 +		return var5;
 +	}
 +}
+--- net/minecraft/block/entity/SignBlockEntity.java
++++ net/minecraft/block/entity/SignBlockEntity.java
+@@ -47,4 +47,8 @@
+ 	public void setEditable(boolean var1) {
+ 		this.editable = var1;
+ 	}
++
++    public void onInventoryChanged() {
++        // This is needed for some reason and idk why
++    }
+ }
 --- /dev/null
 +++ net/minecraft/world/gen/noise/SimplexNoise.java
 @@ -1,0 +1,177 @@
@@ -16227,6 +16394,90 @@
 +	}
 +}
 --- /dev/null
++++ net/minecraft/entity/vehicle/FastCartEntity.java
+@@ -1,0 +1,81 @@
++package net.minecraft.entity.vehicle;
++
++import net.minecraft.block.RailBlock;
++import net.minecraft.entity.mob.player.PlayerEntity;
++import net.minecraft.item.Item;
++import net.minecraft.stat.achievement.Achievements;
++import net.minecraft.util.math.MathHelper;
++import net.minecraft.world.World;
++
++public class FastCartEntity extends MinecartEntity {
++    private byte velocitySustainTicks;
++
++    public FastCartEntity(World var1) {
++        super(var1);
++    }
++
++    public FastCartEntity(World var1, double var2, double var4, double var6, int var8) {
++        super(var1, var2, var4, var6, var8);
++    }
++
++    protected double getInclineStrength() {
++        return 0.5D;
++    }
++
++    public void tick() {
++        double prevVelocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
++
++        int blockX = MathHelper.floor(this.x);
++        int blockY = MathHelper.floor(this.y);
++        int blockZ = MathHelper.floor(this.z);
++        boolean onRail = RailBlock.isRail(this.world.getBlock(blockX, blockY, blockZ));
++
++        if(this.getDamagedTimer() > 0) {
++            this.setDamagedTimer(this.getDamagedTimer() + 1);
++        }
++
++        if(this.getDamage() > 0) {
++            this.setDamage(this.getDamage() + 1);
++        }
++
++        double firstX = this.x;
++        double firstY = this.y;
++        double firstZ = this.z;
++
++        super.tick();
++
++        if(onRail) {
++            if(this.rider != null) {
++                this.velocityX /= 0.997D;
++                this.velocityZ /= 0.997D;
++            } else {
++                this.velocityX /= 0.96D;
++                this.velocityZ /= 0.96D;
++            }
++        } else if(!this.onGround) {
++            this.velocityX /= 0.95D;
++            this.velocityY /= 0.95D;
++            this.velocityZ /= 0.95D;
++        }
++
++        super.tick();
++
++        this.lastX = firstX;
++        this.lastY = firstY;
++        this.lastZ = firstZ;
++
++        double velocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
++
++        if(velocitySquared > 0.4D * 0.4D && prevVelocitySquared > velocitySquared) {
++            this.velocitySustainTicks++;
++            if(this.velocitySustainTicks > 100) {
++                this.velocitySustainTicks = 0;
++                if(this.rider instanceof PlayerEntity) {
++                    ((PlayerEntity)this.rider).incrementStat(Achievements.RIDE_LIGHT_CART_FAST);
++                }
++            }
++        } else {
++            this.velocitySustainTicks = 0;
++        }
++    }
++}
+--- /dev/null
 +++ net/minecraft/world/gen/feature/EmptyFeature.java
 @@ -1,0 +1,10 @@
 +package net.minecraft.world.gen.feature;
@@ -16252,7 +16503,15 @@
  import net.minecraft.world.biome.Biome;
  import net.minecraft.world.chunk.WorldChunk;
  
-@@ -43,14 +45,13 @@
+@@ -26,6 +28,7 @@
+ 			for(int var11 = this.chunkZ; var11 <= var9; ++var11) {
+ 				WorldChunk var12 = var1.getChunkAt(var10, var11);
+ 				if(var12 != null) {
++                    var12.clearBiomeColorCache();
+ 					this.chunks[var10 - this.chunkX][var11 - this.chunkZ] = var12;
+ 					if(!var12.isEmpty(var3, var6)) {
+ 						this.empty = false;
+@@ -43,14 +46,13 @@
  	public int getBlock(int var1, int var2, int var3) {
  		if(var2 < 0) {
  			return 0;
@@ -16269,7 +16528,7 @@
  			} else {
  				return 0;
  			}
-@@ -94,11 +95,12 @@
+@@ -94,11 +96,12 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 <= 30000000) {
  			int var5;
  			int var6;
@@ -16284,7 +16543,7 @@
  					int var8 = this.getRawBrightness(var1 - 1, var2, var3, false);
  					int var9 = this.getRawBrightness(var1, var2, var3 + 1, false);
  					int var10 = this.getRawBrightness(var1, var2, var3 - 1, false);
-@@ -124,17 +126,11 @@
+@@ -124,17 +127,11 @@
  
  			if(var2 < 0) {
  				return 0;
@@ -16304,7 +16563,7 @@
  			}
  		} else {
  			return 15;
-@@ -144,12 +140,11 @@
+@@ -144,12 +141,11 @@
  	public int getBlockMetadata(int var1, int var2, int var3) {
  		if(var2 < 0) {
  			return 0;
@@ -16319,7 +16578,7 @@
  		}
  	}
  
-@@ -182,40 +177,42 @@
+@@ -182,40 +178,42 @@
  			var3 = 0;
  		}
  
@@ -16383,7 +16642,7 @@
  			}
  		} else {
  			return var1.defaultValue;
-@@ -227,11 +224,7 @@
+@@ -227,11 +225,7 @@
  			var3 = 0;
  		}
  
@@ -16396,7 +16655,7 @@
  			int var5 = (var2 >> 4) - this.chunkX;
  			int var6 = (var4 >> 4) - this.chunkZ;
  			return this.chunks[var5][var6].getLightAt(var1, var2 & 15, var3, var4 & 15);
-@@ -242,5 +235,27 @@
+@@ -242,5 +236,27 @@
  
  	public int getHeight() {
  		return 256;
@@ -17630,9 +17889,22 @@
  	}
  
  	private FloatBuffer getBuffer(float var1, float var2, float var3, float var4) {
+--- net/minecraft/client/render/entity/FallingBlockRenderer.java
++++ net/minecraft/client/render/entity/FallingBlockRenderer.java
+@@ -17,6 +17,10 @@
+ 	}
+ 
+ 	public void render(FallingBlockEntity var1, double var2, double var4, double var6, float var8, float var9) {
++        if(var1.fallingTicks == 0) {
++            return;
++        }
++
+ 		GL11.glPushMatrix();
+ 		GL11.glTranslatef((float)var2, (float)var4, (float)var6);
+ 		this.bindTexture("/terrain.png");
 --- net/minecraft/block/entity/FurnaceBlockEntity.java
 +++ net/minecraft/block/entity/FurnaceBlockEntity.java
-@@ -4,18 +4,22 @@
+@@ -4,6 +4,7 @@
  import net.minecraft.block.FurnaceBlock;
  import net.minecraft.block.material.Material;
  import net.minecraft.crafting.SmeltingManager;
@@ -17640,13 +17912,7 @@
  import net.minecraft.entity.mob.player.PlayerEntity;
  import net.minecraft.inventory.Inventory;
  import net.minecraft.item.Item;
- import net.minecraft.item.ItemStack;
- import net.minecraft.nbt.NbtCompound;
- import net.minecraft.nbt.NbtList;
-+import net.minecraft.util.math.MathHelper;
- 
- public class FurnaceBlockEntity extends BlockEntity implements Inventory {
- 	private ItemStack[] inventory = new ItemStack[3];
+@@ -16,6 +17,8 @@
  	public int fuelTime = 0;
  	public int totalFuelTime = 0;
  	public int cookTime = 0;
@@ -17655,7 +17921,7 @@
  
  	public int getSize() {
  		return this.inventory.length;
-@@ -31,17 +35,40 @@
+@@ -31,17 +34,40 @@
  			if(this.inventory[var1].size <= var2) {
  				var3 = this.inventory[var1];
  				this.inventory[var1] = null;
@@ -17700,7 +17966,7 @@
  		}
  	}
  
-@@ -57,6 +84,10 @@
+@@ -57,6 +83,10 @@
  
  	public void setItem(int var1, ItemStack var2) {
  		this.inventory[var1] = var2;
@@ -17711,7 +17977,7 @@
  		if(var2 != null && var2.size > this.getMaxStackSize()) {
  			var2.size = this.getMaxStackSize();
  		}
-@@ -83,12 +114,15 @@
+@@ -83,12 +113,15 @@
  		this.fuelTime = var1.getShort("BurnTime");
  		this.cookTime = var1.getShort("CookTime");
  		this.totalFuelTime = getFuelTime(this.inventory[1]);
@@ -17727,7 +17993,7 @@
  		NbtList var2 = new NbtList();
  
  		for(int var3 = 0; var3 < this.inventory.length; ++var3) {
-@@ -131,22 +165,27 @@
+@@ -131,22 +164,27 @@
  		}
  
  		if(!this.world.isMultiplayer) {
@@ -17765,27 +18031,27 @@
  					this.cookTime = 0;
  					this.finishCooking();
  					var2 = true;
-@@ -171,18 +210,32 @@
+@@ -171,18 +209,32 @@
  		if(this.inventory[0] == null) {
  			return false;
  		} else {
 -			ItemStack var1 = SmeltingManager.getInstance().getResult(this.inventory[0].getItem().id);
 -			return var1 == null ? false : (this.inventory[2] == null ? true : (!this.inventory[2].matchesItem(var1) ? false : (this.inventory[2].size < this.getMaxStackSize() && this.inventory[2].size < this.inventory[2].getMaxSize() ? true : this.inventory[2].size < var1.getMaxSize())));
 +			SmeltingManager.Recipe recipe = SmeltingManager.getInstance().getResult(this.inventory[0].getItem().id, this.cookSpeed);
-+			if(recipe == null || this.inventory[0] != null && this.inventory[0].matchesItem(recipe.result)) {
++			if(recipe == null || this.inventory[0] != null && this.inventory[0].matchesItem(recipe.item)) {
 +				return false;
 +			}
 +			if(this.inventory[2] == null) {
 +				return true;
 +			}
-+			if(!this.inventory[2].matchesItem(recipe.result)) {
++			if(!this.inventory[2].matchesItem(recipe.item)) {
 +				return false;
 +			}
 +
-+			int targetStack = this.inventory[2].size + recipe.result.size;
++			int targetStack = this.inventory[2].size + recipe.item.size;
 +			return targetStack <= this.getMaxStackSize()
 +				&& targetStack <= this.inventory[2].getMaxSize()
-+				|| targetStack <= recipe.result.getMaxSize();
++				|| targetStack <= recipe.item.getMaxSize();
  		}
  	}
  
@@ -17793,7 +18059,7 @@
  		if(this.canCook()) {
 -			ItemStack var1 = SmeltingManager.getInstance().getResult(this.inventory[0].getItem().id);
 +			SmeltingManager.Recipe recipe = SmeltingManager.getInstance().getResult(this.inventory[0].getItem().id, this.cookSpeed);
-+			ItemStack var1 = recipe.result;
++			ItemStack var1 = recipe.item;
  			if(this.inventory[2] == null) {
  				this.inventory[2] = var1.copy();
  			} else if(this.inventory[2].id == var1.id) {
@@ -17802,7 +18068,7 @@
  			}
  
  			--this.inventory[0].size;
-@@ -190,6 +243,7 @@
+@@ -190,6 +242,7 @@
  				this.inventory[0] = null;
  			}
  
@@ -17810,7 +18076,7 @@
  		}
  	}
  
-@@ -198,7 +252,26 @@
+@@ -198,7 +251,26 @@
  			return 0;
  		} else {
  			int var1 = var0.getItem().id;
@@ -18535,13 +18801,14 @@
  		}
  
  		return var3;
-@@ -86,20 +20,29 @@
+@@ -86,20 +20,30 @@
  
  	static class Start extends StructureStart {
  		public Start(World var1, Random var2, int var3, int var4) {
 -			StrongholdPieces.resetWeights();
 +			StrongholdPieces.prepareStructurePieces();
  			StrongholdPieces.Start var5 = new StrongholdPieces.Start(0, var2, (var3 << 4) + 2, (var4 << 4) + 2);
++            var5.hasPortal = var1.getGameMode().endAccess;
  			this.pieces.add(var5);
  			var5.addChildren(var5, this.pieces, var2);
  			ArrayList var6 = var5.children;
@@ -19268,6 +19535,28 @@
  		}
  	}
  }
+--- net/minecraft/block/PortalBlock.java
++++ net/minecraft/block/PortalBlock.java
+@@ -40,6 +40,10 @@
+ 	}
+ 
+ 	public boolean create(World var1, int var2, int var3, int var4) {
++        if(!var1.getGameMode().netherAccess) {
++            return false;
++        }
++
+ 		byte var5 = 0;
+ 		byte var6 = 0;
+ 		if(var1.getBlock(var2 - 1, var3, var4) == Block.OBSIDIAN.id || var1.getBlock(var2 + 1, var3, var4) == Block.OBSIDIAN.id) {
+@@ -145,7 +149,7 @@
+ 	}
+ 
+ 	public void onEntityCollision(World var1, int var2, int var3, int var4, Entity var5) {
+-		if(var5.vehicle == null && var5.rider == null) {
++		if(var5.vehicle == null && var5.rider == null && var1.doPortalsWork() && var1.getGameMode().netherAccess) {
+ 			var5.onPortalCollision();
+ 		}
+ 
 --- /dev/null
 +++ net/minecraft/inventory/menu/LogicalEnchantingTableMenu.java
 @@ -1,0 +1,237 @@
@@ -19576,7 +19865,32 @@
 +    }
 +
 +    public int getSize() {
-+        return 37;
++        return GameMode.SIZE_IN_BYTES;
++    }
++}
+--- /dev/null
++++ net/minecraft/entity/vehicle/TitaniumCartEntity.java
+@@ -1,0 +1,22 @@
++package net.minecraft.entity.vehicle;
++
++import net.minecraft.item.Item;
++import net.minecraft.world.World;
++
++public class TitaniumCartEntity extends FastCartEntity {
++    public TitaniumCartEntity(World var1) {
++        super(var1);
++    }
++
++    public TitaniumCartEntity(World var1, double var2, double var4, double var6, int var8) {
++        super(var1, var2, var4, var6, var8);
++    }
++
++    public String getTexture() {
++        return "/item/light_cart.png";
++    }
++
++    protected int getDroppedItem() {
++        return Item.LIGHT_CART.id;
 +    }
 +}
 --- /dev/null
@@ -20383,7 +20697,15 @@
  			Profiler.swap("gameRenderer");
  			if(!this.paused) {
  				this.gameRenderer.tick();
-@@ -1415,7 +1590,7 @@
+@@ -1395,6 +1570,7 @@
+ 			if(var5.isNew) {
+ 				this.stats.increment(Stats.WORLDS_CREATED, 1);
+ 				this.stats.increment(Stats.GAMES_STARTED, 1);
++                var5.setTime((long)(var5.getGameMode().initialTimeOfDay * var5.getGameMode().dayLength));
+ 				this.setWorld(var5, I18n.translate("menu.generatingLevel"));
+ 			} else {
+ 				this.stats.increment(Stats.WORLDS_LOADED, 1);
+@@ -1415,7 +1591,7 @@
  		double var7 = 1.0D;
  		if(var2 > -1 && this.player.dimension == -1) {
  			var7 = 0.125D;
@@ -20392,7 +20714,7 @@
  			var7 = 8.0D;
  		}
  
-@@ -1443,14 +1618,19 @@
+@@ -1443,14 +1619,19 @@
  				this.setWorld(var9, "Leaving the Nether", this.player);
  			} else {
  				this.setWorld(var9, "Leaving the End", this.player);
@@ -20415,7 +20737,7 @@
  			this.player.setPositionAndAngles(var3, this.player.y, var5, 90.0F, 0.0F);
  			if(this.player.isAlive()) {
  				var9.tickEntity(this.player, false);
-@@ -1564,7 +1744,7 @@
+@@ -1564,7 +1745,7 @@
  		this.progressRenderer.progressStart("Converting World to " + this.worldStorageSource.getName());
  		this.progressRenderer.progressStage("This may take a while :)");
  		this.worldStorageSource.convert(var1, this.progressRenderer);
@@ -20424,7 +20746,7 @@
  	}
  
  	private void prepareWorld(String var1) {
-@@ -1593,13 +1773,13 @@
+@@ -1593,13 +1774,13 @@
  			var7.setCenter(var6.x >> 4, var6.z >> 4);
  		}
  
@@ -20440,7 +20762,7 @@
  				if(!this.interactionManager.hidesGui()) {
  					while(this.world.doLightUpdates()) {
  					}
-@@ -1612,7 +1792,7 @@
+@@ -1612,7 +1793,7 @@
  				this.progressRenderer.progressStage(I18n.translate("menu.simulating"));
  			}
  
@@ -20449,7 +20771,7 @@
  			this.world.prepare();
  		}
  
-@@ -1631,7 +1811,13 @@
+@@ -1631,7 +1812,13 @@
  		} else if(var4.equalsIgnoreCase("music")) {
  			this.soundEngine.loadMusic(var1, var2);
  		} else if(var4.equalsIgnoreCase("newmusic")) {
@@ -20464,7 +20786,7 @@
  		}
  
  	}
-@@ -1694,6 +1880,8 @@
+@@ -1694,6 +1881,8 @@
  		this.player = (ClientPlayerEntity)this.interactionManager.createPlayer(this.world);
  		if(var3) {
  			this.player.copyFrom(var9);
@@ -20473,7 +20795,7 @@
  		}
  
  		this.player.dimension = var2;
-@@ -1722,15 +1910,17 @@
+@@ -1722,15 +1911,17 @@
  	}
  
  	public static void startAndConnect(String var0, String var1, String var2) throws LWJGLException {
@@ -20493,7 +20815,7 @@
  		Thread var8 = new Thread(var7, "Minecraft main thread");
  		var8.setPriority(10);
  		var7.hostAddress = "www.minecraft.net";
-@@ -1770,6 +1960,10 @@
+@@ -1770,6 +1961,10 @@
  		start(var1, var2);
  	}
  
@@ -20504,7 +20826,7 @@
  	public static boolean isDisplayGui() {
  		return INSTANCE == null || !INSTANCE.options.hideGui;
  	}
-@@ -1786,6 +1980,18 @@
+@@ -1786,6 +1981,18 @@
  		return INSTANCE != null && INSTANCE.options.debugEnabled;
  	}
  
@@ -20523,7 +20845,7 @@
  	public boolean isIllegalChatMessage(String var1) {
  		if(var1.startsWith("/")) {
  		}
-@@ -1796,47 +2002,75 @@
+@@ -1796,47 +2003,75 @@
  	private void doPick() {
  		if(this.crosshairTarget != null) {
  			boolean var1 = this.player.abilities.creativeMode;
@@ -21280,9 +21602,12 @@
  	public static final PortalBlock NETHER_PORTAL = (PortalBlock)(new PortalBlock(90, 14)).setStrength(-1.0F).setSounds(GLASS_SOUNDS).setLight(12.0F / 16.0F).setKey("portal");
  	public static final Block LIT_PUMPKIN = (new PumpkinBlock(91, 102, true)).setStrength(1.0F).setSounds(WOOD_SOUNDS).setLight(1.0F).setKey("litpumpkin").updateClients();
  	public static final Block CAKE = (new CakeBlock(92, 121)).setStrength(0.5F).setSounds(CLOTH_SOUNDS).setKey("cake").disableStats().updateClients();
-@@ -143,18 +135,18 @@
+@@ -141,20 +133,20 @@
+ 	public static final Block POWERED_REPEATER = (new RepeaterBlock(94, true)).setStrength(0.0F).setLight(10.0F / 16.0F).setSounds(WOOD_SOUNDS).setKey("diode").disableStats().updateClients();
+ 	public static final Block CHEST_LOCKED_APRIL_FOOLS = (new AprilFoolsChestBlock(95)).setStrength(0.0F).setLight(1.0F).setSounds(WOOD_SOUNDS).setKey("lockedchest").setTicksRandomly(true).updateClients();
  	public static final Block TRAPDOOR = (new TrapdoorBlock(96, Material.WOOD)).setStrength(3.0F).setSounds(WOOD_SOUNDS).setKey("trapdoor").disableStats().updateClients();
- 	public static final Block MONSTER_EGG = (new InfestedBlock(97)).setStrength(12.0F / 16.0F);
+-	public static final Block MONSTER_EGG = (new InfestedBlock(97)).setStrength(12.0F / 16.0F);
++	public static final Block MONSTER_EGG = (new InfestedBlock(97)).setStrength(12.0F / 16.0F).setKey("monsterEgg");
  	public static final Block STONE_BRICKS = (new StonebrickBlock(98)).setStrength(1.5F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("stonebricksmooth");
 -	public static final Block BROWN_MUSHROOM_BLOCK = (new MushroomBlock(99, Material.WOOD, 142, 0)).setStrength(0.2F).setSounds(WOOD_SOUNDS).setKey("mushroom").updateClients();
 -	public static final Block RED_MUSHROOM_BLOCK = (new MushroomBlock(100, Material.WOOD, 142, 1)).setStrength(0.2F).setSounds(WOOD_SOUNDS).setKey("mushroom").updateClients();
@@ -21303,12 +21628,14 @@
  	public static final Block LILY_PAD = (new LilyPadBlock(111, 76)).setStrength(0.0F).setSounds(GRASS_SOUNDS).setKey("waterlily");
  	public static final Block NETHER_BRICKS = (new Block(112, 224, Material.STONE)).setStrength(2.0F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("netherBrick");
  	public static final Block NETHER_BRICK_FENCE = (new FenceBlock(113, 224, Material.STONE)).setStrength(2.0F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("netherFence");
-@@ -164,11 +156,26 @@
+@@ -163,12 +155,27 @@
+ 	public static final Block ENCHANTING_TABLE = (new EnchantingTableBlock(116)).setStrength(5.0F).setBlastResistance(2000.0F).setKey("enchantmentTable");
  	public static final Block BREWING_STAND = (new BrewingStandBlock(117)).setStrength(0.5F).setLight(2.0F / 16.0F).setKey("brewingStand").updateClients();
  	public static final Block CAULDRON = (new CauldronBlock(118)).setStrength(2.0F).setKey("cauldron").updateClients();
- 	public static final Block END_PORTAL = (new EndPortalBlock(119, Material.PORTAL)).setStrength(-1.0F).setBlastResistance(6000000.0F);
+-	public static final Block END_PORTAL = (new EndPortalBlock(119, Material.PORTAL)).setStrength(-1.0F).setBlastResistance(6000000.0F);
 -	public static final Block END_PORTAL_FRAME = (new EndPortalFrameBlock(120)).setSounds(GLASS_SOUNDS).setLight(2.0F / 16.0F).setStrength(-1.0F).setKey("endPortalFrame").updateClients().setBlastResistance(6000000.0F);
 -	public static final Block END_STONE = (new Block(121, 175, Material.STONE)).setStrength(3.0F).setBlastResistance(15.0F).setSounds(STONE_SOUNDS).setKey("whiteStone");
++	public static final Block END_PORTAL = (new EndPortalBlock(119, Material.PORTAL)).setStrength(-1.0F).setBlastResistance(6000000.0F).setKey("endPortal");
 +	public static final Block END_PORTAL_FRAME = (new EndPortalFrameBlock(120)).setSounds(GLASS_SOUNDS).setLight(2.0F / 16.0F).setStrength(10.0F).setBlastResistance(2000.0F).setKey("endPortalFrame").updateClients();
 +	public static final Block END_STONE = (new EndStoneBlock(121, 175)).setStrength(3.0F).setBlastResistance(15.0F).setSounds(STONE_SOUNDS).setKey("whiteStone");
  	public static final Block DRAGON_EGG = (new DragonEggBlock(122, 167)).setStrength(3.0F).setBlastResistance(15.0F).setSounds(STONE_SOUNDS).setLight(2.0F / 16.0F).setKey("dragonEgg");
@@ -21615,7 +21942,7 @@
  
  		int var2;
  		int var3;
-@@ -146,41 +187,23 @@
+@@ -146,113 +187,28 @@
  				this.precipitationHeight[var2 + (var3 << 4)] = -999;
  
  				int var4;
@@ -21662,21 +21989,23 @@
  	}
  
  	public void populateBlockLight() {
-@@ -191,7 +214,9 @@
- 		this.recheckGaps = true;
  	}
  
+-	private void recheckGap(int var1, int var2) {
+-		this.recheckGap[var1 + var2 * 16] = true;
+-		this.recheckGaps = true;
+-	}
+-
 -	private void lightGaps() {
-+	private void lightGaps(boolean multiplayer) {
-+		if(true) return;
-+
- 		Profiler.push("recheckGaps");
- 		if(this.world.isAreaLoaded(this.chunkX * 16 + 8, 0, this.chunkZ * 16 + 8, 16)) {
- 			for(int var1 = 0; var1 < 16; ++var1) {
-@@ -201,27 +226,20 @@
- 						int var3 = this.getHeight(var1, var2);
- 						int var4 = this.chunkX * 16 + var1;
- 						int var5 = this.chunkZ * 16 + var2;
+-		Profiler.push("recheckGaps");
+-		if(this.world.isAreaLoaded(this.chunkX * 16 + 8, 0, this.chunkZ * 16 + 8, 16)) {
+-			for(int var1 = 0; var1 < 16; ++var1) {
+-				for(int var2 = 0; var2 < 16; ++var2) {
+-					if(this.recheckGap[var1 + var2 * 16]) {
+-						this.recheckGap[var1 + var2 * 16] = false;
+-						int var3 = this.getHeight(var1, var2);
+-						int var4 = this.chunkX * 16 + var1;
+-						int var5 = this.chunkZ * 16 + var2;
 -						int var6 = this.world.getHeight(var4 - 1, var5);
 -						int var7 = this.world.getHeight(var4 + 1, var5);
 -						int var8 = this.world.getHeight(var4, var5 - 1);
@@ -21693,24 +22022,46 @@
 -							var6 = var9;
 -						}
 -
-+						int var6 = Integer.MAX_VALUE;
-+						var6 = Math.min(var6, this.world.getMinHeightValue(var4 - 1, var5));
-+						var6 = Math.min(var6, this.world.getMinHeightValue(var4 + 1, var5));
-+						var6 = Math.min(var6, this.world.getMinHeightValue(var4, var5 - 1));
-+						var6 = Math.min(var6, this.world.getMinHeightValue(var4, var5 + 1));
- 						this.lightGap(var4, var5, var6);
- 						this.lightGap(var4 - 1, var5, var3);
- 						this.lightGap(var4 + 1, var5, var3);
- 						this.lightGap(var4, var5 - 1, var3);
- 						this.lightGap(var4, var5 + 1, var3);
-+						if(multiplayer) {
-+							Profiler.pop();
-+							return;
-+						}
- 					}
- 				}
- 			}
-@@ -267,66 +285,8 @@
+-						this.lightGap(var4, var5, var6);
+-						this.lightGap(var4 - 1, var5, var3);
+-						this.lightGap(var4 + 1, var5, var3);
+-						this.lightGap(var4, var5 - 1, var3);
+-						this.lightGap(var4, var5 + 1, var3);
+-					}
+-				}
+-			}
+-
+-			this.recheckGaps = false;
+-		}
+-
+-		Profiler.pop();
+-	}
+-
+-	private void lightGap(int var1, int var2, int var3) {
+-		int var4 = this.world.getHeight(var1, var2);
+-		if(var4 > var3) {
+-			this.updateSkyLight(var1, var2, var3, var4 + 1);
+-		} else if(var4 < var3) {
+-			this.updateSkyLight(var1, var2, var4, var3 + 1);
+-		}
+-
+-	}
+-
+-	private void updateSkyLight(int var1, int var2, int var3, int var4) {
+-		if(var4 > var3 && this.world.isAreaLoaded(var1, 0, var2, 16)) {
+-			for(int var5 = var3; var5 < var4; ++var5) {
+-				this.world.updateLight(LightType.SKY, var1, var5, var2);
+-			}
+-
+-			this.dirty = true;
+-		}
+-
+-	}
+-
+ 	private void updateHeightMap(int var1, int var2, int var3) {
+ 		int var4 = this.heightMap[var3 << 4 | var1] & 255;
+ 		int var5 = var4;
+@@ -267,66 +223,8 @@
  		if(var5 != var4) {
  			this.world.onHeightMapChanged(var1, var3, var5, var4);
  			this.heightMap[var3 << 4 | var1] = var5;
@@ -21779,7 +22130,7 @@
  
  			this.dirty = true;
  		}
-@@ -359,6 +319,14 @@
+@@ -359,6 +257,14 @@
  	}
  
  	public boolean setBlockWithMetadataAt(int var1, int var2, int var3, int var4, int var5) {
@@ -21794,7 +22145,7 @@
  		int var6 = var3 << 4 | var1;
  		if(var2 >= this.precipitationHeight[var6] - 1) {
  			this.precipitationHeight[var6] = -999;
-@@ -371,13 +339,24 @@
+@@ -371,13 +277,24 @@
  		} else {
  			WorldChunkSection var9 = this.sections[var2 >> 4];
  			boolean var10 = false;
@@ -21819,7 +22170,7 @@
  			}
  
  			var9.setBlock(var1, var2 & 15, var3, var4);
-@@ -406,8 +385,18 @@
+@@ -406,8 +323,18 @@
  						this.updateHeightMap(var1, var2, var3);
  					}
  
@@ -21840,7 +22191,7 @@
  
  				BlockEntity var13;
  				if(var4 != 0) {
-@@ -465,51 +454,63 @@
+@@ -465,51 +392,63 @@
  	}
  
  	public int getLightAt(LightType var1, int var2, int var3, int var4) {
@@ -21943,7 +22294,7 @@
  
  	public void addEntity(Entity var1) {
  		this.lastSaveHadEntities = true;
-@@ -526,7 +527,7 @@
+@@ -526,7 +465,7 @@
  		}
  
  		if(var4 >= this.entities.length) {
@@ -21952,7 +22303,7 @@
  		}
  
  		var1.inChunk = true;
-@@ -541,15 +542,13 @@
+@@ -541,15 +480,13 @@
  	}
  
  	public void removeEntity(Entity var1, int var2) {
@@ -21975,7 +22326,7 @@
  	}
  
  	public boolean hasSkyAccessAt(int var1, int var2, int var3) {
-@@ -602,6 +601,7 @@
+@@ -602,6 +539,7 @@
  			var4.cancelRemoval();
  			this.blockEntities.put(var5, var4);
  		}
@@ -21983,7 +22334,7 @@
  	}
  
  	public void removeBlockEntityAt(int var1, int var2, int var3) {
-@@ -680,10 +680,12 @@
+@@ -680,10 +618,12 @@
  	public void getEntitiesOfType(Class var1, Box var2, List var3) {
  		int var4 = MathHelper.floor((var2.minY - 2.0D) / 16.0D);
  		int var5 = MathHelper.floor((var2.maxY + 2.0D) / 16.0D);
@@ -21998,7 +22349,7 @@
  		}
  
  		if(var5 >= this.entities.length) {
-@@ -784,10 +786,6 @@
+@@ -784,10 +724,6 @@
  	}
  
  	public void tick() {
@@ -22009,7 +22360,7 @@
  	}
  
  	public ChunkPos getPos() {
-@@ -795,18 +793,12 @@
+@@ -795,18 +731,12 @@
  	}
  
  	public boolean isEmpty(int var1, int var2) {
@@ -22033,7 +22384,7 @@
  			}
  		}
  
-@@ -815,29 +807,39 @@
+@@ -815,29 +745,39 @@
  
  	public void setSections(WorldChunkSection[] var1) {
  		this.sections = var1;
@@ -22081,7 +22432,7 @@
  				var8 = this.sections[var6].getBlockMetadataStorage();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -845,7 +847,7 @@
+@@ -845,7 +785,7 @@
  		}
  
  		for(var6 = 0; var6 < this.sections.length; ++var6) {
@@ -22090,7 +22441,7 @@
  				var8 = this.sections[var6].getBlockLightStorage();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -853,7 +855,7 @@
+@@ -853,7 +793,7 @@
  		}
  
  		for(var6 = 0; var6 < this.sections.length; ++var6) {
@@ -22099,7 +22450,7 @@
  				var8 = this.sections[var6].getSkyLightStorage();
  				System.arraycopy(var1, var5, var8.data, 0, var8.data.length);
  				var5 += var8.data.length;
-@@ -861,7 +863,7 @@
+@@ -861,7 +801,7 @@
  		}
  
  		for(var6 = 0; var6 < this.sections.length; ++var6) {
@@ -22108,11 +22459,11 @@
  				if(this.sections[var6] == null) {
  					var5 += 2048;
  				} else {
-@@ -881,10 +883,11 @@
+@@ -881,10 +821,11 @@
  		if(var4) {
  			System.arraycopy(var1, var5, this.biomes, 0, this.biomes.length);
  			int var10000 = var5 + this.biomes.length;
-+			this.biomeColors.clear();
++			this.clearBiomeColorCache();
  		}
  
  		for(var6 = 0; var6 < this.sections.length; ++var6) {
@@ -22121,23 +22472,23 @@
  				this.sections[var6].validateBlockCounters();
  			}
  		}
-@@ -905,6 +908,7 @@
+@@ -905,6 +846,7 @@
  			Biome var5 = var3.getBiome((this.chunkX << 4) + var1, (this.chunkZ << 4) + var2);
  			var4 = var5.id;
  			this.biomes[var2 << 4 | var1] = (byte)(var4 & 255);
-+			this.biomeColors.clear();
++			this.clearBiomeColorCache();
  		}
  
  		return Biome.BY_ID[var4] == null ? Biome.PLAINS : Biome.BY_ID[var4];
-@@ -916,6 +920,7 @@
+@@ -916,6 +858,7 @@
  
  	public void setBiomes(byte[] var1) {
  		this.biomes = var1;
-+		this.biomeColors.clear();
++		this.clearBiomeColorCache();
  	}
  
  	public void resetBorderLightChecks() {
-@@ -937,7 +942,7 @@
+@@ -937,7 +880,7 @@
  
  			for(int var7 = 0; var7 < 16; ++var7) {
  				int var8 = (var2 << 4) + var7;
@@ -22146,11 +22497,10 @@
  					if(Block.LIGHT[this.world.getBlock(var5, var8 - 1, var6)] > 0) {
  						this.world.checkLight(var5, var8 - 1, var6);
  					}
-@@ -967,5 +972,55 @@
- 			}
+@@ -968,4 +911,58 @@
  		}
  
-+	}
+ 	}
 +
 +	public int getMaxHeight() {
 +		return this.sections.length << 4;
@@ -22200,7 +22550,11 @@
 +
 +			return r << 16 | g << 8 | b;
 +		});
- 	}
++	}
++
++    public void clearBiomeColorCache() {
++        this.biomeColors.clear();
++    }
  }
 --- net/minecraft/world/gen/chunk/NetherChunkGenerator.java
 +++ net/minecraft/world/gen/chunk/NetherChunkGenerator.java
@@ -22830,12 +23184,15 @@
  }
 --- /dev/null
 +++ net/minecraft/item/ArrowItem.java
-@@ -1,0 +1,40 @@
+@@ -1,0 +1,51 @@
 +package net.minecraft.item;
 +
 +import net.minecraft.enchantment.Enchantment;
++import net.minecraft.world.GameMode;
 +
 +public class ArrowItem extends Item {
++    private boolean extraTiers = true;
++
 +    public ArrowItem(int var1) {
 +        super(var1);
 +        this.setHasCustomData(true);
@@ -22852,6 +23209,14 @@
 +
 +    public String getTranslationKey(ItemStack var1) {
 +        return super.getTranslationKey(var1) + "." + ArrowType.values()[var1.getMetadata()].name;
++    }
++
++    protected void setGamemodeTweaks(GameMode var1) {
++        this.extraTiers = var1.extraTiers;
++    }
++
++    public boolean isObtainable(int meta) {
++        return this.isObtainable() && (meta == 0 || this.extraTiers);
 +    }
 +
 +    public enum ArrowType {
@@ -23853,7 +24218,7 @@
 +			}
 +
 +			Recipe result = recipeList.get(var1);
-+			if(result != null) {
++			if(result != null && result.item.getItem().isObtainable(result.item.getDamage())) {
 +				return result;
 +			}
 +		}
@@ -23866,15 +24231,15 @@
  	}
 +
 +	public static class Recipe {
-+		public final ItemStack result;
++		public final ItemStack item;
 +		public final float experience;
 +
-+		public Recipe(ItemStack result) {
-+			this(result, 0.1F);
++		public Recipe(ItemStack item) {
++			this(item, 0.1F);
 +		}
 +
-+        public Recipe(ItemStack result, float experience) {
-+            this.result = result;
++        public Recipe(ItemStack item, float experience) {
++            this.item = item;
 +            this.experience = experience;
 +        }
 +    }
@@ -24892,7 +25257,7 @@
  		int var5 = this.x;
  		int var6 = this.y;
  		int var7 = var5 + 155;
-@@ -197,56 +216,90 @@
+@@ -197,56 +216,93 @@
  			this.minecraft.openScreen(new StatsScreen(this, this.minecraft.stats));
  		}
  
@@ -24911,7 +25276,7 @@
  
  		public CreativePlayerMenu(PlayerEntity var1) {
 -			Block[] var2 = new Block[]{Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.ICE, Block.SNOW, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.END_STONE, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP};
-+			Block[] var2 = {Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.REDSTONE_BLOCK, Block.COAL_BLOCK, Block.COAL_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.BLAZE_REMAINS, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.SPONGE, Block.ICE, Block.SNOW, Block.SNOW_LAYER, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.BROWN_MUSHROOM_BLOCK, Block.RED_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.STONE_SLAB, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.TITANIUM_ORE, Block.TITANIUM_BLOCK, Block.COSMITE_BLOCK, Block.END_CRYSTAL_BLOCK, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.SPRUCE_STAIRS, Block.BIRCH_STAIRS, Block.JUNGLE_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.SANDSTONE_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP, Block.GEYSER};
++			Block[] var2 = {Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.REDSTONE_BLOCK, Block.COAL_BLOCK, Block.COAL_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.BLAZE_REMAINS, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.SPONGE, Block.ICE, Block.SNOW, Block.SNOW_LAYER, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.BROWN_MUSHROOM_BLOCK, Block.RED_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.STONE_SLAB, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.TITANIUM_ORE, Block.TITANIUM_BLOCK, Block.COSMITE_BLOCK, Block.END_CRYSTAL_BLOCK, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.SPRUCE_STAIRS, Block.BIRCH_STAIRS, Block.JUNGLE_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.SANDSTONE_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP, Block.GEYSER, Block.MONSTER_EGG, Block.MONSTER_EGG, Block.MONSTER_EGG};
 +			Biome[] culturedMealBiomes = {Biome.PLAINS, Biome.DARK_FOREST, Biome.RAINFOREST, Biome.SWAMPLAND, Biome.ARCHIPELAGO};
 +
 +			Set<Integer> excludedItems = Stream.of(
@@ -24944,7 +25309,8 @@
 +				Block.STONE,
 +				Block.SPONGE,
 +				Block.DIRT,
-+				Block.COAL_BLOCK
++				Block.COAL_BLOCK,
++                Block.MONSTER_EGG
 +			).collect(Collectors.toSet());
 +			Map<Block, Integer> metaMap = new HashMap<>();
  
@@ -24993,20 +25359,22 @@
  
  			for(var12 = 256; var12 < Item.BY_ID.length; ++var12) {
 -				if(Item.BY_ID[var12] != null && Item.BY_ID[var12].id != Item.POTION.id && Item.BY_ID[var12].id != Item.SPAWN_EGG.id) {
-+				if(Item.BY_ID[var12] != null && !excludedItems.contains(Item.BY_ID[var12].id)) {
++				if(Item.BY_ID[var12] != null && Item.BY_ID[var12].isObtainable() && !excludedItems.contains(Item.BY_ID[var12].id)) {
  					this.items.add(new ItemStack(Item.BY_ID[var12]));
  				}
  			}
  
 +			for(var12 = 1; var12 < ArrowItem.ArrowType.values().length; ++var12) {
-+				this.items.add(new ItemStack(Item.ARROW.id, 1, var12));
++                if(Item.ARROW.isObtainable(var12)) {
++                    this.items.add(new ItemStack(Item.ARROW.id, 1, var12));
++                }
 +			}
 +
 +			this.items.add(new ItemStack(Item.COAL.id, 1, 1));
  			for(var12 = 1; var12 < 16; ++var12) {
  				this.items.add(new ItemStack(Item.DYE.id, 1, var12));
  			}
-@@ -258,6 +311,44 @@
+@@ -258,6 +314,44 @@
  				this.items.add(new ItemStack(Item.SPAWN_EGG.id, 1, var17.intValue()));
  			}
  
@@ -25051,7 +25419,7 @@
  			PlayerInventory var16 = var1.inventory;
  
  			for(var13 = 0; var13 < 9; ++var13) {
-@@ -298,6 +389,10 @@
+@@ -298,6 +392,10 @@
  		}
  
  		protected void clickSlot(int var1, int var2, boolean var3, PlayerEntity var4) {
@@ -26457,7 +26825,7 @@
 +
 +				this.message = this.getDisplayString();
 +				if(this.onValueChange != null) {
-+					this.onValueChange.accept(Float.valueOf(this.getValue()));
++					this.onValueChange.accept(this.getValue());
 +				}
 +			}
 +
@@ -27172,7 +27540,7 @@
 +		return var1.getMetadata() == 15
 +                && performBonemeal(var1, var3, var4, var5, var6, var3.getBiome(var4, var6))
 +            || var1.getMetadata() == 3
-+                && var7 > 2
++                && var7 >= 2
 +                && var3.getBlock(var4, var5, var6) == Block.LOG.id
 +                && (var3.getBlockMetadata(var4, var5, var6) & 3) == 3
 +                && super.useOn(var1, var2, var3, var4, var5, var6, var7);
@@ -27964,7 +28332,7 @@
 +import net.minecraft.network.packet.*;
  
  public abstract class PacketHandler {
-+	public static final int PROTOCOL_VERSION = 4070004;
++	public static final int PROTOCOL_VERSION = 4070005;
 +
  	public abstract boolean isServer();
  
@@ -28093,7 +28461,7 @@
  		}
  
 -		return 4 + this.username.length() + 4 + 7 + 7 + var1;
-+		return 4 + this.username.length() + 4 + 7 + 7 + var1 + 37;
++		return 4 + this.username.length() + 4 + 7 + 7 + var1 + GameMode.SIZE_IN_BYTES;
  	}
  
 -	public LoginPacket(String var1, int var2, WorldGeneratorType var3, int var4, int var5, byte var6, byte var7, byte var8) {
@@ -28114,9 +28482,9 @@
  public class SharedConstants {
  	public static final String VALID_CHAT_CHARACTERS = getValidChatCharString();
  	public static final char[] INVALID_FILE_CHARS = new char[]{'/', '\n', '\r', '\t', '\u0000', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
-+	public static final String VERSION = "AuthAdv 1.4";
++	public static final String VERSION = "AuthAdv 1.4.1";
 +	public static final boolean PRE_RELEASE = VERSION.contains("Pre-release");
-+	public static final boolean DEBUG_MODE = false;
++	public static final boolean DEBUG_MODE = true;
 +    public static final boolean PANORAMA_MODE = false;
  
  	private static String getValidChatCharString() {
@@ -29107,15 +29475,17 @@
  import net.minecraft.entity.mob.monster.boss.EnderDragonEntity;
  import net.minecraft.entity.mob.passive.VillagerEntity;
  import net.minecraft.entity.mob.passive.animal.ChickenEntity;
-@@ -38,6 +25,7 @@
+@@ -38,7 +25,9 @@
  import net.minecraft.entity.projectile.SmallFireballEntity;
  import net.minecraft.entity.projectile.SnowballEntity;
  import net.minecraft.entity.vehicle.BoatEntity;
-+import net.minecraft.entity.vehicle.LightCartEntity;
++import net.minecraft.entity.vehicle.FastCartEntity;
  import net.minecraft.entity.vehicle.MinecartEntity;
++import net.minecraft.entity.vehicle.TitaniumCartEntity;
  import net.minecraft.nbt.NbtCompound;
  import net.minecraft.world.World;
-@@ -72,7 +60,6 @@
+ 
+@@ -72,7 +61,6 @@
  				var2 = (Entity)var3.getConstructor(new Class[]{World.class}).newInstance(new Object[]{var1});
  			}
  		} catch (Exception var4) {
@@ -29123,7 +29493,7 @@
  		}
  
  		return var2;
-@@ -136,6 +123,11 @@
+@@ -136,6 +124,11 @@
  		return var1 != null ? (String)TYPE_TO_KEY.get(var1) : null;
  	}
  
@@ -29135,15 +29505,16 @@
  	static {
  		register(ItemEntity.class, "Item", 1);
  		register(ExperienceOrbEntity.class, "XPOrb", 2);
-@@ -152,6 +144,7 @@
+@@ -152,6 +145,8 @@
  		register(FallingBlockEntity.class, "FallingSand", 21);
  		register(MinecartEntity.class, "Minecart", 40);
  		register(BoatEntity.class, "Boat", 41);
-+		register(LightCartEntity.class, "LightCart", 42);
++        register(TitaniumCartEntity.class, "LightCart", 42);
++        register(FastCartEntity.class, "FastCart", 43);
  		register(MobEntity.class, "Mob", 48);
  		register(MonsterEntity.class, "Monster", 49);
  		registerWithSpawnEgg(CreeperEntity.class, "Creeper", 50, 894731, 0);
-@@ -168,6 +161,7 @@
+@@ -168,6 +163,7 @@
  		registerWithSpawnEgg(BlazeEntity.class, "Blaze", 61, 16167425, 16775294);
  		registerWithSpawnEgg(MagmaCubeEntity.class, "LavaSlime", 62, 3407872, 16579584);
  		register(EnderDragonEntity.class, "EnderDragon", 63);
@@ -30094,7 +30465,7 @@
 +			Map<Integer, Map<Integer, SmeltingManager.Recipe>> smeltingRecipes = SmeltingManager.getInstance().getRecipes();
 +			for(Map<Integer, SmeltingManager.Recipe> recipeList : smeltingRecipes.values()) {
 +				for(SmeltingManager.Recipe recipe : recipeList.values()) {
-+					var0.add(recipe.result.id);
++					var0.add(recipe.item.id);
 +				}
  			}
  
@@ -30336,18 +30707,19 @@
  		currentWeights = new ArrayList();
  		StrongholdPieces.StrongholdPieceWeight[] var0 = PIECE_WEIGHTS;
  		int var1 = var0.length;
-@@ -98,7 +111,9 @@
+@@ -98,7 +111,10 @@
  					StrongholdPieces.StrongholdPieceWeight var11 = (StrongholdPieces.StrongholdPieceWeight)var10.next();
  					var9 -= var11.weight;
  					if(var9 < 0) {
 -						if(!var11.isValid(var7) || var11 == var0.previous) {
 +						if(!var11.isValid(var7)
 +							|| var11 == var0.previous
-+							|| var4 >= 50 && var11.noSurface) {
++							|| var4 >= 50 && var11.noSurface
++                            || var11.type == StrongholdPieces.EndPortalRoom.class && !var0.hasPortal) {
  							break;
  						}
  
-@@ -117,7 +132,7 @@
+@@ -117,7 +133,7 @@
  			}
  
  			StructureBox var14 = StrongholdPieces.PlainCorridor.findSize(var1, var2, var3, var4, var5, var6);
@@ -30356,7 +30728,7 @@
  				return new StrongholdPieces.PlainCorridor(var7, var2, var14, var6);
  			} else {
  				return null;
-@@ -146,11 +161,17 @@
+@@ -146,11 +162,17 @@
  		public final int weight;
  		public int amountGenerated;
  		public int maxAmount;
@@ -30374,7 +30746,7 @@
  		}
  
  		public boolean isValid(int var1) {
-@@ -166,7 +187,7 @@
+@@ -166,7 +188,7 @@
  		private StoneBrickPicker() {
  		}
  
@@ -30383,7 +30755,7 @@
  			if(!var5) {
  				this.block = 0;
  				this.metadata = 0;
-@@ -193,8 +214,8 @@
+@@ -193,8 +215,8 @@
  	}
  
  	static final class C_62522369 extends StrongholdPieces.StrongholdPieceWeight {
@@ -30394,7 +30766,7 @@
  		}
  
  		public boolean isValid(int var1) {
-@@ -203,8 +224,8 @@
+@@ -203,8 +225,8 @@
  	}
  
  	static final class C_96768844 extends StrongholdPieces.StrongholdPieceWeight {
@@ -30405,7 +30777,7 @@
  		}
  
  		public boolean isValid(int var1) {
-@@ -240,7 +261,7 @@
+@@ -240,7 +262,7 @@
  	}
  
  	public static class ChestCorridor extends StrongholdPieces.StrongholdPiece {
@@ -30414,7 +30786,7 @@
  		private final StrongholdPieces.StrongholdPiece.EntranceType entranceType;
  		private boolean hasChest;
  
-@@ -491,6 +512,7 @@
+@@ -491,6 +513,7 @@
  
  	public static class Library extends StrongholdPieces.StrongholdPiece {
  		private static final LootEntry[] LOOT_ENTRIES = new LootEntry[]{new LootEntry(Item.BOOK.id, 0, 1, 3, 20), new LootEntry(Item.PAPER.id, 0, 2, 7, 20), new LootEntry(Item.MAP.id, 0, 1, 1, 1), new LootEntry(Item.COMPASS.id, 0, 1, 1, 1)};
@@ -30422,7 +30794,7 @@
  		protected final StrongholdPieces.StrongholdPiece.EntranceType entranceType;
  		private final boolean tall;
  
-@@ -526,7 +548,7 @@
+@@ -526,7 +549,7 @@
  					var4 = 6;
  				}
  
@@ -30431,7 +30803,7 @@
  				this.generateEntrance(var1, var2, var3, this.entranceType, 4, 1, 0);
  				this.fillRandomlyWithOutline(var1, var3, var2, 0.07F, 2, 1, 1, 11, 4, 13, Block.WEB.id, Block.WEB.id, false);
  
-@@ -608,6 +630,20 @@
+@@ -608,6 +631,20 @@
  					this.placeChestWithLoot(var1, var3, var2, 12, 8, 1, LOOT_ENTRIES, 1 + var2.nextInt(4));
  				}
  
@@ -30452,7 +30824,7 @@
  				return true;
  			}
  		}
-@@ -615,6 +651,7 @@
+@@ -615,6 +652,7 @@
  
  	public static class EndPortalRoom extends StrongholdPieces.StrongholdPiece {
  		private boolean hasSpawner;
@@ -30460,7 +30832,7 @@
  
  		public EndPortalRoom(int var1, Random var2, StructureBox var3, int var4) {
  			super(var1);
-@@ -643,7 +680,9 @@
+@@ -643,7 +681,9 @@
  			this.fill(var1, var3, 2, var4, 1, 8, var4, 2, false, var2, StrongholdPieces.STONE_BRICK_PICKER);
  			this.fill(var1, var3, 2, var4, 14, 8, var4, 14, false, var2, StrongholdPieces.STONE_BRICK_PICKER);
  			this.fill(var1, var3, 1, 1, 1, 2, 1, 4, false, var2, StrongholdPieces.STONE_BRICK_PICKER);
@@ -30470,7 +30842,7 @@
  			this.fillWithOutline(var1, var3, 1, 1, 1, 1, 1, 3, Block.FLOWING_LAVA.id, Block.FLOWING_LAVA.id, false);
  			this.fillWithOutline(var1, var3, 9, 1, 1, 9, 1, 3, Block.FLOWING_LAVA.id, Block.FLOWING_LAVA.id, false);
  			this.fill(var1, var3, 3, 1, 8, 7, 1, 12, false, var2, StrongholdPieces.STONE_BRICK_PICKER);
-@@ -694,18 +733,29 @@
+@@ -694,18 +734,29 @@
  				var9 = 2;
  			}
  
@@ -30512,7 +30884,7 @@
  			if(!this.hasSpawner) {
  				int var13 = this.transformY(3);
  				int var10 = this.transformX(5, 6);
-@@ -725,6 +775,8 @@
+@@ -725,6 +776,8 @@
  	}
  
  	public static class Prison extends StrongholdPieces.StrongholdPiece {
@@ -30521,7 +30893,7 @@
  		protected final StrongholdPieces.StrongholdPiece.EntranceType entranceType;
  
  		public Prison(int var1, Random var2, StructureBox var3, int var4) {
-@@ -732,6 +784,8 @@
+@@ -732,6 +785,8 @@
  			this.facing = var4;
  			this.entranceType = this.pickEntranceType(var2);
  			this.bounds = var3;
@@ -30530,7 +30902,7 @@
  		}
  
  		public void addChildren(StructurePiece var1, List var2, Random var3) {
-@@ -762,6 +816,38 @@
+@@ -762,6 +817,38 @@
  				this.setBlockWithMetadata(var1, Block.IRON_DOOR.id, this.postProcessBlockMetadata(Block.IRON_DOOR.id, 3) + 8, 4, 2, 2, var3);
  				this.setBlockWithMetadata(var1, Block.IRON_DOOR.id, this.postProcessBlockMetadata(Block.IRON_DOOR.id, 3), 4, 1, 8, var3);
  				this.setBlockWithMetadata(var1, Block.IRON_DOOR.id, this.postProcessBlockMetadata(Block.IRON_DOOR.id, 3) + 8, 4, 2, 8, var3);
@@ -30569,7 +30941,7 @@
  				return true;
  			}
  		}
-@@ -808,7 +894,12 @@
+@@ -808,7 +895,12 @@
  			this.facing = var4;
  			this.entranceType = this.pickEntranceType(var2);
  			this.bounds = var3;
@@ -30583,7 +30955,15 @@
  		}
  
  		public void addChildren(StructurePiece var1, List var2, Random var3) {
-@@ -1001,6 +1092,10 @@
+@@ -993,6 +1085,7 @@
+ 		public StrongholdPieces.StrongholdPieceWeight previous;
+ 		public StrongholdPieces.EndPortalRoom endPortalRoom;
+ 		public ArrayList children = new ArrayList();
++        public boolean hasPortal = true;
+ 
+ 		public Start(int var1, Random var2, int var3, int var4) {
+ 			super(0, var2, var3, var4);
+@@ -1001,6 +1094,10 @@
  		public BlockPos getCenterPos() {
  			return this.endPortalRoom != null ? this.endPortalRoom.getCenterPos() : super.getCenterPos();
  		}
@@ -30594,7 +30974,7 @@
  	}
  
  	public static class StraightCorridor extends StrongholdPieces.StrongholdPiece {
-@@ -1114,6 +1209,11 @@
+@@ -1114,6 +1211,11 @@
  				this.fillWithOutline(var1, var3, var5, var6, var7, var5 + 3 - 1, var6 + 3 - 1, var7, 0, 0, false);
  				break;
  			case 2:
@@ -30606,7 +30986,7 @@
  				this.setBlockWithMetadata(var1, Block.STONE_BRICKS.id, 0, var5, var6, var7, var3);
  				this.setBlockWithMetadata(var1, Block.STONE_BRICKS.id, 0, var5, var6 + 1, var7, var3);
  				this.setBlockWithMetadata(var1, Block.STONE_BRICKS.id, 0, var5, var6 + 2, var7, var3);
-@@ -1125,6 +1225,11 @@
+@@ -1125,6 +1227,11 @@
  				this.setBlockWithMetadata(var1, Block.WOODEN_DOOR.id, 8, var5 + 1, var6 + 1, var7, var3);
  				break;
  			case 3:
@@ -30618,7 +30998,7 @@
  				this.setBlockWithMetadata(var1, 0, 0, var5 + 1, var6, var7, var3);
  				this.setBlockWithMetadata(var1, 0, 0, var5 + 1, var6 + 1, var7, var3);
  				this.setBlockWithMetadata(var1, Block.IRON_BARS.id, 0, var5, var6, var7, var3);
-@@ -1136,6 +1241,11 @@
+@@ -1136,6 +1243,11 @@
  				this.setBlockWithMetadata(var1, Block.IRON_BARS.id, 0, var5 + 2, var6, var7, var3);
  				break;
  			case 4:
@@ -30873,7 +31253,7 @@
  	protected void renderMore(EnderDragonEntity var1, float var2) {
 --- /dev/null
 +++ net/minecraft/world/gen/feature/MeteoriteFeature.java
-@@ -1,0 +1,37 @@
+@@ -1,0 +1,38 @@
 +package net.minecraft.world.gen.feature;
 +
 +import net.minecraft.block.Block;
@@ -30889,7 +31269,8 @@
 +        new Random("she gabbro on my meteorite".hashCode() | (long)"till i fall".hashCode() << 32));
 +
 +    public boolean place(World var1, Random var2, int var3, int var4, int var5) {
-+        return AIR_FEATURE.place(var1, var2, var3, var4, var5)
++        return var1.getGameMode().endAccess
++            && AIR_FEATURE.place(var1, var2, var3, var4, var5)
 +            && METEORITE_FEATURE.place(var1, var2, var3, var4 - 3, var5);
 +    }
 +
@@ -30921,7 +31302,7 @@
  
  	public VeinFeature(int var1, int var2) {
  		this.block = var1;
-@@ -15,21 +16,26 @@
+@@ -15,21 +16,27 @@
  	}
  
  	public boolean place(World var1, Random var2, int var3, int var4, int var5) {
@@ -30943,6 +31324,7 @@
 +		float size = (float)this.size;
 +		if(this.influencedByGameMode) {
 +			size *= var1.getGameMode().oreMultiplier;
++            size = Math.min(size, Math.max(32, this.size));
 +		}
 +
 +		float var6 = this.getAngle(var2);
@@ -30963,7 +31345,7 @@
  			int var32 = MathHelper.floor(var20 - var28 / 2.0D);
  			int var33 = MathHelper.floor(var22 - var30 / 2.0D);
  			int var34 = MathHelper.floor(var24 - var28 / 2.0D);
-@@ -45,8 +51,8 @@
+@@ -45,8 +52,8 @@
  						if(var39 * var39 + var42 * var42 < 1.0D) {
  							for(int var44 = var34; var44 <= var37; ++var44) {
  								double var45 = ((double)var44 + 0.5D - var24) / (var28 / 2.0D);
@@ -30974,7 +31356,7 @@
  								}
  							}
  						}
-@@ -56,5 +62,21 @@
+@@ -56,5 +63,21 @@
  		}
  
  		return true;
@@ -31075,7 +31457,7 @@
  		} else {
 --- /dev/null
 +++ net/minecraft/client/gui/screen/world/GameModeCustomizationScreen.java
-@@ -1,0 +1,268 @@
+@@ -1,0 +1,318 @@
 +package net.minecraft.client.gui.screen.world;
 +
 +import java.util.function.Consumer;
@@ -31158,7 +31540,7 @@
 +				});
 +			this.addButton(5, i18ncgm("criticalHits", this.gameMode.criticalHits));
 +			this.addButton(6, i18ncgm("swordBlocking", this.gameMode.swordBlocking));
-+			this.addSlider(7, i18ncgm("oreMultiplier"), this.gameMode.oreMultiplier, 0.0F, 1.0F, 0.05F,
++			this.addSlider(7, i18ncgm("oreMultiplier"), this.gameMode.oreMultiplier, 0.0F, 2.0F, 0.05F,
 +				v -> {
 +					this.gameMode.oreMultiplier = v;
 +					this.gameMode.preset = "";
@@ -31169,6 +31551,38 @@
 +		case 2:
 +			this.addButton(0, i18ncgm("itemsOnDeath", this.gameMode.itemsOnDeath.toString().toLowerCase()));
 +			this.addButton(1, i18ncgm("hardcore", this.gameMode.hardcore));
++            int daySliderIndex = this.buttons.size();
++            this.addSlider(2, i18ncgm("dayLength"), this.gameMode.dayLength / 1200.0F, 1.0F, 100.0F, 1.0F,
++                v -> {
++                    this.gameMode.dayLength = Math.round(v * 1200.0F);
++                    this.gameMode.preset = "";
++                    ((GenericSliderWidget)this.buttons.get(daySliderIndex)).message += " mins";
++                });
++            ((GenericSliderWidget)this.buttons.get(daySliderIndex)).message += " mins";
++            this.addButton(3, i18ncgm("doDaylightCycle", this.gameMode.doDaylightCycle));
++            int initialTimeSlider = this.buttons.size();
++            this.addSlider(4, i18ncgm("initialTimeOfDay"), this.gameMode.initialTimeOfDay, 0.0F, 1.0F, 1.0F / 96.0F,
++                v -> {
++                    v = Math.round(v * 96.0F) / 96.0F;
++                    if(v >= 0.0F) {
++                        this.gameMode.initialTimeOfDay = v;
++                        this.gameMode.preset = "";
++                    } else {
++                        v += 10.0F;
++                    }
++
++                    int minutes = ((int)(v * 24.0F) + 6) % 24;
++                    int seconds = (int)(v * 24.0F * 60.0F) % 60;
++
++                    GenericSliderWidget slider = ((GenericSliderWidget)this.buttons.get(initialTimeSlider));
++                    slider.message = slider.label + ": " + String.format("%02d:%02d", minutes, seconds);
++                });
++            ((GenericSliderWidget)this.buttons.get(initialTimeSlider)).onValueChange.accept(this.gameMode.initialTimeOfDay - 10.0F);
++            this.addButton(5, i18ncgm("doWeatherCycle", this.gameMode.doWeatherCycle));
++            this.addButton(6, i18ncgm("netherAccess", this.gameMode.netherAccess));
++            this.addButton(7, i18ncgm("endAccess", this.gameMode.endAccess));
++            this.addButton(8, i18ncgm("extraTiers", this.gameMode.extraTiers));
++            this.addButton(9, i18ncgm("fastBaseMinecarts", this.gameMode.fastBaseMinecarts));
 +			break;
 +		}
 +
@@ -31271,6 +31685,24 @@
 +			case 21:
 +				var1.message = i18ncgm("hardcore", this.gameMode.hardcore = !this.gameMode.hardcore);
 +				break;
++            case 23:
++                var1.message = i18ncgm("doDaylightCycle", this.gameMode.doDaylightCycle = !this.gameMode.doDaylightCycle);
++                break;
++            case 25:
++                var1.message = i18ncgm("doWeatherCycle", this.gameMode.doWeatherCycle = !this.gameMode.doWeatherCycle);
++                break;
++            case 26:
++                var1.message = i18ncgm("netherAccess", this.gameMode.netherAccess = !this.gameMode.netherAccess);
++                break;
++            case 27:
++                var1.message = i18ncgm("endAccess", this.gameMode.endAccess = !this.gameMode.endAccess);
++                break;
++            case 28:
++                var1.message = i18ncgm("extraTiers", this.gameMode.extraTiers = !this.gameMode.extraTiers);
++                break;
++            case 29:
++                var1.message = i18ncgm("fastBaseMinecarts", this.gameMode.fastBaseMinecarts = !this.gameMode.fastBaseMinecarts);
++                break;
 +			case 1000:
 +				this.parentScreen.gameModeValue = this.gameMode = new GameMode();
 +				this.gameMode.preset = "default";
