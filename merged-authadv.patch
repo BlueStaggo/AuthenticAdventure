@@ -2819,8 +2819,11 @@
  		this.registerShaped(new ItemStack(Block.TORCH, 4), new Object[]{"X", "#", Character.valueOf('X'), Item.COAL, Character.valueOf('#'), Item.STICK});
  		this.registerShaped(new ItemStack(Block.TORCH, 4), new Object[]{"X", "#", Character.valueOf('X'), new ItemStack(Item.COAL, 1, 1), Character.valueOf('#'), Item.STICK});
  		this.registerShaped(new ItemStack(Item.BOWL, 4), new Object[]{"# #", " # ", Character.valueOf('#'), Block.PLANKS});
-@@ -76,14 +91,18 @@
+@@ -74,16 +89,21 @@
+ 		this.registerShaped(new ItemStack(Block.LIT_PUMPKIN, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.PUMPKIN, Character.valueOf('B'), Block.TORCH});
+ 		this.registerShaped(new ItemStack(Item.CHEST_MINECART, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.CHEST, Character.valueOf('B'), Item.MINECART});
  		this.registerShaped(new ItemStack(Item.FURNACE_MINECART, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.FURNACE, Character.valueOf('B'), Item.MINECART});
++		this.registerShaped(new ItemStack(Item.LIGHT_CART, 1), new Object[]{"# #", "###", Character.valueOf('#'), Item.TITANIUM_INGOT});
  		this.registerShaped(new ItemStack(Item.BOAT, 1), new Object[]{"# #", "###", Character.valueOf('#'), Block.PLANKS});
  		this.registerShaped(new ItemStack(Item.BUCKET, 1), new Object[]{"# #", " # ", Character.valueOf('#'), Item.IRON_INGOT});
 -		this.registerShaped(new ItemStack(Item.FLINT_AND_STEEL, 1), new Object[]{"A ", " B", Character.valueOf('A'), Item.IRON_INGOT, Character.valueOf('B'), Item.FLINT});
@@ -2844,7 +2847,7 @@
  		this.registerShaped(new ItemStack(Item.PAINTING, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.STICK, Character.valueOf('X'), Block.WOOL});
  		this.registerShaped(new ItemStack(Item.GOLDEN_APPLE, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.GOLD_NUGGET, Character.valueOf('X'), Item.APPLE});
  		this.registerShaped(new ItemStack(Block.LEVER, 1), new Object[]{"X", "#", Character.valueOf('#'), Block.COBBLESTONE, Character.valueOf('X'), Item.STICK});
-@@ -92,7 +111,7 @@
+@@ -92,7 +112,7 @@
  		this.registerShaped(new ItemStack(Item.CLOCK, 1), new Object[]{" # ", "#X#", " # ", Character.valueOf('#'), Item.GOLD_INGOT, Character.valueOf('X'), Item.REDSTONE});
  		this.registerShaped(new ItemStack(Item.COMPASS, 1), new Object[]{" # ", "#X#", " # ", Character.valueOf('#'), Item.IRON_INGOT, Character.valueOf('X'), Item.REDSTONE});
  		this.registerShaped(new ItemStack(Item.MAP, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.PAPER, Character.valueOf('X'), Item.COMPASS});
@@ -2853,7 +2856,7 @@
  		this.registerShaped(new ItemStack(Block.STONE_PRESSURE_PLATE, 1), new Object[]{"##", Character.valueOf('#'), Block.STONE});
  		this.registerShaped(new ItemStack(Block.WOODEN_PRESSURE_PLATE, 1), new Object[]{"##", Character.valueOf('#'), Block.PLANKS});
  		this.registerShaped(new ItemStack(Block.DISPENSER, 1), new Object[]{"###", "#X#", "#R#", Character.valueOf('#'), Block.COBBLESTONE, Character.valueOf('X'), Item.BOW, Character.valueOf('R'), Item.REDSTONE});
-@@ -103,6 +122,11 @@
+@@ -103,6 +123,11 @@
  		this.registerShapeless(new ItemStack(Item.EYE_OF_ENDER, 1), new Object[]{Item.ENDER_PEARL, Item.BLAZE_POWDER});
  		this.registerShapeless(new ItemStack(Item.FIRE_CHARGE, 3), new Object[]{Item.GUNPOWDER, Item.BLAZE_POWDER, Item.COAL});
  		this.registerShapeless(new ItemStack(Item.FIRE_CHARGE, 3), new Object[]{Item.GUNPOWDER, Item.BLAZE_POWDER, new ItemStack(Item.COAL, 1, 1)});
@@ -2865,7 +2868,7 @@
  		Collections.sort(this.recipes, new CraftingManager.C_57536588());
  		System.out.println(this.recipes.size() + " recipes");
  	}
-@@ -113,7 +137,7 @@
+@@ -113,7 +138,7 @@
  		int var5 = 0;
  		int var6 = 0;
  		if(var2[var4] instanceof String[]) {
@@ -2874,7 +2877,7 @@
  
  			for(int var8 = 0; var8 < var11.length; ++var8) {
  				String var9 = var11[var8];
-@@ -183,6 +207,10 @@
+@@ -183,6 +208,10 @@
  	}
  
  	public ItemStack getResult(CraftingInventory var1) {
@@ -2885,7 +2888,7 @@
  		int var2 = 0;
  		ItemStack var3 = null;
  		ItemStack var4 = null;
-@@ -218,7 +246,16 @@
+@@ -218,7 +247,16 @@
  			for(var5 = 0; var5 < this.recipes.size(); ++var5) {
  				Recipe var11 = (Recipe)this.recipes.get(var5);
  				if(var11.matches(var1)) {
@@ -28482,7 +28485,7 @@
  public class SharedConstants {
  	public static final String VALID_CHAT_CHARACTERS = getValidChatCharString();
  	public static final char[] INVALID_FILE_CHARS = new char[]{'/', '\n', '\r', '\t', '\u0000', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
-+	public static final String VERSION = "AuthAdv 1.4.1";
++	public static final String VERSION = "AuthAdv 1.4.2";
 +	public static final boolean PRE_RELEASE = VERSION.contains("Pre-release");
 +	public static final boolean DEBUG_MODE = false;
 +    public static final boolean PANORAMA_MODE = false;

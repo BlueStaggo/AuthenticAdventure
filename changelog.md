@@ -1,3 +1,9 @@
+# 1.4.2
+Released: June 8th 2026
+
+# Bug Fixes
+- Fixed light carts being uncraftable
+
 # 1.4.1
 Released: May 24th 2026
 
