@@ -12,7 +12,7 @@ Released: August 10th 2026
     - Added Fortune I base enchantment for tools
     - The cosmite animation now gets applied to worn armor
 - Blazing Steel
-    - Reduced attack damage of sword by 1
+    - Reduced attack damage of sword by 2
 - Structures
     - Villages are now 50% more spread out
     - Made strongholds 33% rarer
