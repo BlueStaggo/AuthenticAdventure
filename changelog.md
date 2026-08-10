@@ -1,3 +1,47 @@
+# 1.4.3
+Released: August 10th 2026
+
+## Additions
+- Custom game mode presets can now be saved and loaded
+- Added a new achievement to guide players towards obtaining cultured meal
+- Added a biome blending setting to style settings
+
+## Changes
+- Cosmite
+    - Reduced attack damage of sword by ½
+    - Added Fortune I base enchantment for tools
+    - The cosmite animation now gets applied to worn armor
+- Blazing Steel
+    - Reduced attack damage of sword by 1
+- Structures
+    - Villages are now 50% more spread out
+    - Made strongholds 33% rarer
+- Mining speed
+    - The 6 tick mining cooldown has been re-introduced and cannot be bypassed with click mining
+    - For each block mined, this cooldown reduces by 1 tick down to a minimum of 1 tick
+    - If the tool is capable of instantly mining a block two times over in one tick (at least 200% mining progress per tick), the cooldown is reduced further by 1 tick
+- Enchantments
+    - Base enchantments are now shown on tooltips
+    - Tweaked logical enchanting ingredients
+    - Negative enchantments are now colored red in tooltips
+- Cultured Meal
+    - Using cultured meal on grass now changes the biome in a 4 block radius
+    - Can only be used in the overworld
+    - Added ice plains, taiga, ocean, seasonal forest and desert variants to the creative inventory
+- Mobs will no longer spawn if they are in a position to immediately despawn
+- The hunger bar now darkens when sprinting is on cooldown
+- End Guardians now ignore players after the Ender Dragon is defeated unless they are attacked
+    - The "dragon defeated" flag can also be enabled by entering the exit portal created from killing the dragon
+- Changed the icon for the "Anomalous Materials" achievement to provide a hint on how Cosmite tools are crafted
+- Replaced "performance" setting with an FPS limit slider
+
+## Bug Fixes
+- Fixed bluntness not decreasing attack damage
+- Bone meal now gets consumed when producing cultured meal
+- Fixed chunk update speed using the wrong fps value
+- Fixed the base enchantments setting having no effect
+    - Arrows will intentionally keep their base enchantments regardless of the setting
+
 # 1.4.2
 Released: June 8th 2026
 

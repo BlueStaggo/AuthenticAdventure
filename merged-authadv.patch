@@ -362,7 +362,7 @@
  			var4 = 1000;
  
  			while(var4 > 0) {
-@@ -494,12 +569,13 @@
+@@ -494,16 +569,18 @@
  		this.move(0.0D, (double)0.1F, 0.0D);
  		this.bodyYaw = this.yaw += 20.0F;
  		if(this.ticksSinceDeath == 200) {
@@ -382,7 +382,12 @@
  			}
  
  			this.createPortal(MathHelper.floor(this.x), MathHelper.floor(this.z));
-@@ -531,6 +607,7 @@
+ 			this.beforeRemove();
++			this.world.getData().setDragonDefeated(true);
+ 			this.remove();
+ 		}
+ 
+@@ -531,6 +608,7 @@
  							this.world.setBlock(var6, var5, var7, Block.BEDROCK.id);
  						} else {
  							this.world.setBlock(var6, var5, var7, Block.END_PORTAL.id);
@@ -390,7 +395,7 @@
  						}
  					}
  				}
-@@ -546,6 +623,11 @@
+@@ -546,6 +624,11 @@
  		this.world.setBlock(var1, var3 + 2, var2 + 1, Block.TORCH.id);
  		this.world.setBlock(var1, var3 + 3, var2, Block.BEDROCK.id);
  		this.world.setBlock(var1, var3 + 4, var2, Block.DRAGON_EGG.id);
@@ -719,7 +724,7 @@
  	public boolean isCube() {
  		return false;
  	}
-@@ -49,7 +45,69 @@
+@@ -49,7 +45,66 @@
  
  	public void onEntityCollision(World var1, int var2, int var3, int var4, Entity var5) {
  		if(var5.vehicle == null && var5.rider == null && var5 instanceof PlayerEntity && !var1.isMultiplayer) {
@@ -768,10 +773,6 @@
 +						overworldTeleportPosition.setPosition(var2, var3, var4);
 +					}
 +
-+					double prevX = player.x;
-+					double prevY = player.y;
-+					double prevZ = player.z;
-+
 +					player.teleport(blockEntity.targetX + 0.5D, blockEntity.targetY, blockEntity.targetZ + 0.5D);
 +					player.changeDimension(overworld ? 1 : 0);
 +					var1.playSound(var5, "mob.endermen.portal", 1.0F, 1.0F);
@@ -783,6 +784,7 @@
 +					break;
 +				case SPAWN_POINT:
 +                    if(player.dimension == 1) {
++						var1.getData().setDragonDefeated(true);
 +                        player.changeDimension(1);
 +                    }
 +					break;
@@ -790,7 +792,7 @@
  		}
  
  	}
-@@ -62,17 +120,24 @@
+@@ -62,17 +117,24 @@
  		double var14 = 0.0D;
  		double var16 = 0.0D;
  		var1.addParticle("smoke", var6, var8, var10, var12, var14, var16);
@@ -1519,15 +1521,22 @@
  }
 --- net/minecraft/client/options/GameOptions.java
 +++ net/minecraft/client/options/GameOptions.java
-@@ -8,6 +8,7 @@
+@@ -8,7 +8,9 @@
  import net.minecraft.client.Minecraft;
  import net.minecraft.locale.I18n;
  import net.minecraft.locale.Language;
 +import net.minecraft.client.ControllerBinding;
  import org.lwjgl.input.Keyboard;
++import org.lwjgl.opengl.Display;
  
  public class GameOptions {
-@@ -28,21 +29,29 @@
+ 	private static final String[] RENDER_DISTANCE_SETTINGS = new String[]{"options.renderDistance.far", "options.renderDistance.normal", "options.renderDistance.short", "options.renderDistance.tiny"};
+@@ -24,25 +26,34 @@
+ 	public boolean viewBobbing = true;
+ 	public boolean anaglyph = false;
+ 	public boolean advancedOpengl = false;
+-	public int fpsLimit = 1;
++	public int fpsLimit = 0;
  	public boolean fancyGraphics = true;
  	public boolean ambientOcclusion = true;
  	public boolean renderClouds = true;
@@ -1536,6 +1545,7 @@
 +	public boolean nonSolidAO = true;
 +	public float aoStrength = 0.95F;
 +	public boolean murkySwamps = false;
++	public boolean biomeBlending = true;
 +	public boolean controllerSupport = false;
  	public String skin = "Default";
 -	public KeyBinding forwardKey = new KeyBinding("key.forward", 17);
@@ -1571,7 +1581,7 @@
  	protected Minecraft minecraft;
  	private File file;
  	public int difficulty = 2;
-@@ -58,6 +67,8 @@
+@@ -58,6 +69,8 @@
  	public float f_69299673 = 1.0F;
  	public float fov = 0.0F;
  	public float gamma = 0.0F;
@@ -1580,7 +1590,7 @@
  	public int guiScale = 0;
  	public int particles = 0;
  	public String language = "en_US";
-@@ -71,14 +82,14 @@
+@@ -71,14 +84,14 @@
  	public GameOptions() {
  	}
  
@@ -1601,7 +1611,7 @@
  	}
  
  	public static String getKeyName(int var0) {
-@@ -90,6 +101,11 @@
+@@ -90,6 +103,11 @@
  		this.save();
  	}
  
@@ -1613,7 +1623,7 @@
  	public void set(GameOptions.Option var1, float var2) {
  		if(var1 == GameOptions.Option.MUSIC) {
  			this.musicVolume = var2;
-@@ -113,6 +129,19 @@
+@@ -113,6 +131,24 @@
  			this.gamma = var2;
  		}
  
@@ -1630,10 +1640,15 @@
 +			this.entityDistance = var2 * 4.0F + 1.0F;
 +		}
 +
++		if(var1 == GameOptions.Option.FRAMERATE_LIMIT) {
++			this.fpsLimit = (int)(var2 * 50.0F) * 5;
++			Display.setVSyncEnabled(this.fpsLimit == 0);
++		}
++
  	}
  
  	public void set(GameOptions.Option var1, int var2) {
-@@ -129,7 +158,7 @@
+@@ -129,7 +165,7 @@
  		}
  
  		if(var1 == GameOptions.Option.PARTICLES) {
@@ -1642,7 +1657,18 @@
  		}
  
  		if(var1 == GameOptions.Option.VIEW_BOBBING) {
-@@ -168,29 +197,54 @@
+@@ -150,10 +186,6 @@
+ 			this.minecraft.textureManager.reload();
+ 		}
+ 
+-		if(var1 == GameOptions.Option.FRAMERATE_LIMIT) {
+-			this.fpsLimit = (this.fpsLimit + var2 + 3) % 3;
+-		}
+-
+ 		if(var1 == GameOptions.Option.DIFFICULTY) {
+ 			this.difficulty = this.difficulty + var2 & 3;
+ 		}
+@@ -168,29 +200,61 @@
  			this.minecraft.worldRenderer.reload();
  		}
  
@@ -1666,6 +1692,11 @@
 +			this.minecraft.worldRenderer.reload();
 +		}
 +
++		if(var1 == GameOptions.Option.BIOME_BLENDING) {
++			this.biomeBlending = !this.biomeBlending;
++			this.minecraft.worldRenderer.reload();
++		}
++
  		this.save();
  	}
  
@@ -1679,6 +1710,7 @@
 +			: var1 == GameOptions.Option.AO_STRENGTH ? this.aoStrength
 +			: var1 == GameOptions.Option.FOV_EFFECTS ? this.fovEffects
 +			: var1 == GameOptions.Option.ENTITY_DISTANCE ? (this.entityDistance - 1.0F) / 4.0F
++			: var1 == GameOptions.Option.FRAMERATE_LIMIT ? this.fpsLimit / 250.0F
 +			: 0.0F;
  	}
  
@@ -1709,11 +1741,12 @@
 +			case COLORED_LIGHTING: return this.coloredLighting;
 +			case NON_SOLID_AO: return this.nonSolidAO;
 +			case MURKY_SWAMPS: return this.murkySwamps;
++			case BIOME_BLENDING: return this.biomeBlending;
 +			default: return false;
  		}
  	}
  
-@@ -208,12 +262,34 @@
+@@ -208,12 +272,38 @@
  		String var3 = var2.translate(var1.getName()) + ": ";
  		if(var1.isFloat()) {
  			float var5 = this.getFloat(var1);
@@ -1734,6 +1767,11 @@
 +									? var3 + var2.translate("options.gamma.max")
 +									: var3 + "+" + (int)(var5 * 100.0F) + "%"))
 +					: var1 == Option.ENTITY_DISTANCE ? var3 + (int)(this.entityDistance * 100.0F) + "%"
++					: var1 == Option.FRAMERATE_LIMIT ? (var5 == 0.0F
++							? var3 + var2.translate("options.framerateLimit.vsync")
++						    : (var5 == 1.0F
++									? var3 + var2.translate("options.framerateLimit.unlimited")
++							  		: var3 + (int)(var5 * 250.0F)))
 +					: (var5 == 0.0F ? var3 + var2.translate("options.off") : var3 + (int)(var5 * 100.0F) + "%");
  		} else if(var1.isBoolean()) {
  			boolean var4 = this.getBoolean(var1);
@@ -1744,13 +1782,12 @@
 +					: var1 == Option.DIFFICULTY ? var3 + translateIntegerValue(DIFFICULTY_SETTINGS, this.difficulty)
 +					: var1 == Option.GUI_SCALE ? var3 + translateIntegerValue(GUI_SCALE_SETTINGS, this.guiScale)
 +					: var1 == Option.PARTICLES ? var3 + translateIntegerValue(PARTICLE_SETTINGS, this.particles)
-+					: var1 == Option.FRAMERATE_LIMIT ? var3 + translateIntegerValue(FPS_LIMIT_SETTINGS, this.fpsLimit)
 +					: var1 == Option.GRAPHICS ? (this.fancyGraphics ? var3 + var2.translate("options.graphics.fancy") : var3 + var2.translate("options.graphics.fast"))
 +					: var3;
  		}
  	}
  
-@@ -230,6 +306,7 @@
+@@ -230,6 +320,7 @@
  				var2 = var1.readLine();
  				if(var2 == null) {
  					KeyBinding.resetMapping();
@@ -1758,7 +1795,16 @@
  					var1.close();
  					break;
  				}
-@@ -316,9 +393,48 @@
+@@ -284,7 +375,7 @@
+ 						this.advancedOpengl = var3[1].equals("true");
+ 					}
+ 
+-					if(var3[0].equals("fpsLimit")) {
++					if(var3[0].equals("maxFps")) {
+ 						this.fpsLimit = Integer.parseInt(var3[1]);
+ 					}
+ 
+@@ -316,9 +407,52 @@
  						this.language = var3[1];
  					}
  
@@ -1793,6 +1839,10 @@
 +						this.entityDistance = this.parseFloat(var3[1]);
 +					}
 +
++					if(var3[0].equals("biomeBlending")) {
++						this.biomeBlending = var3[1].equals("true");
++					}
++
 +					if(var3[0].equals("experimental-controllerSupport")) {
 +						this.controllerSupport = var3[1].equals("true");
 +					}
@@ -1810,7 +1860,13 @@
  						}
  					}
  				} catch (Exception var5) {
-@@ -356,14 +472,27 @@
+@@ -351,19 +485,33 @@
+ 			var1.println("bobView:" + this.viewBobbing);
+ 			var1.println("anaglyph3d:" + this.anaglyph);
+ 			var1.println("advancedOpengl:" + this.advancedOpengl);
+-			var1.println("fpsLimit:" + this.fpsLimit);
++			var1.println("maxFps:" + this.fpsLimit);
+ 			var1.println("difficulty:" + this.difficulty);
  			var1.println("fancyGraphics:" + this.fancyGraphics);
  			var1.println("ao:" + this.ambientOcclusion);
  			var1.println("clouds:" + this.renderClouds);
@@ -1821,6 +1877,7 @@
 +			var1.println("murkySwamps:" + this.murkySwamps);
 +			var1.println("fovEffects:" + this.fovEffects);
 +			var1.println("entityDistance:" + this.entityDistance);
++			var1.println("biomeBlending:" + this.biomeBlending);
 +			var1.println("experimental-controllerSupport:" + this.controllerSupport);
  			var1.println("skin:" + this.skin);
  			var1.println("lastServer:" + this.lastServer);
@@ -1839,7 +1896,14 @@
  			var1.close();
  		} catch (Exception var3) {
  			System.out.println("Failed to save options");
-@@ -430,7 +559,15 @@
+@@ -424,13 +572,22 @@
+ 		VIEW_BOBBING("options.viewBobbing", false, true),
+ 		ANAGLYPH("options.anaglyph", false, true),
+ 		ADVANCED_OPENGL("options.advancedOpengl", false, true),
+-		FRAMERATE_LIMIT("options.framerateLimit", false, false),
++		FRAMERATE_LIMIT("options.framerateLimit", true, false),
+ 		DIFFICULTY("options.difficulty", false, false),
+ 		GRAPHICS("options.graphics", false, false),
  		AMBIENT_OCCLUSION("options.ao", false, true),
  		GUI_SCALE("options.guiScale", false, false),
  		RENDER_CLOUDS("options.renderClouds", false, true),
@@ -1852,6 +1916,7 @@
 +		MURKY_SWAMPS("options.murkySwamps", false, true),
 +		FOV_EFFECTS("options.fovEffects", true, false),
 +		ENTITY_DISTANCE("options.entityDistance", true, false),
++		BIOME_BLENDING("options.biomeBlending", false, true),
 +		;
  
  		private final boolean isFloat;
@@ -1875,7 +1940,16 @@
  		GL11.glRotatef(var1.lastYaw + (var1.yaw - var1.lastYaw) * var9 - 90.0F, 0.0F, 1.0F, 0.0F);
 --- net/minecraft/client/render/world/RenderChunk.java
 +++ net/minecraft/client/render/world/RenderChunk.java
-@@ -12,6 +12,7 @@
+@@ -5,13 +5,16 @@
+ import java.util.List;
+ import net.minecraft.block.Block;
+ import net.minecraft.block.entity.BlockEntity;
++import net.minecraft.client.Minecraft;
+ import net.minecraft.client.render.Culler;
+ import net.minecraft.client.render.block.BlockRenderer;
+ import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+ import net.minecraft.client.render.entity.ItemRenderer;
++import net.minecraft.client.render.texture.TextureManager;
  import net.minecraft.client.render.vertex.Tesselator;
  import net.minecraft.entity.Entity;
  import net.minecraft.util.math.Box;
@@ -1883,7 +1957,7 @@
  import net.minecraft.world.World;
  import net.minecraft.world.WorldRegion;
  import net.minecraft.world.chunk.WorldChunk;
-@@ -47,6 +48,7 @@
+@@ -47,6 +50,7 @@
  	public List renderableBlockEntities = new ArrayList();
  	private List blockEntitiesToBeRendered;
  	private int drawIndex;
@@ -1891,7 +1965,7 @@
  
  	public RenderChunk(World var1, List var2, int var3, int var4, int var5, int var6) {
  		this.world = var1;
-@@ -79,6 +81,7 @@
+@@ -79,6 +83,7 @@
  			GL11.glEndList();
  			this.markDirty();
  		}
@@ -1899,17 +1973,18 @@
  	}
  
  	private void glTranslate() {
-@@ -104,7 +107,9 @@
+@@ -104,7 +109,10 @@
  			var21.addAll(this.renderableBlockEntities);
  			this.renderableBlockEntities.clear();
  			byte var8 = 1;
 +			Profiler.push("cacheChunks");
  			WorldRegion var9 = new WorldRegion(this.world, var1 - var8, var2 - var8, var3 - var8, var4 + var8, var5 + var8, var6 + var8);
++			var9.biomeBlending = Minecraft.isBiomeBlendingEnabled();
 +			Profiler.pop();
  			if(!var9.isEmpty()) {
  				++updateCounter;
  				BlockRenderer var10 = new BlockRenderer(var9);
-@@ -114,6 +119,7 @@
+@@ -114,6 +122,7 @@
  					boolean var12 = false;
  					boolean var13 = false;
  					boolean var14 = false;
@@ -1917,7 +1992,7 @@
  
  					for(int var15 = var2; var15 < var5; ++var15) {
  						for(int var16 = var3; var16 < var6; ++var16) {
-@@ -152,11 +158,14 @@
+@@ -152,11 +161,14 @@
  						}
  					}
  
@@ -1932,7 +2007,7 @@
  					} else {
  						var13 = false;
  					}
-@@ -180,6 +189,7 @@
+@@ -180,6 +192,7 @@
  			this.hasSkyLight = WorldChunk.hasSkyLight;
  			this.compiled = true;
  		}
@@ -1940,7 +2015,7 @@
  	}
  
  	public float squaredDistanceToCenter(Entity var1) {
-@@ -216,7 +226,7 @@
+@@ -216,7 +229,7 @@
  	}
  
  	public boolean isEmpty() {
@@ -2994,7 +3069,18 @@
  		}
  
  		this.onChangedDimension(var1);
-@@ -606,6 +616,9 @@
+@@ -273,6 +283,10 @@
+ 		this.getChunkMap(var4).onBlockChanged(var1, var2, var3);
+ 	}
+ 
++	public void onChunkBiomesChanged(int var1, int var2, int var3) {
++		this.getChunkMap(var3).onChunkBiomesChanged(var1, var2);
++	}
++
+ 	public void sendPacket(Packet var1) {
+ 		for(int var2 = 0; var2 < this.players.size(); ++var2) {
+ 			ServerPlayerEntity var3 = (ServerPlayerEntity)this.players.get(var2);
+@@ -606,6 +620,9 @@
  		var1.networkHandler.sendPacket(new WorldTimePacket(var2.getTime()));
  		if(var2.isRaining()) {
  			var1.networkHandler.sendPacket(new GameEventPacket(1, 0));
@@ -3205,7 +3291,7 @@
  			if(this.minecraft.options.smoothCamera) {
  				this.totalMouseDX += var4;
  				this.totalMouseDY += var5;
-@@ -639,26 +657,34 @@
+@@ -639,33 +657,32 @@
  			int var16 = Mouse.getX() * var14 / this.minecraft.width;
  			int var17 = var15 - Mouse.getY() * var15 / this.minecraft.height - 1;
  			short var18 = 200;
@@ -3221,38 +3307,45 @@
  			if(this.minecraft.world != null) {
  				Profiler.push("level");
 -				if(this.minecraft.options.fpsLimit == 0) {
+-					this.renderWorld(var1, 0L);
 +				if(this.minecraft.paused) {
 +					long k = System.nanoTime() - this.minecraft.getTickStartTime();
 +					this.renderWorld(var1, System.nanoTime() + Math.max(1000000000L / 25L - k, 0L));
-+				} else if(this.minecraft.options.fpsLimit == 0) {
- 					this.renderWorld(var1, 0L);
  				} else {
 -					this.renderWorld(var1, this.lastWorldRenderTime + (long)(1000000000 / var18));
-+					int fps = 60;
-+					DisplayMode displayMode = Display.getDisplayMode();
-+					if (displayMode != null) {
-+						fps = displayMode.getFrequency();
+-				}
++					int fps = this.minecraft.options.fpsLimit;
++					if (fps <= 0) {
++						DisplayMode displayMode = Display.getDesktopDisplayMode();
++						if (displayMode != null) {
++							fps = displayMode.getFrequency();
++						}
 +						if (fps <= 0) {
 +							fps = 60;
 +						}
 +					}
-+
-+					int j = Math.min(this.minecraft.getFpsCounter(), fps);
-+					j = Math.max(j, this.minecraft.options.fpsLimit == 2 ? 20 : 60);
+ 
+-				Profiler.swap("sleep");
+-				if(this.minecraft.options.fpsLimit == 2) {
+-					var8 = (this.lastWorldRenderTime + (long)(1000000000 / var18) - System.nanoTime()) / 1000000L;
+-					if(var8 > 0L && var8 < 500L) {
+-						try {
+-							Thread.sleep(var8);
+-						} catch (InterruptedException var12) {
+-							var12.printStackTrace();
+-						}
++					int j = this.minecraft.getDebugFps();
++					if (this.minecraft.options.fpsLimit < 250) {
++						j = Math.min(j, fps);
+ 					}
++					j = Math.max(j, 60);
 +					long k = System.nanoTime() - this.minecraft.getTickStartTime();
 +					long l = Math.max((long)(1000000000L / j / 4) - k, 0L);
 +					this.renderWorld(var1, System.nanoTime() + l);
  				}
  
- 				Profiler.swap("sleep");
--				if(this.minecraft.options.fpsLimit == 2) {
--					var8 = (this.lastWorldRenderTime + (long)(1000000000 / var18) - System.nanoTime()) / 1000000L;
-+				if(this.minecraft.options.fpsLimit == 2 || !Display.isActive()) {
-+					var8 = (this.lastWorldRenderTime + (long)(1000000000 / 40) - System.nanoTime()) / 1000000L;
- 					if(var8 > 0L && var8 < 500L) {
- 						try {
- 							Thread.sleep(var8);
-@@ -777,13 +803,7 @@
+ 				this.lastWorldRenderTime = System.nanoTime();
+@@ -777,13 +794,7 @@
  			this.minecraft.worldRenderer.cullChunks(var19, var1);
  			if(var18 == 0) {
  				Profiler.swap("updatechunks");
@@ -3267,7 +3360,7 @@
  			}
  
  			this.setupFog(0, var1);
-@@ -928,7 +948,7 @@
+@@ -928,7 +939,7 @@
  				int var19 = var3.getPrecipitationHeight(var17, var18);
  				int var20 = var3.getBlock(var17, var19 - 1, var18);
  				Biome var21 = var3.getBiome(var17, var18);
@@ -3276,7 +3369,7 @@
  					float var22 = this.random.nextFloat();
  					float var23 = this.random.nextFloat();
  					if(var20 > 0) {
-@@ -956,8 +976,8 @@
+@@ -956,8 +967,8 @@
  					this.minecraft.world.playSound(var8, var10, var12, "ambient.weather.rain", 0.2F, 1.0F);
  				}
  			}
@@ -3286,7 +3379,7 @@
  	}
  
  	protected void renderSnowAndRain(float var1) {
-@@ -1016,7 +1036,8 @@
+@@ -1016,7 +1027,8 @@
  					float var23 = this.rainSizeX[var22] * 0.5F;
  					float var24 = this.rainSizeZ[var22] * 0.5F;
  					Biome var25 = var42.getBiome(var21, var20);
@@ -3697,7 +3790,7 @@
 +	// - FREQUENCY_GRAPH: Shows the frequency of different biomes
 +
 +	private static final Random random = new Random();
-+	private static final PrintMode format = PrintMode.FREQUENCY_GRAPH;
++	private static final PrintMode format = PrintMode.IMAGE;
 +	//private static final long seed = random.nextLong(); // Set seed here
 +	private static final long seed = "Glacier".hashCode(); // Set seed here
 +
@@ -3727,21 +3820,21 @@
 +	private static final HashMap<Integer, Integer> randCol = new HashMap<>();
 +
 +	public static void main(String[] args) {
-+		//final int x = -432;
-+		//final int y = -432;
-+		//final int width = 864;
-+		//final int height = 864;
-+		//addLayers(Layer.init(seed, WorldGeneratorType.DEFAULT)[2]);
++		final int x = -432;
++		final int y = -432;
++		final int width = 864;
++		final int height = 864;
++		addLayers(Layer.init(seed, WorldGeneratorType.DEFAULT)[2]);
 +
-+		final int x = 0;
-+		final int y = 0;
-+		final int width = 10000;
-+		final int height = 10000;
-+		addLayer(g -> new IslandLayer(0L, 1));
-+		addLayer(g -> new ClimateLayer(1001L, g));
-+		addLayer(g -> new NormalZoomLayer(2001L, g));
-+		addLayer(g -> new TemperateBorderLayer(g));
-+		addLayer(g -> new BiomeInitLayer(200L, g, WorldGeneratorType.DEFAULT));
++		//final int x = 0;
++		//final int y = 0;
++		//final int width = 10000;
++		//final int height = 10000;
++		//addLayer(g -> new IslandLayer(0L, 1));
++		//addLayer(g -> new ClimateLayer(1001L, g));
++		//addLayer(g -> new NormalZoomLayer(2001L, g));
++		//addLayer(g -> new TemperateBorderLayer(g));
++		//addLayer(g -> new BiomeInitLayer(200L, g, WorldGeneratorType.DEFAULT));
 +		//addLayer(g -> new TemperateBorderLayer(1002L, g));
 +
 +		initWorldGenSeed();
@@ -5313,7 +5406,35 @@
  	public void setNbt(NbtCompound var1) {
  		this.nbt = var1;
  	}
-@@ -330,10 +341,10 @@
+@@ -312,12 +323,26 @@
+ 					short var5 = ((NbtCompound)var3.get(var4)).getShort("id");
+ 					short var6 = ((NbtCompound)var3.get(var4)).getShort("lvl");
+ 					if(Enchantment.BY_ID[var5] != null) {
+-						var1.add(Enchantment.BY_ID[var5].getName(var6));
++						String name = Enchantment.BY_ID[var5].getName(var6);
++						if (var6 < 0) {
++							name = "§c" + name;
++						}
++						var1.add(name);
+ 					}
+ 				}
+ 			}
+ 		}
+ 
++		if(this.isEnchantable() || this.id == Item.ARROW.id) {
++			for(int i = 0; i < Enchantment.BY_ID.length; i++) {
++				int level = this.getBaseEnchantmentLevel(i);
++				if(level == 0) {
++					continue;
++				}
++				var1.add("§8+ " + Enchantment.BY_ID[i].getName(level));
++			}
++		}
++
+ 		return var1;
+ 	}
+ 
+@@ -330,10 +355,10 @@
  	}
  
  	public boolean isEnchantable() {
@@ -5326,7 +5447,7 @@
  		if(this.nbt == null) {
  			this.setNbt(new NbtCompound());
  		}
-@@ -343,10 +354,25 @@
+@@ -343,10 +368,25 @@
  		}
  
  		NbtList var3 = (NbtList)this.nbt.get("ench");
@@ -5746,7 +5867,15 @@
  	public void startMiningBlock(int var1, int var2, int var3, int var4) {
  		mineBlockInCreative(this.minecraft, this, var1, var2, var3, var4);
  		this.miningCooldown = 5;
-@@ -81,10 +91,6 @@
+@@ -74,17 +84,13 @@
+ 
+ 	}
+ 
+-	public void stopMiningBlock() {
++	public void stopMiningBlock(boolean mouseReleased) {
+ 	}
+ 
+ 	public boolean hasStatusBars() {
  		return false;
  	}
  
@@ -5828,6 +5957,19 @@
 +        // Canyon end - starlight
  	}
  }
+--- net/minecraft/server/world/ServerWorldEventListener.java
++++ net/minecraft/server/world/ServerWorldEventListener.java
+@@ -40,6 +40,10 @@
+ 	public void notifyLightChanged(int var1, int var2, int var3) {
+ 	}
+ 
++	public void notifyChunkBiomesChanged(int var1, int var2, int var3) {
++		this.server.playerManager.onChunkBiomesChanged(var1, var3, this.world.dimension.id);
++	}
++
+ 	public void playRecordMusic(String var1, int var2, int var3, int var4) {
+ 	}
+ 
 --- net/minecraft/world/dimension/Dimension.java
 +++ net/minecraft/world/dimension/Dimension.java
 @@ -1,6 +1,8 @@
@@ -7270,6 +7412,94 @@
  
  	protected AxeItem(int var1, Item.Tier var2) {
  		super(var1, 3, var2, EFFECTIVE_BLOCKS);
+--- /dev/null
++++ net/minecraft/client/render/texture/FullCosmiteTexture.java
+@@ -1,0 +1,85 @@
++package net.minecraft.client.render.texture;
++
++import net.minecraft.client.resource.pack.TexturePack;
++import net.minecraft.util.math.MathHelper;
++
++import javax.imageio.ImageIO;
++import java.awt.image.BufferedImage;
++import java.io.IOException;
++import java.util.Random;
++
++public class FullCosmiteTexture extends FullDynamicTexture {
++    private final Random random;
++    private final int[] baseTexture;
++    private final float[] yOffsets;
++    private final int[] depths;
++    private final int[] xOffsets;
++
++    public FullCosmiteTexture(String texture, int x, int y, int width, int height, TexturePack texturePack) {
++        super(texture, x, y, width, height);
++        this.random = new Random();
++
++        this.baseTexture = new int[width * height];
++        try {
++            BufferedImage image = ImageIO.read(
++                texturePack.getResource(texture));
++            image.getRGB(x, y, width, height, this.baseTexture, 0, width);
++        } catch (IOException exception) {
++            exception.printStackTrace();
++        }
++
++        this.yOffsets = new float[width];
++        this.depths = new int[width];
++        this.xOffsets = new int[width];
++
++        for(int i = 0; i < width; i++) {
++            this.depths[i] = this.random.nextInt(4);
++            this.xOffsets[i] = this.random.nextInt(256);
++        }
++    }
++
++    public void tick() {
++        for(int i = 0; i < this.width; i++) {
++            int depth = this.depths[i];
++            this.yOffsets[i] += 1.0F / (depth + 1.0F);
++            if(this.yOffsets[i] > 256.0F) {
++                this.yOffsets[i] = 0.0F;
++                this.depths[i] = this.random.nextInt(4);
++                this.xOffsets[i] = this.random.nextInt(256);
++            }
++        }
++
++        for(int i = 0; i < this.width * this.height; i++) {
++            int a = this.baseTexture[i] >> 24 & 0xFF;
++            if(a == 0) {
++                this.pixels[i * 4 + 3] = 0;
++                continue;
++            }
++
++            int x = i % this.width;
++            int y = i / this.width;
++
++            int overlayX = this.xOffsets[x];
++            int overlayY = Math.floorMod(y + (int)this.yOffsets[x], 256);
++            int overlayI = overlayX + overlayY * 256;
++            int depth = this.depths[x];
++
++            int r = this.baseTexture[i] >> 16 & 0xFF;
++            int g = this.baseTexture[i] >> 8 & 0xFF;
++            int b = this.baseTexture[i] & 0xFF;
++
++            int overlayR = CosmiteSprite.overlayTexture[overlayI] >> 16 & 0xFF;
++            int overlayG = CosmiteSprite.overlayTexture[overlayI] >> 8 & 0xFF;
++            int overlayB = CosmiteSprite.overlayTexture[overlayI] & 0xFF;
++
++            r = MathHelper.clamp(r + overlayR / (depth + 1), 0, 255);
++            g = MathHelper.clamp(g + overlayG / (depth + 1), 0, 255);
++            b = MathHelper.clamp(b + overlayB / (depth + 1), 0, 255);
++
++            this.pixels[i * 4] = (byte)r;
++            this.pixels[i * 4 + 1] = (byte)g;
++            this.pixels[i * 4 + 2] = (byte)b;
++            this.pixels[i * 4 + 3] = (byte)a;
++        }
++    }
++}
 --- net/minecraft/item/Item.java
 +++ net/minecraft/item/Item.java
 @@ -4,13 +4,18 @@
@@ -7391,7 +7621,7 @@
  	public static Item RECORD_13 = (new MusicDiscItem(2000, "13")).setSprite(0, 15).setKey("record");
  	public static Item RECORD_CAT = (new MusicDiscItem(2001, "cat")).setSprite(1, 15).setKey("record");
  	public static Item RECORD_BLOCKS = (new MusicDiscItem(2002, "blocks")).setSprite(2, 15).setKey("record");
-@@ -161,6 +199,31 @@
+@@ -161,6 +199,32 @@
  	public static Item RECORD_STRAD = (new MusicDiscItem(2008, "strad")).setSprite(8, 15).setKey("record");
  	public static Item RECORD_WARD = (new MusicDiscItem(2009, "ward")).setSprite(9, 15).setKey("record");
  	public static Item RECORD_11 = (new MusicDiscItem(2010, "11")).setSprite(10, 15).setKey("record");
@@ -7420,10 +7650,11 @@
 +        COSMITE_BOOTS,
 +        TITANIUM_BOW
 +    };
++	private static boolean baseEnchantmentsEnabled;
  	public final int id;
  	protected int maxStackSize = 64;
  	private int maxDamage = 0;
-@@ -170,6 +233,14 @@
+@@ -170,6 +234,14 @@
  	private Item recipeRemainder = null;
  	private String potionIngredient = null;
  	private String key;
@@ -7438,11 +7669,19 @@
  
  	protected Item(int var1) {
  		this.id = 256 + var1;
-@@ -382,6 +453,24 @@
+@@ -382,6 +454,32 @@
  		return this.getMaxStackSize() == 1 && this.isDamageable();
  	}
  
++	public boolean hasBaseEnchantments() {
++		return baseEnchantmentsEnabled;
++	}
++
 +	public int getBaseEnchantmentLevel(ItemStack item, int enchantment) {
++		if (!this.hasBaseEnchantments()) {
++			return 0;
++		}
++
 +		return getBaseEnchantmentLevelFromArray(item, enchantment, this.baseEnchantments);
 +	}
 +
@@ -7463,11 +7702,13 @@
  	protected HitResult getUseTarget(World var1, PlayerEntity var2, boolean var3) {
  		float var4 = 1.0F;
  		float var5 = var2.lastPitch + (var2.pitch - var2.lastPitch) * var4;
-@@ -414,29 +503,58 @@
+@@ -414,29 +512,59 @@
  		return this.getSprite(var1);
  	}
  
 +	public static void setAllGamemodeTweaks(GameMode var0) {
++		baseEnchantmentsEnabled = var0.baseEnchantments;
++
 +        for(Item item : BY_ID) {
 +			if(item != null) {
 +				item.setGamemodeTweaks(var0);
@@ -7477,7 +7718,6 @@
 +        for(Item item : EXTRA_TIERS_ITEMS) {
 +            item.obtainable = var0.extraTiers;
 +        }
-+
 +	}
 +
 +	protected void setGamemodeTweaks(GameMode var1) {
@@ -7506,8 +7746,8 @@
 +		IRON(2, 256, 6.0F, 2, 14),
 +		DIAMOND(3, 1536, 8.0F, 3, 10),
 +		GOLD(2, 256, 12.0F, 1, 22, Enchantment.SILK_TOUCH.id, Enchantment.LOOTING.id),
-+		BLAZING_STEEL(2, 512, 16.0F, 4, 5, Enchantment.FIRE_ASPECT.id),
-+		COSMITE(3, 3840, 7.0F, 3, 15),
++		BLAZING_STEEL(2, 512, 16.0F, 3, 5, Enchantment.FIRE_ASPECT.id),
++		COSMITE(3, 3840, 7.0F, 2, 15, Enchantment.FORTUNE.id),
 +		;
  
  		private final int level;
@@ -7528,7 +7768,7 @@
  		}
  
  		public int getDurability() {
-@@ -457,6 +575,10 @@
+@@ -457,6 +585,14 @@
  
  		public int getEnchantability() {
  			return this.enchantability;
@@ -7536,6 +7776,10 @@
 +
 +		public int[] getBaseEnchantments() {
 +			return this.baseEnchantments;
++		}
++
++		public boolean getExtraDamageForSword() {
++			return this == COSMITE;
  		}
  	}
  }
@@ -7799,16 +8043,17 @@
  import net.minecraft.nbt.NbtCompound;
  import net.minecraft.world.gen.WorldGeneratorType;
  
-@@ -24,7 +25,7 @@
+@@ -24,7 +25,8 @@
  	private int thunderTime;
  	private int defaultGameMode;
  	private boolean allowStructures;
 -	private boolean hardcore = false;
 +	private GameMode gameMode;
++	private boolean dragonDefeated;
  
  	public WorldData(NbtCompound var1) {
  		this.seed = var1.getLong("RandomSeed");
-@@ -33,7 +34,9 @@
+@@ -33,7 +35,9 @@
  			this.generatorType = WorldGeneratorType.byKey(var2);
  			if(this.generatorType == null) {
  				this.generatorType = WorldGeneratorType.DEFAULT;
@@ -7819,7 +8064,7 @@
  				int var3 = 0;
  				if(var1.contains("generatorVersion")) {
  					var3 = var1.getInt("generatorVersion");
-@@ -41,6 +44,8 @@
+@@ -41,6 +45,8 @@
  
  				this.generatorType = this.generatorType.getTypeForVersion(var3);
  			}
@@ -7828,11 +8073,12 @@
  		}
  
  		this.defaultGameMode = var1.getInt("GameType");
-@@ -62,12 +67,55 @@
+@@ -62,12 +68,56 @@
  		this.raining = var1.getBoolean("raining");
  		this.thunderTime = var1.getInt("thunderTime");
  		this.thundering = var1.getBoolean("thundering");
 -		this.hardcore = var1.getBoolean("hardcore");
++		this.dragonDefeated = var1.getBoolean("DragonDefeated");
  		if(var1.contains("Player")) {
  			this.playerData = var1.getCompound("Player");
  			this.dimension = this.playerData.getInt("Dimension");
@@ -7871,7 +8117,7 @@
 +			} else if(this.gameMode.legacyCompat_isClassicPreset()) {
 +				this.gameMode.preset = "classic";
 +				this.gameMode = GameMode.classic();
-+			} else if(this.gameMode.legacyCompapt_isHardcorePreset()) {
++			} else if(this.gameMode.legacyCompat_isHardcorePreset()) {
 +				this.gameMode.preset = "hardcore";
 +				this.gameMode = GameMode.hardcore();
 +			} else if(this.gameMode.legacyCompat_isVanillaPreset()) {
@@ -7885,7 +8131,7 @@
  	}
  
  	public WorldData(WorldSettings var1, String var2) {
-@@ -75,7 +123,7 @@
+@@ -75,7 +125,7 @@
  		this.defaultGameMode = var1.getGameMode();
  		this.allowStructures = var1.allowStructures();
  		this.name = var2;
@@ -7894,20 +8140,22 @@
  		this.generatorType = var1.getGeneratorType();
  	}
  
-@@ -98,7 +146,7 @@
+@@ -98,7 +148,8 @@
  		this.raining = var1.raining;
  		this.thunderTime = var1.thunderTime;
  		this.thundering = var1.thundering;
 -		this.hardcore = var1.hardcore;
 +		this.gameMode = var1.gameMode;
++		this.dragonDefeated = var1.dragonDefeated;
  	}
  
  	public NbtCompound toNbt() {
-@@ -142,11 +190,17 @@
+@@ -142,11 +193,18 @@
  		var1.putBoolean("raining", this.raining);
  		var1.putInt("thunderTime", this.thunderTime);
  		var1.putBoolean("thundering", this.thundering);
 -		var1.putBoolean("hardcore", this.hardcore);
++		var1.putBoolean("DragonDefeated", this.dragonDefeated);
  		if(var2 != null) {
  			var1.putCompound("Player", var2);
  		}
@@ -7922,7 +8170,7 @@
  	}
  
  	public long getSeed() {
-@@ -271,8 +325,13 @@
+@@ -271,8 +329,13 @@
  		this.defaultGameMode = var1;
  	}
  
@@ -7938,6 +8186,20 @@
  	}
  
  	public WorldGeneratorType getGeneratorType() {
+@@ -281,5 +344,13 @@
+ 
+ 	public void setGeneratorType(WorldGeneratorType var1) {
+ 		this.generatorType = var1;
++	}
++
++	public boolean isDragonDefeated() {
++		return this.dragonDefeated;
++	}
++
++	public void setDragonDefeated(boolean var1) {
++		this.dragonDefeated = var1;
+ 	}
+ }
 --- net/minecraft/world/gen/feature/LiquidFallFeature.java
 +++ net/minecraft/world/gen/feature/LiquidFallFeature.java
 @@ -6,33 +6,39 @@
@@ -8102,7 +8364,7 @@
  						var30 = 5;
  					}
  
-@@ -198,7 +215,7 @@
+@@ -198,41 +215,37 @@
  				}
  
  				int var51;
@@ -8111,8 +8373,11 @@
  					var26 = var45;
  					var51 = 16;
  					byte var52 = 0;
-@@ -207,32 +224,26 @@
+ 					if(this.minecraft.player.hasStatusEffect(StatusEffect.HUNGER)) {
+ 						var51 += 36;
  						var52 = 13;
++					} else if (this.minecraft.player.sprintCooldown > 0) {
++						var51 += 117;
  					}
  
 -					if(this.minecraft.player.getHungerManager().getSaturationLevel() <= 0.0F && this.ticks % (var16 * 3 + 1) == 0) {
@@ -8155,7 +8420,7 @@
  					}
  				}
  
-@@ -242,10 +253,13 @@
+@@ -242,10 +255,13 @@
  					var51 = (int)Math.ceil((double)var25 * 10.0D / 300.0D) - var26;
  
  					for(var28 = 0; var28 < var26 + var51; ++var28) {
@@ -8171,7 +8436,7 @@
  						}
  					}
  				}
-@@ -283,10 +297,13 @@
+@@ -283,10 +299,13 @@
  
  		int var39;
  		int var40;
@@ -8189,7 +8454,7 @@
  			var39 = (var6 - var8.getWidth(var34)) / 2;
  			var40 = var7 - 31 - 4;
  			var8.draw(var34, var39 + 1, var40, 0);
-@@ -297,12 +314,12 @@
+@@ -297,12 +316,12 @@
  		}
  
  		if(this.minecraft.options.debugEnabled) {
@@ -8204,7 +8469,7 @@
  			var8.drawWithShadow(this.minecraft.getRenderChunkDebugInfo(), 2, 12, 16777215);
  			var8.drawWithShadow(this.minecraft.getRenderEntityDebugInfo(), 2, 22, 16777215);
  			var8.drawWithShadow(this.minecraft.getWorldDebugInfo(), 2, 32, 16777215);
-@@ -315,23 +332,30 @@
+@@ -315,23 +334,30 @@
  			this.drawString(var8, var44, var6 - var8.getWidth(var44) - 2, 2, 14737632);
  			var44 = "Allocated memory: " + var36 * 100L / var35 + "% (" + var36 / 1024L / 1024L + "MB)";
  			this.drawString(var8, var44, var6 - var8.getWidth(var44) - 2, 12, 14737632);
@@ -8247,7 +8512,7 @@
  		}
  
  		if(this.overlayMessageCooldown > 0) {
-@@ -710,5 +734,10 @@
+@@ -710,5 +736,10 @@
  		Language var2 = Language.getInstance();
  		String var3 = var2.translate(var1);
  		this.addChatMessage(var3);
@@ -9376,7 +9641,15 @@
 +}
 --- net/minecraft/network/packet/Packet.java
 +++ net/minecraft/network/packet/Packet.java
-@@ -253,6 +253,7 @@
+@@ -234,6 +234,7 @@
+ 		register(52, true, false, BlocksUpdatePacket.class);
+ 		register(53, true, false, BlockUpdatePacket.class);
+ 		register(54, true, false, BlockEventPacket.class);
++		register(55, true, false, BiomeUpdatePacket.class);
+ 		register(60, true, false, ExplosionPacket.class);
+ 		register(61, true, false, WorldEventPacket.class);
+ 		register(70, true, false, GameEventPacket.class);
+@@ -253,6 +254,7 @@
  		register(200, true, false, StatPacket.class);
  		register(201, true, false, PlayerInfoPacket.class);
  		register(202, true, true, PlayerAbilitiesPacket.class);
@@ -9656,7 +9929,22 @@
  
  	public Biome getBiome(int var1, int var2) {
  		if(this.isChunkLoaded(var1, 0, var2)) {
-@@ -127,7 +133,7 @@
+@@ -104,6 +110,14 @@
+ 		return this.dimension.biomeSource.getBiome(var1, var2);
+ 	}
+ 
++	public void setBiome(int var1, int var2, int var3) {
++		WorldChunk var4 = this.getChunk(var1, var2);
++		if(var4 != null) {
++			var4.setBiome(var1 & 15, var2 & 15, (byte)var3);
++			this.notifyRegionChanged(var1, 0, var3, var1, var4.getMaxHeight(), var3);
++		}
++	}
++
+ 	public BiomeSource getBiomeSource() {
+ 		return this.dimension.biomeSource;
+ 	}
+@@ -127,7 +141,7 @@
  		this.lightningCooldown = 0;
  		this.suppressNeighborChangedUpdates = false;
  		this.initTimeMillis = System.currentTimeMillis();
@@ -9665,7 +9953,7 @@
  		this.random = new Random();
  		this.isNew = false;
  		this.eventListeners = new ArrayList();
-@@ -143,6 +149,7 @@
+@@ -143,6 +157,7 @@
  		this.isMultiplayer = false;
  		this.storage = var1;
  		this.data = new WorldData(var4, var2);
@@ -9673,7 +9961,7 @@
  		this.dimension = var3;
  		this.savedDataStorage = new SavedDataStorage(var1);
  		var3.init(this);
-@@ -170,7 +177,7 @@
+@@ -170,7 +185,7 @@
  		this.lightningCooldown = 0;
  		this.suppressNeighborChangedUpdates = false;
  		this.initTimeMillis = System.currentTimeMillis();
@@ -9682,7 +9970,7 @@
  		this.random = new Random();
  		this.isNew = false;
  		this.eventListeners = new ArrayList();
-@@ -187,6 +194,7 @@
+@@ -187,6 +202,7 @@
  		this.initTimeMillis = var1.initTimeMillis;
  		this.storage = var1.storage;
  		this.data = new WorldData(var1.data);
@@ -9690,7 +9978,7 @@
  		this.savedDataStorage = new SavedDataStorage(this.storage);
  		this.dimension = var2;
  		var2.init(this);
-@@ -196,7 +204,7 @@
+@@ -196,7 +212,7 @@
  	}
  
  	public World(WorldStorage var1, String var2, WorldSettings var3) {
@@ -9699,7 +9987,7 @@
  	}
  
  	public World(WorldStorage var1, String var2, WorldSettings var3, Dimension var4) {
-@@ -218,7 +226,7 @@
+@@ -218,7 +234,7 @@
  		this.lightningCooldown = 0;
  		this.suppressNeighborChangedUpdates = false;
  		this.initTimeMillis = System.currentTimeMillis();
@@ -9708,7 +9996,7 @@
  		this.random = new Random();
  		this.isNew = false;
  		this.eventListeners = new ArrayList();
-@@ -252,6 +260,7 @@
+@@ -252,6 +268,7 @@
  			this.data.setName(var2);
  		}
  
@@ -9716,7 +10004,7 @@
  		this.dimension.init(this);
  		this.chunkSource = this.createChunkCache();
  		if(var5) {
-@@ -273,9 +282,14 @@
+@@ -273,9 +290,14 @@
  		} else {
  			this.searchingSpawnPoint = true;
  			BiomeSource var1 = this.dimension.biomeSource;
@@ -9733,7 +10021,7 @@
  			int var5 = 0;
  			int var6 = this.dimension.getMinSpawnY();
  			int var7 = 0;
-@@ -300,6 +314,7 @@
+@@ -300,6 +322,7 @@
  			this.data.setSpawnPoint(var5, var6, var7);
  			this.searchingSpawnPoint = false;
  		}
@@ -9741,7 +10029,7 @@
  	}
  
  	public Vec3i getForcedSpawnPoint() {
-@@ -374,6 +389,7 @@
+@@ -374,6 +397,7 @@
  
  			this.chunkSource.save(var1, var2);
  		}
@@ -9749,7 +10037,7 @@
  	}
  
  	private void saveData() {
-@@ -395,11 +411,11 @@
+@@ -395,11 +419,11 @@
  	}
  
  	public int getBlock(int var1, int var2, int var3) {
@@ -9763,7 +10051,7 @@
  	}
  
  	public boolean isAir(int var1, int var2, int var3) {
-@@ -412,7 +428,7 @@
+@@ -412,7 +436,7 @@
  	}
  
  	public boolean isChunkLoaded(int var1, int var2, int var3) {
@@ -9772,7 +10060,7 @@
  	}
  
  	public boolean isAreaLoaded(int var1, int var2, int var3, int var4) {
-@@ -420,7 +436,9 @@
+@@ -420,7 +444,9 @@
  	}
  
  	public boolean isAreaLoaded(int var1, int var2, int var3, int var4, int var5, int var6) {
@@ -9783,7 +10071,7 @@
  			var1 >>= 4;
  			var3 >>= 4;
  			var4 >>= 4;
-@@ -435,12 +453,10 @@
+@@ -435,12 +461,10 @@
  			}
  
  			return true;
@@ -9797,7 +10085,7 @@
  		return this.chunkSource.hasChunk(var1, var2);
  	}
  
-@@ -456,8 +472,6 @@
+@@ -456,8 +480,6 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 < 30000000) {
  			if(var2 < 0) {
  				return false;
@@ -9806,7 +10094,7 @@
  			} else {
  				WorldChunk var6 = this.getChunkAt(var1 >> 4, var3 >> 4);
  				boolean var7 = var6.setBlockWithMetadataAt(var1 & 15, var2, var3 & 15, var4, var5);
-@@ -475,8 +489,6 @@
+@@ -475,8 +497,6 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 < 30000000) {
  			if(var2 < 0) {
  				return false;
@@ -9815,7 +10103,7 @@
  			} else {
  				WorldChunk var5 = this.getChunkAt(var1 >> 4, var3 >> 4);
  				boolean var6 = var5.setBlockAt(var1 & 15, var2, var3 & 15, var4);
-@@ -499,8 +511,6 @@
+@@ -499,8 +519,6 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 < 30000000) {
  			if(var2 < 0) {
  				return 0;
@@ -9824,7 +10112,7 @@
  			} else {
  				WorldChunk var4 = this.getChunkAt(var1 >> 4, var3 >> 4);
  				var1 &= 15;
-@@ -528,8 +538,6 @@
+@@ -528,8 +546,6 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 < 30000000) {
  			if(var2 < 0) {
  				return false;
@@ -9833,7 +10121,7 @@
  			} else {
  				WorldChunk var5 = this.getChunkAt(var1 >> 4, var3 >> 4);
  				var1 &= 15;
-@@ -579,12 +587,6 @@
+@@ -579,12 +595,6 @@
  			var3 = var5;
  		}
  
@@ -9846,7 +10134,20 @@
  		this.notifyRegionChanged(var1, var3, var2, var1, var4, var2);
  	}
  
-@@ -617,8 +619,8 @@
+@@ -602,6 +612,12 @@
+ 
+ 	}
+ 
++	public void notifyChunkBiomesChanged(int var1, int var2, int var3) {
++		for(int var7 = 0; var7 < this.eventListeners.size(); ++var7) {
++			((WorldEventListener)this.eventListeners.get(var7)).notifyChunkBiomesChanged(var1, var2, var3);
++		}
++	}
++
+ 	public void updateNeighbors(int var1, int var2, int var3, int var4) {
+ 		this.neighborChanged(var1 - 1, var2, var3, var4);
+ 		this.neighborChanged(var1 + 1, var2, var3, var4);
+@@ -617,8 +633,8 @@
  			if(var5 != null) {
  				var5.neighborChanged(this, var1, var2, var3, var4);
  			}
@@ -9856,7 +10157,7 @@
  	}
  
  	public boolean hasSkyAccess(int var1, int var2, int var3) {
-@@ -626,15 +628,7 @@
+@@ -626,15 +642,7 @@
  	}
  
  	public int getActualLight(int var1, int var2, int var3) {
@@ -9873,7 +10174,7 @@
  	}
  
  	public int getRawBrightness(int var1, int var2, int var3) {
-@@ -674,10 +668,6 @@
+@@ -674,10 +682,6 @@
  			if(var2 < 0) {
  				return 0;
  			} else {
@@ -9884,7 +10185,7 @@
  				WorldChunk var11 = this.getChunkAt(var1 >> 4, var3 >> 4);
  				var1 &= 15;
  				var3 &= 15;
-@@ -701,6 +691,19 @@
+@@ -701,6 +705,19 @@
  		}
  	}
  
@@ -9904,7 +10205,7 @@
  	public int getBrightness(LightType var1, int var2, int var3, int var4) {
  		if(this.dimension.noSky && var1 == LightType.SKY) {
  			return 0;
-@@ -709,9 +712,7 @@
+@@ -709,9 +726,7 @@
  				var3 = 0;
  			}
  
@@ -9915,7 +10216,7 @@
  				int var5 = var2 >> 4;
  				int var6 = var4 >> 4;
  				if(!this.isChunkLoadedAt(var5, var6)) {
-@@ -754,10 +755,6 @@
+@@ -754,10 +769,6 @@
  			var3 = 0;
  		}
  
@@ -9926,7 +10227,7 @@
  		if(var2 >= -30000000 && var4 >= -30000000 && var2 < 30000000 && var4 < 30000000) {
  			int var5 = var2 >> 4;
  			int var6 = var4 >> 4;
-@@ -773,21 +770,15 @@
+@@ -773,21 +784,15 @@
  	}
  
  	public void setLight(LightType var1, int var2, int var3, int var4, int var5) {
@@ -9955,7 +10256,7 @@
  	}
  
  	public void notifyLightChanged(int var1, int var2, int var3) {
-@@ -1184,9 +1175,7 @@
+@@ -1184,9 +1189,7 @@
  
  		int var5 = MathHelper.floor(var1.x);
  		int var6 = MathHelper.floor(var1.z);
@@ -9966,7 +10267,7 @@
  		float var10 = (float)(var9 >> 16 & 255) / 255.0F;
  		float var11 = (float)(var9 >> 8 & 255) / 255.0F;
  		float var12 = (float)(var9 & 255) / 255.0F;
-@@ -1305,6 +1294,53 @@
+@@ -1305,6 +1308,53 @@
  		return -1;
  	}
  
@@ -10020,7 +10321,7 @@
  	public float getStarBrightness(float var1) {
  		float var2 = this.getTimeOfDay(var1);
  		float var3 = 1.0F - (MathHelper.cos(var2 * (float)Math.PI * 2.0F) * 2.0F + 12.0F / 16.0F);
-@@ -1556,8 +1592,8 @@
+@@ -1556,8 +1606,8 @@
  					var1.rider = null;
  				}
  			}
@@ -10030,7 +10331,7 @@
  	}
  
  	public boolean isUnobstructed(Box var1) {
-@@ -1838,28 +1874,24 @@
+@@ -1838,28 +1888,24 @@
  	}
  
  	public BlockEntity getBlockEntity(int var1, int var2, int var3) {
@@ -10071,7 +10372,7 @@
  		}
  	}
  
-@@ -1952,7 +1984,7 @@
+@@ -1952,7 +1998,7 @@
  	}
  
  	public void tick() {
@@ -10080,7 +10381,7 @@
  			this.difficulty = 3;
  		}
  
-@@ -1965,14 +1997,14 @@
+@@ -1965,14 +2011,14 @@
  			}
  
  			if(!var1) {
@@ -10094,11 +10395,11 @@
  
  		Profiler.push("mobSpawner");
 -		NaturalSpawner.tick(this, this.spawnAnimals, this.spawnMonsters && this.data.getTime() % 400L == 0L);
-+		NaturalSpawner.tick(this, this.spawnAnimals, this.spawnMonsters && this.data.getTime() % Math.max((long)this.getGameMode().passiveSpawnRate, 1L) == 0L);
++		NaturalSpawner.tick(this, this.spawnAnimals && this.difficulty >= 1, this.spawnMonsters && this.data.getTime() % Math.max((long)this.getGameMode().passiveSpawnRate, 1L) == 0L);
  		Profiler.swap("chunkSource");
  		this.chunkSource.tick();
  		int var4 = this.calculateAmbientDarkness(1.0F);
-@@ -2023,7 +2055,7 @@
+@@ -2023,7 +2069,7 @@
  			} else {
  				--var1;
  				this.data.setThunderTime(var1);
@@ -10107,7 +10408,7 @@
  					this.data.setThundering(!this.data.isThundering());
  				}
  			}
-@@ -2038,7 +2070,7 @@
+@@ -2038,7 +2084,7 @@
  			} else {
  				--var2;
  				this.data.setRainTime(var2);
@@ -10116,7 +10417,7 @@
  					this.data.setRaining(!this.data.isRaining());
  				}
  			}
-@@ -2072,8 +2104,8 @@
+@@ -2072,8 +2118,8 @@
  			if(this.thunder > 1.0F) {
  				this.thunder = 1.0F;
  			}
@@ -10126,7 +10427,7 @@
  	}
  
  	private void clearWeather() {
-@@ -2099,12 +2131,22 @@
+@@ -2099,12 +2145,22 @@
  			var2 = (PlayerEntity)this.players.get(var1);
  			var3 = MathHelper.floor(var2.x / 16.0D);
  			var4 = MathHelper.floor(var2.z / 16.0D);
@@ -10153,7 +10454,7 @@
  			}
  		}
  
-@@ -2238,10 +2280,10 @@
+@@ -2238,10 +2294,10 @@
  	public boolean canFreeze(int var1, int var2, int var3, boolean var4) {
  		Biome var5 = this.getBiome(var1, var3);
  		float var6 = var5.getTemperature();
@@ -10166,7 +10467,7 @@
  				int var7 = this.getBlock(var1, var2, var3);
  				if((var7 == Block.WATER.id || var7 == Block.FLOWING_WATER.id) && this.getBlockMetadata(var1, var2, var3) == 0) {
  					if(!var4) {
-@@ -2278,10 +2320,10 @@
+@@ -2278,10 +2334,10 @@
  	public boolean canSnowFall(int var1, int var2, int var3) {
  		Biome var4 = this.getBiome(var1, var3);
  		float var5 = var4.getTemperature();
@@ -10179,7 +10480,7 @@
  				int var6 = this.getBlock(var1, var2 - 1, var3);
  				int var7 = this.getBlock(var1, var2, var3);
  				if(var7 == 0 && Block.SNOW_LAYER.canBePlaced(this, var1, var2, var3) && var6 != 0 && var6 != Block.ICE.id && Block.BY_ID[var6].material.blocksMovement()) {
-@@ -2294,11 +2336,17 @@
+@@ -2294,11 +2350,17 @@
  	}
  
  	public void checkLight(int var1, int var2, int var3) {
@@ -10199,7 +10500,7 @@
  	}
  
  	private int findSkyLight(int var1, int var2, int var3, int var4, int var5, int var6) {
-@@ -2379,159 +2427,178 @@
+@@ -2379,159 +2441,178 @@
  		return var7;
  	}
  
@@ -10506,7 +10807,7 @@
  							}
  						}
  					}
-@@ -2539,6 +2606,7 @@
+@@ -2539,6 +2620,7 @@
  			}
  
  			Profiler.pop();
@@ -10514,7 +10815,7 @@
  		}
  	}
  
-@@ -2881,9 +2949,9 @@
+@@ -2881,9 +2963,9 @@
  	public void changeTime(long var1) {
  		long var3 = var1 - this.data.getTime();
  
@@ -10527,7 +10828,7 @@
  		}
  
  		this.setTime(var1);
-@@ -2996,6 +3064,10 @@
+@@ -2996,6 +3078,10 @@
  		return this.data;
  	}
  
@@ -10538,7 +10839,7 @@
  	public void updatePlayersSleepingStatus() {
  		this.allPlayersSleeping = !this.players.isEmpty();
  		Iterator var1 = this.players.iterator();
-@@ -3021,11 +3093,13 @@
+@@ -3021,11 +3107,13 @@
  			}
  		}
  
@@ -10554,7 +10855,7 @@
  			Iterator var1 = this.players.iterator();
  
  			PlayerEntity var2;
-@@ -3056,6 +3130,11 @@
+@@ -3056,6 +3144,11 @@
  		this.rain = var1;
  	}
  
@@ -10566,7 +10867,7 @@
  	public boolean isThundering() {
  		return (double)this.getThunder(1.0F) > 0.9D;
  	}
-@@ -3132,7 +3211,38 @@
+@@ -3132,7 +3225,38 @@
  		return false;
  	}
  
@@ -12740,7 +13041,7 @@
  	public BlockUpdatePacket(int var1, int var2, int var3, World var4) {
 --- /dev/null
 +++ net/minecraft/client/gui/screen/options/StyleOptionsScreen.java
-@@ -1,0 +1,94 @@
+@@ -1,0 +1,95 @@
 +package net.minecraft.client.gui.screen.options;
 +
 +import net.minecraft.client.gui.screen.Screen;
@@ -12759,6 +13060,7 @@
 +		GameOptions.Option.AO_STRENGTH,
 +		GameOptions.Option.MURKY_SWAMPS,
 +		GameOptions.Option.FOV_EFFECTS,
++		GameOptions.Option.BIOME_BLENDING,
 +	};
 +	private Screen parentGuiScreen;
 +	protected String screenTitle = "Style Settings";
@@ -13575,7 +13877,7 @@
  
 --- net/minecraft/stat/achievement/Achievements.java
 +++ net/minecraft/stat/achievement/Achievements.java
-@@ -33,11 +33,15 @@
+@@ -33,11 +33,16 @@
  	public static AchievementStat KILL_GHAST_WITH_FIREBALL = (new AchievementStat(19, "ghast", -4, 8, Item.GHAST_TEAR, ENTER_THE_NETHER)).setChallenge().register();
  	public static AchievementStat GET_BLAZE_ROD = (new AchievementStat(20, "blazeRod", 0, 9, Item.BLAZE_ROD, ENTER_THE_NETHER)).register();
  	public static AchievementStat BREW_POTION = (new AchievementStat(21, "potion", 2, 8, Item.POTION, GET_BLAZE_ROD)).register();
@@ -13589,7 +13891,8 @@
  	public static AchievementStat CRAFT_BOOKSHELF = (new AchievementStat(26, "bookcase", -3, 6, Block.BOOKSHELF, CRAFT_ENCHANTING_TABLE)).register();
 +	public static AchievementStat GET_BLAZING_STEEL = (new AchievementStat(27, "acquireBlazingSteel", -1, 11, Item.BLAZING_STEEL_INGOT, GET_BLAZE_ROD)).register();
 +	public static AchievementStat RIDE_LIGHT_CART_FAST = (new AchievementStat(28, "lightCartSpeed", 5, 8, Item.LIGHT_CART, ENTER_THE_END)).setChallenge().register();
-+	public static AchievementStat GET_COSMITE_INGOT = (new AchievementStat(29, "acquireCosmite", 1, 12, Item.COSMITE_BLEND, ENTER_THE_END)).register();
++	public static AchievementStat GET_COSMITE_INGOT = (new AchievementStat(29, "acquireCosmite", 1, 12, Item.COSMITE_PICKAXE, ENTER_THE_END)).register();
++	public static AchievementStat GET_CULTURED_MEAL = (new AchievementStat(31, "acquireCulturedMeal", 4, -5, Item.CULTURED_MEAL, CRAFT_WOODEN_HOE)).register();
  
  	public static void init() {
  	}
@@ -14423,7 +14726,7 @@
 +				&& exhaustionMultiplier == 1.0F;
 +	}
 +
-+	public boolean legacyCompapt_isHardcorePreset() {
++	public boolean legacyCompat_isHardcorePreset() {
 +		return xpEnabled
 +				&& !sprintingEnabled
 +				&& hungerType == HungerType.DISABLED
@@ -14697,6 +15000,18 @@
 +        return color;
 +    }
 +}
+--- net/minecraft/world/NaturalSpawner.java
++++ net/minecraft/world/NaturalSpawner.java
+@@ -113,7 +113,8 @@
+ 									float var23 = (float)var17 + 0.5F;
+ 									float var24 = (float)var18;
+ 									float var25 = (float)var19 + 0.5F;
+-									if(var0.getNearestPlayer((double)var23, (double)var24, (double)var25, 24.0D) == null) {
++									if(var0.getNearestPlayer(var23, var24, var25, 24.0D) == null
++										&& var0.getNearestPlayer(var23, var24, var25, 128.0D) != null) {
+ 										float var26 = var23 - (float)var31.x;
+ 										float var27 = var24 - (float)var31.y;
+ 										float var28 = var25 - (float)var31.z;
 --- net/minecraft/server/network/handler/ServerPlayNetworkHandler.java
 +++ net/minecraft/server/network/handler/ServerPlayNetworkHandler.java
 @@ -44,6 +44,7 @@
@@ -15578,7 +15893,19 @@
  	}
  
  	public void handleInventoryMenuData(InventoryMenuDataPacket var1) {
-@@ -834,8 +812,13 @@
+@@ -817,6 +795,11 @@
+ 		this.minecraft.world.addBlockEvent(var1.x, var1.y, var1.z, var1.type, var1.data);
+ 	}
+ 
++	public void handleBiomeUpdate(BiomeUpdatePacket var1) {
++		WorldChunk chunk = this.minecraft.world.getChunkAt(var1.chunkX, var1.chunkZ);
++		chunk.setBiomesWithNotify(var1.biomes);
++	}
++
+ 	public void handleGameEvent(GameEventPacket var1) {
+ 		ClientPlayerEntity var2 = this.minecraft.player;
+ 		int var3 = var1.event;
+@@ -834,8 +817,13 @@
  			((MultiplayerInteractionManager)this.minecraft.interactionManager).setGameMode(var1.data == 1);
  		} else if(var3 == 4) {
  			this.minecraft.openScreen(new CreditsScreen());
@@ -15593,7 +15920,7 @@
  	}
  
  	public void handleMapData(MapDataPacket var1) {
-@@ -860,6 +843,7 @@
+@@ -860,6 +848,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).addStatusEffect(new StatusEffectInstance(var1.effect, var1.duration, var1.amplifier));
  		}
@@ -15601,7 +15928,7 @@
  	}
  
  	public void handleEntityRemoveStatusEffect(EntityRemoveStatusEffectPacket var1) {
-@@ -867,6 +851,7 @@
+@@ -867,6 +856,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).removeEffect(var1.effect);
  		}
@@ -15609,7 +15936,7 @@
  	}
  
  	public boolean isServer() {
-@@ -902,5 +887,9 @@
+@@ -902,5 +892,9 @@
  		var2.abilities.creativeMode = var1.creativeMode;
  		var2.abilities.invulnerable = var1.invulnerable;
  		var2.abilities.canFly = var1.allowFlying;
@@ -15987,7 +16314,15 @@
  }
 --- net/minecraft/client/MultiplayerInteractionManager.java
 +++ net/minecraft/client/MultiplayerInteractionManager.java
-@@ -74,7 +74,6 @@
+@@ -23,6 +23,7 @@
+ 	private float lastMiningProgress = 0.0F;
+ 	private float miningTicks = 0.0F;
+ 	private int miningCooldown = 0;
++	private int miningAccel = 5;
+ 	private boolean isMiningBlock = false;
+ 	private boolean isCreativeMode;
+ 	private ClientNetworkHandler networkHandler;
+@@ -74,7 +75,6 @@
  		if(this.isCreativeMode) {
  			this.networkHandler.sendPacket(new PlayerHandActionPacket(0, var1, var2, var3, var4));
  			CreativeInteractionManager.mineBlockInCreative(this.minecraft, this, var1, var2, var3, var4);
@@ -15995,11 +16330,39 @@
  		} else if(!this.isMiningBlock || var1 != this.targetBlockX || var2 != this.targetBlockY || var3 != this.targetBlockZ) {
  			this.networkHandler.sendPacket(new PlayerHandActionPacket(0, var1, var2, var3, var4));
  			int var5 = this.minecraft.world.getBlock(var1, var2, var3);
-@@ -132,12 +131,10 @@
+@@ -97,7 +97,7 @@
+ 
+ 	}
+ 
+-	public void stopMiningBlock() {
++	public void stopMiningBlock(boolean mouseReleased) {
+ 		this.miningProgress = 0.0F;
+ 		this.isMiningBlock = false;
+ 	}
+@@ -119,7 +119,8 @@
+ 				}
+ 
+ 				Block var6 = Block.BY_ID[var5];
+-				this.miningProgress += var6.getMiningSpeed(this.minecraft.player);
++				float miningSpeed = var6.getMiningSpeed(this.minecraft.player);
++				this.miningProgress += miningSpeed;
+ 				if(this.miningTicks % 4.0F == 0.0F && var6 != null) {
+ 					this.minecraft.soundEngine.play(var6.sounds.getStepping(), (float)var1 + 0.5F, (float)var2 + 0.5F, (float)var3 + 0.5F, (var6.sounds.getVolume() + 1.0F) / 8.0F, var6.sounds.getPitch() * 0.5F);
+ 				}
+@@ -132,12 +133,19 @@
  					this.miningProgress = 0.0F;
  					this.lastMiningProgress = 0.0F;
  					this.miningTicks = 0.0F;
 -					this.miningCooldown = 5;
++					this.miningCooldown = this.miningAccel;
++
++					if (this.miningAccel > 0) {
++						this.miningAccel--;
++					}
++
++					if (miningSpeed < 2.0F) {
++						this.miningCooldown++;
++					}
  				}
  			} else {
  				this.startMiningBlock(var1, var2, var3, var4);
@@ -16008,7 +16371,7 @@
  		}
  	}
  
-@@ -247,6 +244,7 @@
+@@ -247,6 +255,7 @@
  	public void closeMenu(int var1, PlayerEntity var2) {
  		if(var1 != -9999) {
  		}
@@ -16495,18 +16858,27 @@
 +}
 --- net/minecraft/world/WorldRegion.java
 +++ net/minecraft/world/WorldRegion.java
-@@ -1,8 +1,10 @@
+@@ -1,8 +1,11 @@
  package net.minecraft.world;
  
  import net.minecraft.block.Block;
 +import net.minecraft.block.StoneSlabBlock;
  import net.minecraft.block.entity.BlockEntity;
  import net.minecraft.block.material.Material;
++import net.minecraft.client.Minecraft;
 +import net.minecraft.util.math.MathHelper;
  import net.minecraft.world.biome.Biome;
  import net.minecraft.world.chunk.WorldChunk;
  
-@@ -26,6 +28,7 @@
+@@ -12,6 +15,7 @@
+ 	private WorldChunk[][] chunks;
+ 	private boolean empty;
+ 	private World world;
++	public boolean biomeBlending = true;
+ 
+ 	public WorldRegion(World var1, int var2, int var3, int var4, int var5, int var6, int var7) {
+ 		this.world = var1;
+@@ -26,6 +30,7 @@
  			for(int var11 = this.chunkZ; var11 <= var9; ++var11) {
  				WorldChunk var12 = var1.getChunkAt(var10, var11);
  				if(var12 != null) {
@@ -16514,7 +16886,7 @@
  					this.chunks[var10 - this.chunkX][var11 - this.chunkZ] = var12;
  					if(!var12.isEmpty(var3, var6)) {
  						this.empty = false;
-@@ -43,14 +46,13 @@
+@@ -43,14 +48,13 @@
  	public int getBlock(int var1, int var2, int var3) {
  		if(var2 < 0) {
  			return 0;
@@ -16531,7 +16903,7 @@
  			} else {
  				return 0;
  			}
-@@ -94,11 +96,12 @@
+@@ -94,11 +98,12 @@
  		if(var1 >= -30000000 && var3 >= -30000000 && var1 < 30000000 && var3 <= 30000000) {
  			int var5;
  			int var6;
@@ -16546,7 +16918,7 @@
  					int var8 = this.getRawBrightness(var1 - 1, var2, var3, false);
  					int var9 = this.getRawBrightness(var1, var2, var3 + 1, false);
  					int var10 = this.getRawBrightness(var1, var2, var3 - 1, false);
-@@ -124,17 +127,11 @@
+@@ -124,17 +129,11 @@
  
  			if(var2 < 0) {
  				return 0;
@@ -16566,7 +16938,7 @@
  			}
  		} else {
  			return 15;
-@@ -144,12 +141,11 @@
+@@ -144,12 +143,11 @@
  	public int getBlockMetadata(int var1, int var2, int var3) {
  		if(var2 < 0) {
  			return 0;
@@ -16581,7 +16953,7 @@
  		}
  	}
  
-@@ -182,40 +178,42 @@
+@@ -182,40 +180,42 @@
  			var3 = 0;
  		}
  
@@ -16645,7 +17017,7 @@
  			}
  		} else {
  			return var1.defaultValue;
-@@ -227,11 +225,7 @@
+@@ -227,11 +227,7 @@
  			var3 = 0;
  		}
  
@@ -16658,7 +17030,7 @@
  			int var5 = (var2 >> 4) - this.chunkX;
  			int var6 = (var4 >> 4) - this.chunkZ;
  			return this.chunks[var5][var6].getLightAt(var1, var2 & 15, var3, var4 & 15);
-@@ -242,5 +236,27 @@
+@@ -242,5 +238,31 @@
  
  	public int getHeight() {
  		return 256;
@@ -16667,6 +17039,10 @@
 +	public int getBiomeColor(int var1, int var2, Biome.ColorType var3) {
 +		if(this.world.getBiomeSource().hasDynamicColor()) {
 +			return this.world.getBiomeSource().getBiomeColor(this.world, var1, var2, var3);
++		}
++
++		if (!this.biomeBlending) {
++			return var3.sample(this.getBiome(var1, var2));
 +		}
 +
 +		var1 -= 8;
@@ -17264,7 +17640,7 @@
  	}
  
  	private static void applyAttackModifier(EnchantmentHelper.AttackModifier var0, ItemStack[] var1) {
-@@ -92,7 +116,8 @@
+@@ -92,14 +116,15 @@
  			PROTECTION_MODIFIER.protection = 25;
  		}
  
@@ -17274,6 +17650,14 @@
  	}
  
  	public static int modifyDamage(PlayerInventory var0, MobEntity var1) {
+ 		DAMAGE_MODIFIER.damage = 0;
+ 		DAMAGE_MODIFIER.entity = var1;
+ 		applyAttackModifier(DAMAGE_MODIFIER, (ItemStack)var0.getSelectedItem());
+-		return DAMAGE_MODIFIER.damage > 0 ? 1 + RANDOM.nextInt(DAMAGE_MODIFIER.damage) : 0;
++		return DAMAGE_MODIFIER.damage > 0 ? 1 + RANDOM.nextInt(DAMAGE_MODIFIER.damage) : DAMAGE_MODIFIER.damage;
+ 	}
+ 
+ 	public static int getKnockbackLevel(PlayerInventory var0, MobEntity var1) {
 @@ -138,19 +163,36 @@
  		return getHighestEnchantmentLevel(Enchantment.AQUA_AFFINITY.id, var0.armor) > 0;
  	}
@@ -18794,7 +19178,7 @@
 -		}
 -
 -		return var1;
-+		return this.random.nextInt(150) == 0 && this.random.nextInt(100) < Math.max(Math.abs(var1), Math.abs(var2)) && !this.world.getBiome(var1 << 4, var2 << 4).isOcean();
++		return this.random.nextInt(200) == 0 && this.random.nextInt(100) < Math.max(Math.abs(var1), Math.abs(var2)) && !this.world.getBiome(var1 << 4, var2 << 4).isOcean();
  	}
  
  	protected StructureStart createStructure(int var1, int var2) {
@@ -18931,6 +19315,17 @@
  					var9.writeShort((short)((var7.getBlockAt(var11, var13, var12) & 4095) << 4 | var7.getBlockMetadataAt(var11, var13, var12) & 15));
  				}
  
+--- net/minecraft/world/WorldEventListener.java
++++ net/minecraft/world/WorldEventListener.java
+@@ -11,6 +11,8 @@
+ 
+ 	void notifyRegionChanged(int var1, int var2, int var3, int var4, int var5, int var6);
+ 
++	void notifyChunkBiomesChanged(int var1, int var2, int var3);
++
+ 	void playSound(String var1, double var2, double var4, double var6, float var8, float var9);
+ 
+ 	void addParticle(String var1, double var2, double var4, double var6, double var8, double var10, double var12);
 --- net/minecraft/item/StewItem.java
 +++ net/minecraft/item/StewItem.java
 @@ -1,16 +1,30 @@
@@ -20286,7 +20681,14 @@
  	public static byte[] MEMORY_RESERVED_FOR_CRASH = new byte[10485760];
  	private static Minecraft INSTANCE;
  	public ClientPlayerInteractionManager interactionManager;
-@@ -168,7 +159,9 @@
+@@ -162,13 +153,16 @@
+ 	public String fpsDebugInfo = "";
+ 	long timeAtLastSecond = System.currentTimeMillis();
+ 	int fpsCounter = 0;
++	int debugFps = 0;
+ 	boolean screenshotKeyDown = false;
+ 	long timeAfterLastTick = -1L;
+ 	private String openProfilerSection = "root";
  	public boolean focused = false;
  	public boolean raining = false;
  	long lastTickTime = System.currentTimeMillis();
@@ -20296,7 +20698,7 @@
  
  	public Minecraft(Component var1, Canvas var2, MinecraftApplet var3, int var4, int var5, boolean var6) {
  		Stats.init();
-@@ -225,7 +218,7 @@
+@@ -225,7 +219,7 @@
  			Display.setDisplayMode(new DisplayMode(this.width, this.height));
  		}
  
@@ -20305,7 +20707,15 @@
  		System.out.println("LWJGL Version: " + Sys.getVersion());
  
  		try {
-@@ -291,15 +284,7 @@
+@@ -247,6 +241,7 @@
+ 		this.gameDir = getWorkingDirectory();
+ 		this.worldStorageSource = new AnvilWorldStorageSource(new File(this.gameDir, "saves"));
+ 		this.options = new GameOptions(this, this.gameDir);
++		Display.setVSyncEnabled(this.options.fpsLimit == 0);
+ 		this.texturePacks = new TexturePacks(this, this.gameDir);
+ 		this.textureManager = new TextureManager(this.texturePacks, this.options);
+ 		this.renderLoadingScreen();
+@@ -291,15 +286,7 @@
  		this.logGlError("Startup");
  		this.openGlCapabilities = new OpenGlCapabilities();
  		this.soundEngine.load(this.options);
@@ -20322,7 +20732,7 @@
  		this.worldRenderer = new WorldRenderer(this, this.textureManager);
  		GL11.glViewport(0, 0, this.width, this.height);
  		this.particleManager = new ParticleManager(this.world, this.textureManager);
-@@ -321,6 +306,40 @@
+@@ -321,6 +308,42 @@
  		this.progressRenderer = new ProgressRenderer(this);
  	}
  
@@ -20357,13 +20767,15 @@
 +        this.textureManager.addDynamicTexture(new CosmiteSprite(Item.COSMITE_CHESTPLATE.getSprite(0), 1, tp));
 +        this.textureManager.addDynamicTexture(new CosmiteSprite(Item.COSMITE_LEGGINGS.getSprite(0), 1, tp));
 +        this.textureManager.addDynamicTexture(new CosmiteSprite(Item.COSMITE_BOOTS.getSprite(0), 1, tp));
-+        this.textureManager.addFullDynamicTexture(new FullBlazingTexture("/armor/blazing_steel_2.png", 0, 0, 64, 32, tp));
++		this.textureManager.addFullDynamicTexture(new FullBlazingTexture("/armor/blazing_steel_2.png", 0, 0, 64, 32, tp));
++		this.textureManager.addFullDynamicTexture(new FullCosmiteTexture("/armor/cosmite_1.png", 0, 0, 64, 32, tp));
++		this.textureManager.addFullDynamicTexture(new FullCosmiteTexture("/armor/cosmite_2.png", 0, 0, 64, 32, tp));
 +    }
 +
  	private void renderLoadingScreen() throws LWJGLException {
  		Window var1 = new Window(this.options, this.width, this.height);
  		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
-@@ -408,7 +427,13 @@
+@@ -408,7 +431,13 @@
  
  	private static Minecraft.OS getOs() {
  		String var0 = System.getProperty("os.name").toLowerCase();
@@ -20378,7 +20790,7 @@
  	}
  
  	public WorldStorageSource getWorldStorageSource() {
-@@ -448,8 +473,8 @@
+@@ -448,8 +477,8 @@
  			} else {
  				this.lockMouse();
  			}
@@ -20388,7 +20800,7 @@
  	}
  
  	private void logGlError(String var1) {
-@@ -544,6 +569,7 @@
+@@ -544,6 +573,7 @@
  		if(this.applet != null && !this.applet.isActive()) {
  			this.running = false;
  		} else {
@@ -20396,7 +20808,7 @@
  			Box.resetPool();
  			Vec3d.resetPool();
  			Profiler.push("root");
-@@ -551,7 +577,7 @@
+@@ -551,7 +581,7 @@
  				this.stop();
  			}
  
@@ -20405,7 +20817,26 @@
  				float var1 = this.timer.partialTick;
  				this.timer.advance();
  				this.timer.partialTick = var1;
-@@ -661,6 +687,7 @@
+@@ -615,6 +645,10 @@
+ 				this.toggleFullscreen();
+ 			}
+ 
++			if (this.options.fpsLimit > 0 && this.options.fpsLimit < 250) {
++				Display.sync(this.options.fpsLimit);
++			}
++
+ 			Profiler.pop();
+ 			if(this.options.debugEnabled && this.options.debugProfilerEnabled) {
+ 				if(!Profiler.profiling) {
+@@ -654,6 +688,7 @@
+ 			++this.fpsCounter;
+ 
+ 			for(this.paused = !this.isMultiplayer() && this.screen != null && this.screen.isPauseScreen(); System.currentTimeMillis() >= this.timeAtLastSecond + 1000L; this.fpsCounter = 0) {
++				this.debugFps = this.fpsCounter;
+ 				this.fpsDebugInfo = this.fpsCounter + " fps, " + RenderChunk.updateCounter + " chunk updates";
+ 				RenderChunk.updateCounter = 0;
+ 				this.timeAtLastSecond += 1000L;
+@@ -661,6 +696,7 @@
  
  			Profiler.pop();
  		}
@@ -20413,7 +20844,7 @@
  	}
  
  	public void cleanHeap() {
-@@ -719,8 +746,8 @@
+@@ -719,8 +755,8 @@
  					this.openProfilerSection = this.openProfilerSection + ((Profiler.Result)var2.get(var1)).location;
  				}
  			}
@@ -20423,7 +20854,7 @@
  	}
  
  	private void renderProfilerChart(long var1) {
-@@ -907,9 +934,14 @@
+@@ -907,9 +943,14 @@
  	public void unlockMouse() {
  		if(this.focused) {
  			KeyBinding.releaseAll();
@@ -20438,7 +20869,7 @@
  	}
  
  	public void pauseGame() {
-@@ -931,7 +963,7 @@
+@@ -931,10 +972,10 @@
  				this.interactionManager.tickBlockMining(var3, var4, var5, this.crosshairTarget.face);
  				if(this.player.canUseItemOn(var3, var4, var5)) {
  					this.particleManager.handleBlockMining(var3, var4, var5, this.crosshairTarget.face);
@@ -20446,8 +20877,12 @@
 +					this.player.swingArmPeriodically();
  				}
  			} else {
- 				this.interactionManager.stopMiningBlock();
-@@ -1102,6 +1134,9 @@
+-				this.interactionManager.stopMiningBlock();
++				this.interactionManager.stopMiningBlock(var1 == 0 && !var2);
+ 			}
+ 
+ 		}
+@@ -1102,6 +1143,9 @@
  		if(!this.paused && this.world != null) {
  			this.interactionManager.tick();
  		}
@@ -20457,7 +20892,7 @@
  
  		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textureManager.load("/terrain.png"));
  		Profiler.swap("textures");
-@@ -1177,14 +1212,144 @@
+@@ -1177,14 +1221,144 @@
  			label361:
  			while(true) {
  				while(true) {
@@ -20604,7 +21039,7 @@
  							}
  
  							while(this.isMultiplayer() && this.options.chatKey.consumeClick()) {
-@@ -1196,15 +1361,15 @@
+@@ -1196,15 +1370,15 @@
  							}
  
  							if(this.player.hasItemInUse()) {
@@ -20625,7 +21060,7 @@
  										while(this.options.pickItemKey.consumeClick()) {
  										}
  										break;
-@@ -1224,16 +1389,17 @@
+@@ -1224,16 +1398,17 @@
  								}
  							}
  
@@ -20645,7 +21080,7 @@
  							KeyBinding.click(Keyboard.getEventKey());
  						}
  					} while(!Keyboard.getEventKeyState());
-@@ -1254,11 +1420,12 @@
+@@ -1254,11 +1429,12 @@
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_T && Keyboard.isKeyDown(Keyboard.KEY_F3)) {
  								this.textureManager.reload();
@@ -20660,7 +21095,7 @@
  							}
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_A && Keyboard.isKeyDown(Keyboard.KEY_F3)) {
-@@ -1271,7 +1438,7 @@
+@@ -1271,7 +1447,7 @@
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_F3) {
  								this.options.debugEnabled = !this.options.debugEnabled;
@@ -20669,7 +21104,7 @@
  							}
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_F5) {
-@@ -1290,6 +1457,12 @@
+@@ -1290,6 +1466,12 @@
  						for(var7 = 0; var7 < 9; ++var7) {
  							if(Keyboard.getEventKey() == Keyboard.KEY_1 + var7) {
  								this.player.inventory.selectedSlot = var7;
@@ -20682,7 +21117,7 @@
  							}
  						}
  
-@@ -1318,7 +1491,7 @@
+@@ -1318,7 +1500,7 @@
  				}
  			}
  
@@ -20691,7 +21126,7 @@
  				this.world.difficulty = 3;
  			} else {
  				this.world.difficulty = this.options.difficulty;
-@@ -1328,6 +1501,8 @@
+@@ -1328,6 +1510,8 @@
  				this.world.difficulty = 1;
  			}
  
@@ -20700,7 +21135,7 @@
  			Profiler.swap("gameRenderer");
  			if(!this.paused) {
  				this.gameRenderer.tick();
-@@ -1395,6 +1570,7 @@
+@@ -1395,6 +1579,7 @@
  			if(var5.isNew) {
  				this.stats.increment(Stats.WORLDS_CREATED, 1);
  				this.stats.increment(Stats.GAMES_STARTED, 1);
@@ -20708,7 +21143,7 @@
  				this.setWorld(var5, I18n.translate("menu.generatingLevel"));
  			} else {
  				this.stats.increment(Stats.WORLDS_LOADED, 1);
-@@ -1415,7 +1591,7 @@
+@@ -1415,7 +1600,7 @@
  		double var7 = 1.0D;
  		if(var2 > -1 && this.player.dimension == -1) {
  			var7 = 0.125D;
@@ -20717,7 +21152,7 @@
  			var7 = 8.0D;
  		}
  
-@@ -1443,14 +1619,19 @@
+@@ -1443,14 +1628,19 @@
  				this.setWorld(var9, "Leaving the Nether", this.player);
  			} else {
  				this.setWorld(var9, "Leaving the End", this.player);
@@ -20740,7 +21175,7 @@
  			this.player.setPositionAndAngles(var3, this.player.y, var5, 90.0F, 0.0F);
  			if(this.player.isAlive()) {
  				var9.tickEntity(this.player, false);
-@@ -1564,7 +1745,7 @@
+@@ -1564,7 +1754,7 @@
  		this.progressRenderer.progressStart("Converting World to " + this.worldStorageSource.getName());
  		this.progressRenderer.progressStage("This may take a while :)");
  		this.worldStorageSource.convert(var1, this.progressRenderer);
@@ -20749,7 +21184,7 @@
  	}
  
  	private void prepareWorld(String var1) {
-@@ -1593,13 +1774,13 @@
+@@ -1593,13 +1783,13 @@
  			var7.setCenter(var6.x >> 4, var6.z >> 4);
  		}
  
@@ -20765,7 +21200,7 @@
  				if(!this.interactionManager.hidesGui()) {
  					while(this.world.doLightUpdates()) {
  					}
-@@ -1612,7 +1793,7 @@
+@@ -1612,7 +1802,7 @@
  				this.progressRenderer.progressStage(I18n.translate("menu.simulating"));
  			}
  
@@ -20774,7 +21209,7 @@
  			this.world.prepare();
  		}
  
-@@ -1631,7 +1812,13 @@
+@@ -1631,7 +1821,13 @@
  		} else if(var4.equalsIgnoreCase("music")) {
  			this.soundEngine.loadMusic(var1, var2);
  		} else if(var4.equalsIgnoreCase("newmusic")) {
@@ -20789,7 +21224,7 @@
  		}
  
  	}
-@@ -1694,6 +1881,8 @@
+@@ -1694,6 +1890,8 @@
  		this.player = (ClientPlayerEntity)this.interactionManager.createPlayer(this.world);
  		if(var3) {
  			this.player.copyFrom(var9);
@@ -20798,7 +21233,7 @@
  		}
  
  		this.player.dimension = var2;
-@@ -1722,15 +1911,17 @@
+@@ -1722,15 +1920,17 @@
  	}
  
  	public static void startAndConnect(String var0, String var1, String var2) throws LWJGLException {
@@ -20818,7 +21253,7 @@
  		Thread var8 = new Thread(var7, "Minecraft main thread");
  		var8.setPriority(10);
  		var7.hostAddress = "www.minecraft.net";
-@@ -1770,6 +1961,10 @@
+@@ -1770,6 +1970,10 @@
  		start(var1, var2);
  	}
  
@@ -20829,12 +21264,16 @@
  	public static boolean isDisplayGui() {
  		return INSTANCE == null || !INSTANCE.options.hideGui;
  	}
-@@ -1786,6 +1981,18 @@
+@@ -1786,6 +1990,22 @@
  		return INSTANCE != null && INSTANCE.options.debugEnabled;
  	}
  
 +	public static boolean isColoredWaterEnabled() {
 +		return INSTANCE != null && INSTANCE.options.coloredWater;
++	}
++
++	public static boolean isBiomeBlendingEnabled() {
++		return INSTANCE != null && INSTANCE.options.biomeBlending;
 +	}
 +
 +	public static GameOptions getGameSettings() {
@@ -20848,7 +21287,7 @@
  	public boolean isIllegalChatMessage(String var1) {
  		if(var1.startsWith("/")) {
  		}
-@@ -1796,47 +2003,75 @@
+@@ -1796,47 +2016,75 @@
  	private void doPick() {
  		if(this.crosshairTarget != null) {
  			boolean var1 = this.player.abilities.creativeMode;
@@ -20945,8 +21384,8 @@
  
 +	}
 +
-+	public int getFpsCounter() {
-+		return this.fpsCounter;
++	public int getDebugFps() {
++		return this.debugFps;
 +	}
 +
 +	public long getTickStartTime() {
@@ -22483,15 +22922,29 @@
  		}
  
  		return Biome.BY_ID[var4] == null ? Biome.PLAINS : Biome.BY_ID[var4];
-@@ -916,6 +858,7 @@
+@@ -914,8 +856,21 @@
+ 		return this.biomes;
+ 	}
  
++	public void setBiome(int x, int z, byte biome) {
++		this.biomes[z << 4 | x] = biome;
++		this.clearBiomeColorCache();
++		this.world.notifyChunkBiomesChanged(this.chunkX, this.getMaxHeight(), this.chunkZ);
++	}
++
  	public void setBiomes(byte[] var1) {
  		this.biomes = var1;
 +		this.clearBiomeColorCache();
++	}
++
++	public void setBiomesWithNotify(byte[] var1) {
++		this.biomes = var1;
++		this.clearBiomeColorCache();
++		this.world.notifyChunkBiomesChanged(this.chunkX, this.getMaxHeight(), this.chunkZ);
  	}
  
  	public void resetBorderLightChecks() {
-@@ -937,7 +880,7 @@
+@@ -937,7 +892,7 @@
  
  			for(int var7 = 0; var7 < 16; ++var7) {
  				int var8 = (var2 << 4) + var7;
@@ -22500,7 +22953,7 @@
  					if(Block.LIGHT[this.world.getBlock(var5, var8 - 1, var6)] > 0) {
  						this.world.checkLight(var5, var8 - 1, var6);
  					}
-@@ -968,4 +911,58 @@
+@@ -968,4 +923,58 @@
  		}
  
  	}
@@ -22739,6 +23192,115 @@
 +
 +    protected int getDropItemMetadata(int var1) {
 +        return 3;
++    }
++}
+--- /dev/null
++++ net/minecraft/client/gui/screen/world/LoadGameModeScreen.java
+@@ -1,0 +1,106 @@
++package net.minecraft.client.gui.screen.world;
++
++import net.minecraft.client.gui.screen.Screen;
++import net.minecraft.client.gui.widget.ButtonWidget;
++import net.minecraft.client.gui.widget.ListWidget;
++import net.minecraft.client.render.vertex.Tesselator;
++import net.minecraft.locale.Language;
++import net.minecraft.nbt.NbtCompound;
++import net.minecraft.nbt.NbtIo;
++import net.minecraft.world.GameMode;
++
++import java.io.File;
++import java.io.IOException;
++import java.util.Arrays;
++
++public class LoadGameModeScreen extends Screen {
++    private final Screen parent;
++    private final GameMode gameMode;
++    private String title;
++    private PresetSlotWidget presetList;
++
++    public LoadGameModeScreen(Screen parent, GameMode gameMode) {
++        this.parent = parent;
++        this.gameMode = gameMode;
++    }
++
++    public void init() {
++        Language lang = Language.getInstance();
++        this.title = lang.translate("customizedGameMode.loadTitle");
++        this.presetList = new PresetSlotWidget(this);
++        this.buttons.add(new ButtonWidget(0, this.width / 2 - 75, this.height - 28, 150, 20, lang.translate("gui.done")));
++    }
++
++    protected void keyPressed(char var1, int var2) {
++    }
++
++    protected void buttonClicked(ButtonWidget var1) {
++        this.minecraft.openScreen(this.parent);
++    }
++
++    public void render(int var1, int var2, float var3) {
++        this.presetList.render(var1, var2, var3);
++        this.drawCenteredString(this.textRenderer, this.title, this.width / 2, 20, 0xFFFFFF);
++        super.render(var1, var2, var3);
++    }
++
++    private static class PresetSlotWidget extends ListWidget {
++        private final LoadGameModeScreen parent;
++        private final File[] files;
++        private int selection = -1;
++
++        public PresetSlotWidget(LoadGameModeScreen var1) {
++            super(var1.minecraft, var1.width, var1.height, 32, var1.height - 32, 16);
++            this.parent = var1;
++
++            File presetsDir = new File(var1.minecraft.gameDir, "gamemodes");
++            if (!presetsDir.isDirectory() || !presetsDir.exists()) {
++                this.files = new File[0];
++                return;
++            }
++
++            File[] files = presetsDir.listFiles();
++            if (files == null) {
++                this.files = new File[0];
++                return;
++            }
++
++            this.files = Arrays.stream(files)
++                .filter(file -> file.getName().endsWith(".dat"))
++                .sorted()
++                .toArray(File[]::new);
++        }
++
++        protected int size() {
++            return this.files.length;
++        }
++
++        protected void entryClicked(int var1, boolean var2) {
++            File file = this.files[var1];
++            NbtCompound compound = null;
++            try {
++                compound = NbtIo.read(file);
++            } catch (IOException ignored) {
++            }
++
++            if (compound != null) {
++                parent.gameMode.readData(compound);
++            }
++
++            this.selection = var1;
++        }
++
++        protected boolean isEntrySelected(int var1) {
++            return var1 == this.selection;
++        }
++
++        protected void renderBackground() {
++            this.parent.renderBackground();
++        }
++
++        protected void renderEntry(int var1, int var2, int var3, int var4, Tesselator var5) {
++            File file = this.files[var1];
++            this.parent.drawString(this.parent.textRenderer, file.getName().substring(0, file.getName().length() - 4), var2 + 2, var3 + 2, 0xFFFFFF);
++        }
 +    }
 +}
 --- net/minecraft/block/FireBlock.java
@@ -23187,7 +23749,7 @@
  }
 --- /dev/null
 +++ net/minecraft/item/ArrowItem.java
-@@ -1,0 +1,51 @@
+@@ -1,0 +1,55 @@
 +package net.minecraft.item;
 +
 +import net.minecraft.enchantment.Enchantment;
@@ -23204,6 +23766,10 @@
 +
 +    public int getSprite(int var1) {
 +        return ArrowType.values()[var1].id;
++    }
++
++    public boolean hasBaseEnchantments() {
++        return true;
 +    }
 +
 +    public int getBaseEnchantmentLevel(ItemStack item, int enchantment) {
@@ -23250,7 +23816,15 @@
  import net.minecraft.entity.mob.player.PlayerEntity;
  import net.minecraft.item.ItemStack;
  import net.minecraft.world.World;
-@@ -58,53 +60,53 @@
+@@ -13,6 +15,7 @@
+ 	private float lastMiningProgress = 0.0F;
+ 	private float miningTicks = 0.0F;
+ 	private int miningCooldown = 0;
++	private int miningAccel = 5;
+ 
+ 	public SurvivalInteractionManager(Minecraft var1) {
+ 		super(var1);
+@@ -58,53 +61,64 @@
  			if(var5 > 0 && Block.BY_ID[var5].getMiningSpeed(this.minecraft.player) >= 1.0F) {
  				this.finishMiningBlock(var1, var2, var3, var4);
  			}
@@ -23259,10 +23833,13 @@
 +
  	}
  
- 	public void stopMiningBlock() {
+-	public void stopMiningBlock() {
++	public void stopMiningBlock(boolean mouseReleased) {
  		this.miningProgress = 0.0F;
 -		this.miningCooldown = 0;
-+		//this.miningCooldown = 0;
++		if (mouseReleased) {
++			this.miningAccel = 5;
++		}
  	}
  
  	public void tickBlockMining(int var1, int var2, int var3, int var4) {
@@ -23328,6 +23905,15 @@
 -				this.targetBlockX = var1;
 -				this.targetBlockY = var2;
 -				this.targetBlockZ = var3;
++				this.miningCooldown = this.miningAccel;
++
++				if (this.miningAccel > 0) {
++					this.miningAccel--;
++				}
++
++				if (miningSpeed < 2.0F) {
++					this.miningCooldown++;
++				}
  			}
 +        }
  
@@ -23335,7 +23921,7 @@
  	}
  
  	public void render(float var1) {
-@@ -127,14 +129,15 @@
+@@ -127,14 +141,15 @@
  		super.initWorld(var1);
  	}
  
@@ -23934,7 +24520,7 @@
  	private boolean isSolidBlock(int var1, int var2, int var3) {
 --- /dev/null
 +++ net/minecraft/enchantment/logical/EnchantmentIngredients.java
-@@ -1,0 +1,162 @@
+@@ -1,0 +1,168 @@
 +package net.minecraft.enchantment.logical;
 +
 +import static net.minecraft.enchantment.Enchantment.*;
@@ -23949,8 +24535,9 @@
 +
 +    static {
 +        register(BLAZE_POWDER.id,
-+            new Add(FIRE_ASPECT.id, 0.1D),
-+            new Add(FLAME.id, 0.1D),
++            new Add(FIRE_ASPECT.id, 0.2D),
++            new Add(FLAME.id, 0.2D),
++            new Add(FIRE_PROTECTION.id, 0.6D),
 +            new Add(SHARPNESS.id, -0.1D));
 +        register(BLAZING_STEEL_INGOT.id,
 +            new Add(EFFICIENCY.id, 1.2D),
@@ -23960,12 +24547,12 @@
 +            new Add(FIRE_PROTECTION.id, 0.5D),
 +            new Add(BLAST_PROTECTION.id, 0.5D));
 +        register(COBBLESTONE.id,
-+            new Add(UNBREAKING.id, 0.25D),
++            new Add(UNBREAKING.id, 0.2D),
 +            new Add(SHARPNESS.id, -0.1D),
-+            new Add(QUICK_DRAW.id, -0.2D),
-+            new Add(SHARPSHOOTER.id, -0.2D),
++            new Add(QUICK_DRAW.id, -0.3D),
++            new Add(SHARPSHOOTER.id, -0.3D),
 +            new Multiply(SILK_TOUCH.id, 0.0D),
-+            new Add(EFFICIENCY.id, -0.6D));
++            new Add(EFFICIENCY.id, -0.8D));
 +        register(COOKED_FISH.id,
 +            new Add(RESPIRATION.id, 0.45D),
 +            new Add(AQUA_AFFINITY.id, 0.15D));
@@ -23985,7 +24572,7 @@
 +            new Add(EFFICIENCY.id, 0.4D),
 +            new Add(LOOTING.id, 0.15D),
 +            new Add(FORTUNE.id, 0.5D),
-+            new Add(UNBREAKING.id, -0.7D),
++            new Add(UNBREAKING.id, -0.6D),
 +            new Multiply(SHARPNESS.id, 0.9D));
 +        register(ENDER_PEARL.id,
 +            new Add(VOID_GUARD.id, 0.9D),
@@ -24025,6 +24612,11 @@
 +            new Add(SHARPNESS.id, -0.1D),
 +            new Add(VELOCITY.id, 1.5D),
 +            new Multiply(VELOCITY.id, 0.9D));
++        register(GUNPOWDER.id,
++            new Add(BLAST_PROTECTION.id, 0.6D),
++            new Add(KNOCKBACK.id, 0.7D),
++            new Add(PUNCH.id, 0.7D),
++            new Add(UNBREAKING.id, -0.1D));
 +        register(IRON_INGOT.id,
 +            new Add(PROTECTION.id, 0.8D),
 +            new Add(UNBREAKING.id, -0.5D),
@@ -24060,12 +24652,12 @@
 +            new Add(UNBREAKING.id, -0.3D),
 +            new Add(POWER.id, 0.1D));
 +        register(STONE.id,
-+            new Add(UNBREAKING.id, 0.2D),
++            new Add(UNBREAKING.id, 0.25D),
 +            new Add(SHARPNESS.id, -0.1D),
-+            new Add(QUICK_DRAW.id, -0.3D),
-+            new Add(SHARPSHOOTER.id, -0.3D),
++            new Add(QUICK_DRAW.id, -0.2D),
++            new Add(SHARPSHOOTER.id, -0.2D),
 +            new Multiply(SILK_TOUCH.id, 0.0D),
-+            new Add(EFFICIENCY.id, -0.8D));
++            new Add(EFFICIENCY.id, -0.6D));
 +        register(STRING.id,
 +            new Add(QUICK_DRAW.id, 0.5D),
 +            new Add(SHARPSHOOTER.id, -0.4D),
@@ -24095,6 +24687,54 @@
 +            list = Collections.emptyList();
 +        }
 +        return list;
++    }
++}
+--- /dev/null
++++ net/minecraft/network/packet/BiomeUpdatePacket.java
+@@ -1,0 +1,45 @@
++package net.minecraft.network.packet;
++
++import net.minecraft.network.PacketHandler;
++import net.minecraft.world.chunk.WorldChunk;
++
++import java.io.DataInputStream;
++import java.io.DataOutputStream;
++import java.io.IOException;
++import java.util.Arrays;
++
++public class BiomeUpdatePacket extends Packet {
++    public int chunkX;
++    public int chunkZ;
++    public byte[] biomes;
++
++    public BiomeUpdatePacket() {
++        this.biomes = new byte[256];
++    }
++
++    public BiomeUpdatePacket(WorldChunk chunk) {
++        this.chunkX = chunk.chunkX;
++        this.chunkZ = chunk.chunkZ;
++        this.biomes = Arrays.copyOf(chunk.getBiomes(), 256);
++    }
++
++    public void read(DataInputStream var1) throws IOException {
++        this.chunkX = var1.readInt();
++        this.chunkZ = var1.readInt();
++        var1.read(this.biomes);
++    }
++
++    public void write(DataOutputStream var1) throws IOException {
++        var1.writeInt(this.chunkX);
++        var1.writeInt(this.chunkZ);
++        var1.write(this.biomes);
++    }
++
++    public void handle(PacketHandler var1) {
++        var1.handleBiomeUpdate(this);
++    }
++
++    public int getSize() {
++        return 264;
 +    }
 +}
 --- /dev/null
@@ -24249,7 +24889,7 @@
  }
 --- net/minecraft/item/SwordItem.java
 +++ net/minecraft/item/SwordItem.java
-@@ -4,6 +4,7 @@
+@@ -4,11 +4,13 @@
  import net.minecraft.entity.Entity;
  import net.minecraft.entity.mob.MobEntity;
  import net.minecraft.entity.mob.player.PlayerEntity;
@@ -24257,7 +24897,13 @@
  import net.minecraft.world.World;
  
  public class SwordItem extends Item {
-@@ -16,6 +17,7 @@
+ 	private int attackDamage;
+ 	private final Item.Tier tier;
++	private boolean extraDamage;
+ 
+ 	public SwordItem(int var1, Item.Tier var2) {
+ 		super(var1);
+@@ -16,6 +18,7 @@
  		this.maxStackSize = 1;
  		this.setMaxDamage(var2.getDurability());
  		this.attackDamage = 4 + var2.getAttackDamage();
@@ -24265,7 +24911,7 @@
  	}
  
  	public float getMiningSpeed(ItemStack var1, Block var2) {
-@@ -23,6 +25,9 @@
+@@ -23,6 +26,9 @@
  	}
  
  	public boolean attack(ItemStack var1, MobEntity var2, MobEntity var3) {
@@ -24275,7 +24921,20 @@
  		var1.takeDamageAndBreak(1, var3);
  		return true;
  	}
-@@ -49,7 +54,10 @@
+@@ -33,7 +39,11 @@
+ 	}
+ 
+ 	public int getAttackDamage(Entity var1) {
+-		return this.attackDamage;
++		int damage = this.attackDamage;
++		if (this.extraDamage && random.nextBoolean()) {
++			damage++;
++		}
++		return damage;
+ 	}
+ 
+ 	public boolean isHandheld() {
+@@ -49,7 +59,10 @@
  	}
  
  	public ItemStack startUsing(ItemStack var1, World var2, PlayerEntity var3) {
@@ -24287,7 +24946,7 @@
  		return var1;
  	}
  
-@@ -59,5 +67,9 @@
+@@ -59,5 +72,14 @@
  
  	public int getEnchantability() {
  		return this.tier.getEnchantability();
@@ -24295,6 +24954,11 @@
 +
 +	protected void setGamemodeTweaks(GameMode var1) {
 +		this.attackDamage = 4 + this.tier.getAttackDamage() * (var1.criticalHits ? 1 : 2);
++		this.extraDamage = this.tier.getExtraDamageForSword();
++		if (this.extraDamage && !var1.criticalHits) {
++			this.attackDamage++;
++			this.extraDamage = false;
++		}
  	}
  }
 --- /dev/null
@@ -24475,15 +25139,16 @@
  import net.minecraft.entity.mob.player.PlayerEntity;
  import net.minecraft.item.Item;
  import net.minecraft.item.ItemStack;
-@@ -59,6 +62,7 @@
+@@ -59,6 +62,8 @@
  import net.minecraft.world.HitResult;
  import net.minecraft.world.World;
  import net.minecraft.world.WorldEventListener;
++import net.minecraft.world.chunk.WorldChunk;
 +import net.minecraft.world.gen.noise.ImprovedNoise;
  import org.lwjgl.opengl.ARBOcclusionQuery;
  import org.lwjgl.opengl.GL11;
  import org.lwjgl.opengl.GL15;
-@@ -109,6 +113,7 @@
+@@ -109,6 +114,7 @@
  	double prevCameraZ = -9999.0D;
  	public float miningProgress;
  	int cullStep = 0;
@@ -24491,7 +25156,7 @@
  
  	public WorldRenderer(Minecraft var1, TextureManager var2) {
  		this.minecraft = var1;
-@@ -253,7 +258,7 @@
+@@ -253,7 +259,7 @@
  			}
  
  			this.chunkCountX = var1 / 16 + 1;
@@ -24500,7 +25165,7 @@
  			this.chunkCountZ = var1 / 16 + 1;
  			this.chunks = new RenderChunk[this.chunkCountX * this.chunkCountY * this.chunkCountZ];
  			this.sortedChunks = new RenderChunk[this.chunkCountX * this.chunkCountY * this.chunkCountZ];
-@@ -274,6 +279,8 @@
+@@ -274,6 +280,8 @@
  			this.dirtyChunks.clear();
  			this.blockEntitiesToBeRendered.clear();
  
@@ -24509,7 +25174,7 @@
  			for(var4 = 0; var4 < this.chunkCountX; ++var4) {
  				for(int var5 = 0; var5 < this.chunkCountY; ++var5) {
  					for(int var6 = 0; var6 < this.chunkCountZ; ++var6) {
-@@ -282,13 +289,14 @@
+@@ -282,13 +290,14 @@
  							this.chunks[(var6 * this.chunkCountY + var5) * this.chunkCountX + var4].occlusionQuery = this.occlusionBuffer.get(var3);
  						}
  
@@ -24525,7 +25190,7 @@
  						var2 += 3;
  					}
  				}
-@@ -418,6 +426,14 @@
+@@ -418,6 +427,14 @@
  
  				for(int var12 = 0; var12 < this.chunkCountY; ++var12) {
  					int var13 = var12 * 16;
@@ -24540,7 +25205,7 @@
  					if(var13 < this.minChunkY) {
  						this.minChunkY = var13;
  					}
-@@ -429,9 +445,9 @@
+@@ -429,9 +446,9 @@
  					RenderChunk var14 = this.chunks[(var9 * this.chunkCountY + var12) * this.chunkCountX + var6];
  					boolean var15 = var14.dirty;
  					var14.setOrigin(var7, var13, var10);
@@ -24553,7 +25218,7 @@
  				}
  			}
  		}
-@@ -441,13 +457,13 @@
+@@ -441,13 +458,13 @@
  	public int render(MobEntity var1, int var2, double var3) {
  		Profiler.push("sortchunks");
  
@@ -24574,7 +25239,7 @@
  
  		if(this.minecraft.options.viewDistance != this.lastViewDistance) {
  			this.reload();
-@@ -673,46 +689,96 @@
+@@ -673,46 +690,96 @@
  			GL11.glDisable(GL11.GL_ALPHA_TEST);
  			GL11.glEnable(GL11.GL_BLEND);
  			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -24699,7 +25364,7 @@
  		} else if(this.minecraft.world.dimension.isNatural()) {
  			GL11.glDisable(GL11.GL_TEXTURE_2D);
  			Vec3d var2 = this.world.getSkyColor(this.minecraft.camera, var1);
-@@ -911,7 +977,7 @@
+@@ -911,7 +978,7 @@
  				}
  
  				var10 = 0.5F / 1024.0F;
@@ -24708,7 +25373,7 @@
  				double var13 = this.minecraft.camera.lastX + (this.minecraft.camera.x - this.minecraft.camera.lastX) * (double)var1 + var24 * (double)0.03F;
  				double var15 = this.minecraft.camera.lastZ + (this.minecraft.camera.z - this.minecraft.camera.lastZ) * (double)var1;
  				int var17 = MathHelper.floor(var13 / 2048.0D);
-@@ -951,7 +1017,7 @@
+@@ -951,7 +1018,7 @@
  		Tesselator var3 = Tesselator.INSTANCE;
  		float var4 = 12.0F;
  		float var5 = 4.0F;
@@ -24717,7 +25382,7 @@
  		double var8 = (this.minecraft.camera.lastX + (this.minecraft.camera.x - this.minecraft.camera.lastX) * (double)var1 + var6 * (double)0.03F) / (double)var4;
  		double var10 = (this.minecraft.camera.lastZ + (this.minecraft.camera.z - this.minecraft.camera.lastZ) * (double)var1) / (double)var4 + (double)0.33F;
  		float var12 = this.world.dimension.getCloudHeight() - var2 + 0.33F;
-@@ -1085,7 +1151,29 @@
+@@ -1085,7 +1152,29 @@
  		GL11.glEnable(GL11.GL_CULL_FACE);
  	}
  
@@ -24748,7 +25413,7 @@
  		boolean var3 = false;
  		if(var3) {
  			Collections.sort(this.dirtyChunks, new DirtyChunkSorter(var1));
-@@ -1389,8 +1477,8 @@
+@@ -1389,8 +1478,8 @@
  					int var19 = (var18 * this.chunkCountY + var16) * this.chunkCountX + var14;
  					RenderChunk var20 = this.chunks[var19];
  					if(!var20.dirty) {
@@ -24758,7 +25423,20 @@
  					}
  				}
  			}
-@@ -1469,7 +1557,7 @@
+@@ -1410,6 +1499,12 @@
+ 		this.markDirty(var1 - 1, var2 - 1, var3 - 1, var4 + 1, var5 + 1, var6 + 1);
+ 	}
+ 
++	public void notifyChunkBiomesChanged(int var1, int var2, int var3) {
++		var1 <<= 4;
++		var3 <<= 4;
++		this.markDirty(var1 - 17, 0, var3 - 17, var1 + 32, var2, var3 + 32);
++	}
++
+ 	public void cullChunks(Culler var1, float var2) {
+ 		for(int var3 = 0; var3 < this.chunks.length; ++var3) {
+ 			if(!this.chunks[var3].isEmpty() && (!this.chunks[var3].visible || (var3 + this.cullStep & 15) == 0)) {
+@@ -1469,7 +1564,7 @@
  			if(var21 != null) {
  				return (Particle)var21;
  			} else {
@@ -24767,7 +25445,7 @@
  				if(var15 * var15 + var17 * var17 + var19 * var19 > var22 * var22) {
  					return null;
  				} else if(var14 > 1) {
-@@ -1600,134 +1688,192 @@
+@@ -1600,134 +1695,192 @@
  		double var29;
  		double var33;
  		switch(var2) {
@@ -25165,7 +25843,7 @@
  import net.minecraft.client.gui.screen.StatsScreen;
  import net.minecraft.client.gui.screen.menu.AchievementsScreen;
  import net.minecraft.client.gui.widget.ButtonWidget;
-@@ -13,10 +16,12 @@
+@@ -13,10 +16,14 @@
  import net.minecraft.inventory.SimpleInventory;
  import net.minecraft.inventory.menu.InventoryMenu;
  import net.minecraft.inventory.slot.InventorySlot;
@@ -25175,10 +25853,12 @@
  import net.minecraft.locale.I18n;
  import net.minecraft.stat.achievement.Achievements;
 +import net.minecraft.world.biome.Biome;
++import net.minecraft.world.biome.HellBiome;
++import net.minecraft.world.biome.TheEndBiome;
  import org.lwjgl.input.Mouse;
  import org.lwjgl.opengl.GL11;
  
-@@ -35,8 +40,15 @@
+@@ -35,8 +42,15 @@
  	}
  
  	public void tick() {
@@ -25195,7 +25875,7 @@
  		}
  
  	}
-@@ -100,11 +112,12 @@
+@@ -100,11 +114,12 @@
  	}
  
  	public void init() {
@@ -25209,7 +25889,7 @@
  		}
  
  	}
-@@ -117,7 +130,6 @@
+@@ -117,7 +132,6 @@
  		super.handleMouse();
  		int var1 = Mouse.getEventDWheel();
  		if(var1 != 0) {
@@ -25217,7 +25897,7 @@
  			if(var1 > 0) {
  				var1 = 1;
  			}
-@@ -126,22 +138,29 @@
+@@ -126,22 +140,29 @@
  				var1 = -1;
  			}
  
@@ -25260,7 +25940,7 @@
  		int var5 = this.x;
  		int var6 = this.y;
  		int var7 = var5 + 155;
-@@ -197,56 +216,93 @@
+@@ -197,56 +218,93 @@
  			this.minecraft.openScreen(new StatsScreen(this, this.minecraft.stats));
  		}
  
@@ -25280,7 +25960,7 @@
  		public CreativePlayerMenu(PlayerEntity var1) {
 -			Block[] var2 = new Block[]{Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.ICE, Block.SNOW, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.END_STONE, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP};
 +			Block[] var2 = {Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.REDSTONE_BLOCK, Block.COAL_BLOCK, Block.COAL_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.BLAZE_REMAINS, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.SPONGE, Block.ICE, Block.SNOW, Block.SNOW_LAYER, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.BROWN_MUSHROOM_BLOCK, Block.RED_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.STONE_SLAB, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.TITANIUM_ORE, Block.TITANIUM_BLOCK, Block.COSMITE_BLOCK, Block.END_CRYSTAL_BLOCK, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.SPRUCE_STAIRS, Block.BIRCH_STAIRS, Block.JUNGLE_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.SANDSTONE_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP, Block.GEYSER, Block.MONSTER_EGG, Block.MONSTER_EGG, Block.MONSTER_EGG};
-+			Biome[] culturedMealBiomes = {Biome.PLAINS, Biome.DARK_FOREST, Biome.RAINFOREST, Biome.SWAMPLAND, Biome.ARCHIPELAGO};
++			Biome[] culturedMealBiomes = {Biome.PLAINS, Biome.DARK_FOREST, Biome.RAINFOREST, Biome.SWAMPLAND, Biome.ARCHIPELAGO, Biome.ICE_PLAINS, Biome.TAIGA, Biome.OCEAN, Biome.SEASONAL_FOREST, Biome.DESERT};
 +
 +			Set<Integer> excludedItems = Stream.of(
 +				Item.POTION.id,
@@ -25377,7 +26057,7 @@
  			for(var12 = 1; var12 < 16; ++var12) {
  				this.items.add(new ItemStack(Item.DYE.id, 1, var12));
  			}
-@@ -258,6 +314,44 @@
+@@ -258,6 +316,44 @@
  				this.items.add(new ItemStack(Item.SPAWN_EGG.id, 1, var17.intValue()));
  			}
  
@@ -25422,7 +26102,7 @@
  			PlayerInventory var16 = var1.inventory;
  
  			for(var13 = 0; var13 < 9; ++var13) {
-@@ -298,6 +392,10 @@
+@@ -298,6 +394,10 @@
  		}
  
  		protected void clickSlot(int var1, int var2, boolean var3, PlayerEntity var4) {
@@ -26966,7 +27646,7 @@
 +import java.util.Random;
 +
 +public class CosmiteSprite extends DynamicTexture {
-+    private static final int[] overlayTexture = new int[65536];
++    public static final int[] overlayTexture = new int[65536];
 +    private static boolean overlayLoaded;
 +
 +    private final Random random;
@@ -27338,7 +28018,20 @@
  				}
 --- net/minecraft/server/ChunkMap.java
 +++ net/minecraft/server/ChunkMap.java
-@@ -59,7 +59,7 @@
+@@ -3,11 +3,7 @@
+ import java.util.ArrayList;
+ import java.util.List;
+ import net.minecraft.block.entity.BlockEntity;
+-import net.minecraft.network.packet.BlockUpdatePacket;
+-import net.minecraft.network.packet.BlocksUpdatePacket;
+-import net.minecraft.network.packet.LoadWorldChunkPacket;
+-import net.minecraft.network.packet.Packet;
+-import net.minecraft.network.packet.WorldChunkPacket;
++import net.minecraft.network.packet.*;
+ import net.minecraft.server.entity.mob.player.ServerPlayerEntity;
+ import net.minecraft.server.world.ServerWorld;
+ import net.minecraft.util.Long2ObjectHashMap;
+@@ -59,7 +55,7 @@
  		long var4 = (long)var1 + 2147483647L | (long)var2 + 2147483647L << 32;
  		ChunkMap.ChunkHolder var6 = (ChunkMap.ChunkHolder)this.chunks.get(var4);
  		if(var6 == null && var3) {
@@ -27347,7 +28040,21 @@
  			this.chunks.put(var4, var6);
  		}
  
-@@ -170,20 +170,22 @@
+@@ -76,6 +72,13 @@
+ 
+ 	}
+ 
++	public void onChunkBiomesChanged(int var1, int var2) {
++		ChunkMap.ChunkHolder chunk = this.getChunk(var1, var2, false);
++		if(chunk != null) {
++			chunk.onBiomesChanged();
++		}
++	}
++
+ 	public void addPlayer(ServerPlayerEntity var1) {
+ 		int var2 = (int)var1.x >> 4;
+ 		int var3 = (int)var1.z >> 4;
+@@ -170,20 +173,23 @@
  		return this.chunkViewDistance * 16 - 16;
  	}
  
@@ -27362,6 +28069,7 @@
  		private int blocksChanged = 0;
 -		private int dirtySections;
 +		private long dirtySections;
++		private boolean dirtyBiomes;
 +		final ChunkMap chunkMap; // Make RetroMCP happy
  
 -		public ChunkHolder(int var2, int var3) {
@@ -27375,7 +28083,7 @@
  		}
  
  		public void addPlayer(ServerPlayerEntity var1) {
-@@ -202,30 +204,30 @@
+@@ -202,30 +208,30 @@
  				this.players.remove(var1);
  				if(this.players.size() == 0) {
  					long var2 = (long)this.chunkX + 2147483647L | (long)this.chunkZ + 2147483647L << 32;
@@ -27413,7 +28121,19 @@
  
  				for(int var5 = 0; var5 < this.blocksChanged; ++var5) {
  					if(this.dirtyBlocks[var5] == var4) {
-@@ -249,52 +251,52 @@
+@@ -238,6 +244,11 @@
+ 
+ 		}
+ 
++		public void onBiomesChanged() {
++			this.chunkMap.dirty.add(this);
++			this.dirtyBiomes = true;
++		}
++
+ 		public void sendPacket(Packet var1) {
+ 			for(int var2 = 0; var2 < this.players.size(); ++var2) {
+ 				ServerPlayerEntity var3 = (ServerPlayerEntity)this.players.get(var2);
+@@ -249,52 +260,56 @@
  		}
  
  		public void sendChanges() {
@@ -27496,12 +28216,16 @@
  				this.blocksChanged = 0;
 -				this.dirtySections = 0;
 +				this.dirtySections = 0L;
++			}
++
++			if(this.dirtyBiomes) {
++				this.sendPacket(new BiomeUpdatePacket(var1.getChunkAt(this.chunkX, this.chunkZ)));
  			}
  		}
  
 --- net/minecraft/item/DyeItem.java
 +++ net/minecraft/item/DyeItem.java
-@@ -1,23 +1,20 @@
+@@ -1,23 +1,21 @@
  package net.minecraft.item;
  
 -import net.minecraft.block.Block;
@@ -27515,6 +28239,7 @@
  import net.minecraft.entity.mob.MobEntity;
  import net.minecraft.entity.mob.passive.animal.SheepEntity;
  import net.minecraft.entity.mob.player.PlayerEntity;
++import net.minecraft.stat.achievement.Achievements;
  import net.minecraft.util.math.MathHelper;
  import net.minecraft.world.World;
 +import net.minecraft.world.biome.Biome;
@@ -27530,7 +28255,7 @@
  		this.setHasCustomData(true);
  		this.setMaxDamage(0);
  	}
-@@ -33,13 +30,24 @@
+@@ -33,13 +31,24 @@
  	}
  
  	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
@@ -27541,7 +28266,7 @@
 +            return false;
 +        }
 +		return var1.getMetadata() == 15
-+                && performBonemeal(var1, var3, var4, var5, var6, var3.getBiome(var4, var6))
++                && performBonemeal(var1, var2, var3, var4, var5, var6, var3.getBiome(var4, var6))
 +            || var1.getMetadata() == 3
 +                && var7 >= 2
 +                && var3.getBlock(var4, var5, var6) == Block.LOG.id
@@ -27549,7 +28274,7 @@
 +                && super.useOn(var1, var2, var3, var4, var5, var6, var7);
 +	}
 +
-+	public static boolean performBonemeal(ItemStack var1, World var3, int var4, int var5, int var6, Biome biome) {
++	public static boolean performBonemeal(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, Biome biome) {
 +		{
  			int var8 = var3.getBlock(var4, var5, var6);
  			if(var8 == Block.SAPLING.id) {
@@ -27559,7 +28284,7 @@
  					--var1.size;
  				}
  
-@@ -53,6 +61,13 @@
+@@ -53,10 +62,30 @@
  						}
  
  						return true;
@@ -27573,11 +28298,28 @@
  					} else if(var8 == Block.GRASS.id) {
  						if(!var3.isMultiplayer) {
  							--var1.size;
-@@ -85,6 +100,19 @@
+ 
++							if (var1.id == Item.CULTURED_MEAL.id) {
++								int radius = 5;
++								for (int x = var4 - radius; x <= var4 + radius; x++) {
++									for (int z = var6 - radius; z <= var6 + radius; z++) {
++										if ((x - var4) * (x - var4) + (z - var6) * (z - var6) > (radius * radius) - 1) {
++											continue;
++										}
++										var3.setBiome(x, z, biome.id);
++									}
++								}
++								return true;
++							}
++
+ 							label73:
+ 							for(int var9 = 0; var9 < 128; ++var9) {
+ 								int var10 = var4;
+@@ -85,6 +114,21 @@
  						}
  
  						return true;
-+					} else if(var8 == Block.FARMLAND.id && var1.id == Item.DYE.id) {
++					} else if(var8 == Block.FARMLAND.id && var1.id == Item.DYE.id && var3.dimension.isNatural()) {
 +						if(!var3.isMultiplayer) {
 +							ItemEntity culturedMeal = new ItemEntity(var3,
 +								var4 + 0.5D, var5 + 1.1D, var6 + 0.5D,
@@ -27587,13 +28329,15 @@
 +							culturedMeal.velocityZ = (random.nextDouble() - 0.5D) * 0.1D;
 +							culturedMeal.pickUpDelay = 10;
 +							var3.addEntity(culturedMeal);
++							var2.incrementStat(Achievements.GET_CULTURED_MEAL);
++							--var1.size;
 +						}
 +
 +						return true;
  					} else {
  						return false;
  					}
-@@ -103,8 +131,6 @@
+@@ -103,8 +147,6 @@
  
  				return true;
  			}
@@ -28054,6 +28798,17 @@
 +		return this.id;
  	}
  }
+--- net/minecraft/client/ClientPlayerInteractionManager.java
++++ net/minecraft/client/ClientPlayerInteractionManager.java
+@@ -39,7 +39,7 @@
+ 
+ 	public abstract void tickBlockMining(int var1, int var2, int var3, int var4);
+ 
+-	public abstract void stopMiningBlock();
++	public abstract void stopMiningBlock(boolean mouseReleased);
+ 
+ 	public void render(float var1) {
+ 	}
 --- net/minecraft/world/gen/feature/SwampTreeFeature.java
 +++ net/minecraft/world/gen/feature/SwampTreeFeature.java
 @@ -6,13 +6,24 @@
@@ -28335,12 +29090,23 @@
 +import net.minecraft.network.packet.*;
  
  public abstract class PacketHandler {
-+	public static final int PROTOCOL_VERSION = 4070005;
++	public static final int PROTOCOL_VERSION = 4070006;
 +
  	public abstract boolean isServer();
  
  	public void handleWorldChunk(WorldChunkPacket var1) {
-@@ -317,4 +257,9 @@
+@@ -244,6 +184,10 @@
+ 		this.handleUnknownPacket(var1);
+ 	}
+ 
++	public void handleBiomeUpdate(BiomeUpdatePacket var1) {
++		this.handleUnknownPacket(var1);
++	}
++
+ 	public void handleStat(StatPacket var1) {
+ 		this.handleUnknownPacket(var1);
+ 	}
+@@ -317,4 +261,9 @@
  	public void handlePlayerAbilities(PlayerAbilitiesPacket var1) {
  		this.handleUnknownPacket(var1);
  	}
@@ -28481,17 +29247,49 @@
  }
 --- net/minecraft/SharedConstants.java
 +++ net/minecraft/SharedConstants.java
-@@ -6,6 +6,10 @@
+@@ -6,6 +6,11 @@
  public class SharedConstants {
  	public static final String VALID_CHAT_CHARACTERS = getValidChatCharString();
  	public static final char[] INVALID_FILE_CHARS = new char[]{'/', '\n', '\r', '\t', '\u0000', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
-+	public static final String VERSION = "AuthAdv 1.4.2";
++	public static final String INVALID_FILE_CHARS_STRING = new String(INVALID_FILE_CHARS);
++	public static final String VERSION = "AuthAdv 1.4.3";
 +	public static final boolean PRE_RELEASE = VERSION.contains("Pre-release");
 +	public static final boolean DEBUG_MODE = false;
 +    public static final boolean PANORAMA_MODE = false;
  
  	private static String getValidChatCharString() {
  		String var0 = "";
+@@ -32,7 +37,7 @@
+ 	}
+ 
+ 	public static final boolean isValidChatChar(char var0) {
+-		return var0 != 167 && (VALID_CHAT_CHARACTERS.indexOf(var0) >= 0 || var0 > 32);
++		return var0 != 167 && (var0 > 32 || VALID_CHAT_CHARACTERS.indexOf(var0) >= 0);
+ 	}
+ 
+ 	public static String stripInvalidChars(String var0) {
+@@ -43,6 +48,21 @@
+ 		for(int var4 = 0; var4 < var3; ++var4) {
+ 			char var5 = var2[var4];
+ 			if(isValidChatChar(var5)) {
++				var1.append(var5);
++			}
++		}
++
++		return var1.toString();
++	}
++
++	public static String stripInvalidFileChars(String var0) {
++		StringBuilder var1 = new StringBuilder();
++		char[] var2 = var0.toCharArray();
++		int var3 = var2.length;
++
++		for(int var4 = 0; var4 < var3; ++var4) {
++			char var5 = var2[var4];
++			if(isValidChatChar(var5) && INVALID_FILE_CHARS_STRING.indexOf(var5) == -1) {
+ 				var1.append(var5);
+ 			}
+ 		}
 --- net/minecraft/entity/Entity.java
 +++ net/minecraft/entity/Entity.java
 @@ -292,7 +292,15 @@
@@ -28588,6 +29386,17 @@
  	private final int size;
  
  	public VillageStructure(int var1) {
+@@ -17,8 +31,8 @@
+ 	}
+ 
+ 	protected boolean isFeatureChunk(int var1, int var2) {
+-		byte var3 = 32;
+-		byte var4 = 8;
++		byte var3 = 48;
++		byte var4 = 12;
+ 		int var5 = var1;
+ 		int var6 = var2;
+ 		if(var1 < 0) {
 --- net/minecraft/item/HoeItem.java
 +++ net/minecraft/item/HoeItem.java
 @@ -21,11 +21,15 @@
@@ -30212,7 +31021,7 @@
 +            this.setAttackTarget(null);
 +        }
 +
-+        if(this.getAttackTarget() == null) {
++        if(!this.world.getData().isDragonDefeated() && this.getAttackTarget() == null) {
 +            PlayerEntity player = this.world.getNearestPlayerToAttack(this, 8.0D);
 +            if(player != null && player.canSee(this) && player.getHealth() > 0) {
 +                this.setAttackTarget(player);
@@ -30271,7 +31080,7 @@
  
  public class OreBlock extends Block {
  	public OreBlock(int var1, int var2) {
-@@ -19,11 +20,10 @@
+@@ -19,11 +20,9 @@
  
  	public int getDropCount(int var1, Random var2) {
  		if(var1 > 0 && this.id != this.getDropItem(0, var2, var1)) {
@@ -30282,12 +31091,11 @@
 -
 +			int var3 = var1 == 1 ? var2.nextInt(3) / 2
 +				: var1 == 2 ? (var2.nextInt(3) + 1) / 2
-+				: var1 == 3 ? var2.nextInt(3)
-+				: 0;
++				: var2.nextInt(3);
  			return this.getBaseDropCount(var2) * (var3 + 1);
  		} else {
  			return this.getBaseDropCount(var2);
-@@ -32,5 +32,15 @@
+@@ -32,5 +31,15 @@
  
  	protected int getDropItemMetadata(int var1) {
  		return this.id == Block.LAPIS_ORE.id ? 4 : 0;
@@ -31381,6 +32189,91 @@
 +		return this.block;
  	}
  }
+--- /dev/null
++++ net/minecraft/client/gui/screen/world/SaveGameModeScreen.java
+@@ -1,0 +1,82 @@
++package net.minecraft.client.gui.screen.world;
++
++import net.minecraft.SharedConstants;
++import net.minecraft.client.gui.screen.Screen;
++import net.minecraft.client.gui.widget.ButtonWidget;
++import net.minecraft.client.gui.widget.TextFieldWidget;
++import net.minecraft.locale.Language;
++import net.minecraft.nbt.NbtCompound;
++import net.minecraft.nbt.NbtIo;
++import net.minecraft.world.GameMode;
++import org.lwjgl.input.Keyboard;
++
++import java.io.File;
++import java.io.IOException;
++
++public class SaveGameModeScreen extends Screen {
++    private final Screen parent;
++    private final GameMode gameMode;
++    private String title;
++    private TextFieldWidget nameField;
++
++    public SaveGameModeScreen(Screen parent, GameMode gameMode) {
++        this.parent = parent;
++        this.gameMode = gameMode;
++    }
++
++    public void init() {
++        Language lang = Language.getInstance();
++        this.title = lang.translate("customizedGameMode.saveTitle");
++
++        Keyboard.enableRepeatEvents(true);
++
++        this.nameField = new TextFieldWidget(this.textRenderer, this.width / 2 - 100, this.height / 2 - 10, 200, 20);
++        this.nameField.setFocused(true);
++        this.nameField.setText("My Craft");
++        this.buttons.add(new ButtonWidget(0, this.width / 2 - 105, this.height / 2 + 20, 100, 20, lang.translate("gui.cancel")));
++        this.buttons.add(new ButtonWidget(1, this.width / 2 + 5, this.height / 2 + 20, 100, 20, lang.translate("gui.done")));
++    }
++
++    public void removed() {
++        Keyboard.enableRepeatEvents(false);
++    }
++
++    public void render(int var1, int var2, float var3) {
++        this.renderBackground();
++        this.drawCenteredString(this.textRenderer, this.title, this.width / 2, this.height / 2 - 30, 0xFFFFFF);
++        super.render(var1, var2, var3);
++        this.nameField.render();
++    }
++
++    public void tick() {
++        this.nameField.tick();
++    }
++
++    protected void keyPressed(char var1, int var2) {
++        this.nameField.keyPressed(var1, var2);
++    }
++
++    protected void mouseClicked(int var1, int var2, int var3) {
++        this.nameField.mouseClicked(var1, var2, var3);
++        super.mouseClicked(var1, var2, var3);
++    }
++
++    protected void buttonClicked(ButtonWidget var1) {
++        if(var1.id == 1) {
++            File presetDir = new File(this.minecraft.gameDir, "gamemodes");
++            presetDir.mkdirs();
++
++            String name = this.nameField.getText();
++            name = SharedConstants.stripInvalidFileChars(name);
++
++            NbtCompound compound = new NbtCompound();
++            this.gameMode.writeData(compound);
++            try {
++                NbtIo.writeSafely(compound, new File(presetDir, name + ".dat"));
++            } catch (IOException ignored) {
++            }
++        }
++
++        this.minecraft.openScreen(this.parent);
++    }
++}
 --- net/minecraft/client/gui/screen/options/OptionsScreen.java
 +++ net/minecraft/client/gui/screen/options/OptionsScreen.java
 @@ -31,7 +31,7 @@
@@ -31460,7 +32353,7 @@
  		} else {
 --- /dev/null
 +++ net/minecraft/client/gui/screen/world/GameModeCustomizationScreen.java
-@@ -1,0 +1,318 @@
+@@ -1,0 +1,327 @@
 +package net.minecraft.client.gui.screen.world;
 +
 +import java.util.function.Consumer;
@@ -31473,27 +32366,30 @@
 +public class GameModeCustomizationScreen extends Screen {
 +	private static final int PAGE_COUNT = 3;
 +
-+	protected CreateWorldScreen parentScreen;
-+	protected String screenTitle = "Custom Game Mode";
++	private final CreateWorldScreen parent;
++	private String screenTitle;
 +	private GameMode gameMode;
 +	private int page = -1;
 +	private boolean blockButtons;
 +
 +	public GameModeCustomizationScreen(CreateWorldScreen var1) {
-+		this.parentScreen = var1;
++		this.parent = var1;
 +		this.gameMode = var1.gameModeValue;
 +	}
 +
 +	public void init() {
-+		Language var1 = Language.getInstance();
++		Language lang = Language.getInstance();
 +		this.screenTitle = this.page == -1 ? i18ncgm("presetsTitle") : i18ncgm("title");
-+		this.buttons.add(new ButtonWidget(-1, this.width / 2 + 5, this.height / 6 + 156, 150, 20, var1.translate("gui.done")));
++		this.buttons.add(new ButtonWidget(-1, this.width / 2 + 5, this.height / 6 + 156, 150, 20, lang.translate("gui.done")));
 +		this.buttons.add(new ButtonWidget(-2, this.width / 2 - 180, this.height / 6 + 156, 20, 20, "<"));
 +		this.buttons.add(new ButtonWidget(-3, this.width / 2 + 160, this.height / 6 + 156, 20, 20, ">"));
 +		this.buttons.add(new ButtonWidget(-4, this.width / 2 - 155, this.height / 6 + 156, 150, 20, this.page == -1 ? i18ncgm("advanced") : i18ncgm("presets")));
 +		if(this.page == -1) {
 +			((ButtonWidget)this.buttons.get(1)).active = false;
 +			((ButtonWidget)this.buttons.get(2)).active = false;
++		} else {
++			this.buttons.add(new ButtonWidget(-5, this.width / 2 - 155, this.height / 6 + 180, 150, 20, lang.translate("customizedGameMode.load")));
++			this.buttons.add(new ButtonWidget(-6, this.width / 2 + 5, this.height / 6 + 180, 150, 20, lang.translate("customizedGameMode.save")));
 +		}
 +
 +		switch(this.page) {
@@ -31621,6 +32517,12 @@
 +		if(!this.blockButtons) {
 +			boolean var2 = false;
 +			switch(var1.id) {
++			case -6:
++				this.minecraft.openScreen(new SaveGameModeScreen(this, this.gameMode));
++				break;
++			case -5:
++				this.minecraft.openScreen(new LoadGameModeScreen(this, this.gameMode));
++				break;
 +			case -4:
 +				this.page = this.page >= 0 ? -1 : 0;
 +				var2 = true;
@@ -31634,7 +32536,7 @@
 +				var2 = true;
 +				break;
 +			case -1:
-+				this.minecraft.openScreen(this.parentScreen);
++				this.minecraft.openScreen(this.parent);
 +				break;
 +			case 0:
 +				var1.message = i18ncgm("xpEnabled", this.gameMode.xpEnabled = !this.gameMode.xpEnabled);
@@ -31707,20 +32609,20 @@
 +                var1.message = i18ncgm("fastBaseMinecarts", this.gameMode.fastBaseMinecarts = !this.gameMode.fastBaseMinecarts);
 +                break;
 +			case 1000:
-+				this.parentScreen.gameModeValue = this.gameMode = new GameMode();
++				this.parent.gameModeValue = this.gameMode = new GameMode();
 +				this.gameMode.preset = "default";
 +				var2 = true;
 +				break;
 +			case 1001:
-+				this.parentScreen.gameModeValue = this.gameMode = GameMode.hardcore();
++				this.parent.gameModeValue = this.gameMode = GameMode.hardcore();
 +				var2 = true;
 +				break;
 +			case 1002:
-+				this.parentScreen.gameModeValue = this.gameMode = GameMode.classic();
++				this.parent.gameModeValue = this.gameMode = GameMode.classic();
 +				var2 = true;
 +				break;
 +			case 1003:
-+				this.parentScreen.gameModeValue = this.gameMode = GameMode.vanilla();
++				this.parent.gameModeValue = this.gameMode = GameMode.vanilla();
 +				var2 = true;
 +			}
 +
@@ -32139,7 +33041,7 @@
 +    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
 +        Biome biome = Biome.BY_ID[var1.getMetadata()];
 +        return var2.canUseItemOn(var4, var5, var6)
-+            && DyeItem.performBonemeal(var1, var3, var4, var5, var6, biome);
++            && DyeItem.performBonemeal(var1, var2, var3, var4, var5, var6, biome);
 +    }
 +
 +    public void addHoverText(ItemStack var1, List var2) {

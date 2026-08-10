@@ -6,6 +6,8 @@
 
 Authentic Adventure is a minimalistic mod for 1.2.5 that reverts the game to a more Beta-esque aesthetic with hilly terrain generation, sandbox gameplay and an overall enjoyable experience for players interested in both the golden age and the adventure update era. For a blind playthrough, it is suggested to look at the achievements menu to learn a bit about how to access new progression content.
 
+More info and guides can be found at https://bluestaggo.neocities.org/minecraft/authentic-adventure.
+
 ## Features
 - Overhauled world generation with extra hills and Beta-esque features
 - Plenty of customisation options for world generation, gameplay and visuals to fine tune your experience
