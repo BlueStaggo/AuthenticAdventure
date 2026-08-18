@@ -1,3 +1,45 @@
+# 1.4.4
+Released: August 18th 2026
+
+## Additions
+- Table Saw
+  - Crafted with a 2x2 square of cobblestone and 2 iron ingots on top
+  - Looks like the stonecutter from old Pocket Edition
+  - Exhibits the same functionality as stonecutters from modern Minecraft: it can cut blocks into smaller or alternate variants
+  - For every four stairs crafted, only three blocks are consumed
+  - The table saw has recipes for stone, sandstone, bricks, nether bricks, wood and compact blocks like snow and clay
+- Stone Column
+  - Crafted from a column of 3 stone bricks
+  - Rotatable column with the pattern of chiseled stone bricks
+- Gabbro Shingles
+  - Crafted from a 2x2 square of gabbro
+  - Compressed sheets of gabbro with a smooth surface on the top and bottom
+  - Can be rotated and crafted into stairs and slabs
+- Smooth Gabbro
+  - Crafted from two gabbro shingles slabs on top of each other
+  - Has a similar pattern to smooth stone but darker
+- On Death: Store Items
+  - When the player dies, a gravestone is created containing 
+  - Contains the player's inventory and experience which is released when the gravestone is broken
+
+## Changes
+- Upside-down slabs and stairs can now be placed on the sides of blocks
+- The gamemode customization screen now has tooltips for every option
+- Made it possible to obtain Fire Aspect II and Sharpness V through logical enchanting
+- Increased levels of sharpness for logical enchanting
+- End crystal blocks now have increased drops with the fortune enchantment
+- Replaced placeholder name for cultured meal achievement
+- Adjusted coloring of end crystals and cosmite blend
+
+## Bug Fixes
+- Fixed velocity calculations for the "They See Me Rollin'" achievement
+- Fixed chests inside of minecarts rendering with an incorrect offset
+- Fixed nether brick slab not appearing in the creative inventory
+- Fixed different monster egg variants not being placeable
+- Multiplayer now uses the same logic as singleplayer for player death
+  - This allows for the `itemsOnDeath` gamerule to function correctly
+  - This lets Notch drop apples in multiplayer
+
 # 1.4.3
 Released: August 10th 2026
 

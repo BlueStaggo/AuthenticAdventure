@@ -1135,7 +1135,21 @@
  	public int getSprite(int var1) {
  		return this.getSprite(var1, 0);
  	}
-@@ -74,10 +67,6 @@
+@@ -66,18 +59,18 @@
+ 		return this.doubleSlab;
+ 	}
+ 
+-	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5) {
+-		if(var5 == 0 && !this.doubleSlab) {
++	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5, float hitX, float hitY, float hitZ) {
++		if(this.doubleSlab) {
++			return;
++		}
++
++		if(var5 == 0 || var5 != 1 && hitY >= 0.5F) {
+ 			int var6 = var1.getBlockMetadata(var2, var3, var4) & 7;
+ 			var1.setBlockMetadata(var2, var3, var4, var6 | 8);
+ 		}
  
  	}
  
@@ -1146,7 +1160,7 @@
  	public int getBaseDropCount(Random var1) {
  		return this.doubleSlab ? 2 : 1;
  	}
-@@ -104,9 +93,5 @@
+@@ -104,9 +97,5 @@
  			boolean var9 = (var1.getBlockMetadata(var6, var7, var8) & 8) != 0;
  			return !var9 ? (var5 == 1 ? true : (var5 == 0 && super.shouldRenderFace(var1, var2, var3, var4, var5) ? true : var1.getBlock(var2, var3, var4) != this.id || (var1.getBlockMetadata(var2, var3, var4) & 8) != 0)) : (var5 == 0 ? true : (var5 == 1 && super.shouldRenderFace(var1, var2, var3, var4, var5) ? true : var1.getBlock(var2, var3, var4) != this.id || (var1.getBlockMetadata(var2, var3, var4) & 8) == 0));
  		}
@@ -2070,7 +2084,28 @@
  	public void writeCustomNbt(NbtCompound var1) {
 --- net/minecraft/network/packet/PlayerUsePacket.java
 +++ net/minecraft/network/packet/PlayerUsePacket.java
-@@ -26,7 +26,7 @@
+@@ -12,32 +12,44 @@
+ 	public int z;
+ 	public int face;
+ 	public ItemStack itemInHand;
++	public float hitX;
++	public float hitY;
++	public float hitZ;
+ 
+ 	public PlayerUsePacket() {
+ 	}
+ 
+-	public PlayerUsePacket(int var1, int var2, int var3, int var4, ItemStack var5) {
++	public PlayerUsePacket(int var1, int var2, int var3, int var4, ItemStack var5, float hitX, float hitY, float hitZ) {
+ 		this.x = var1;
+ 		this.y = var2;
+ 		this.z = var3;
+ 		this.face = var4;
+ 		this.itemInHand = var5;
++		this.hitX = hitX;
++		this.hitY = hitY;
++		this.hitZ = hitZ;
+ 	}
  
  	public void read(DataInputStream var1) throws IOException {
  		this.x = var1.readInt();
@@ -2079,7 +2114,10 @@
  		this.z = var1.readInt();
  		this.face = var1.read();
  		this.itemInHand = this.readItem(var1);
-@@ -34,7 +34,7 @@
++		this.hitX = var1.read() / 255.0F;
++		this.hitY = var1.read() / 255.0F;
++		this.hitZ = var1.read() / 255.0F;
+ 	}
  
  	public void write(DataOutputStream var1) throws IOException {
  		var1.writeInt(this.x);
@@ -2088,12 +2126,18 @@
  		var1.writeInt(this.z);
  		var1.write(this.face);
  		this.writeItem(this.itemInHand, var1);
-@@ -45,6 +45,6 @@
++		var1.write(Math.round(this.hitX * 255.0F));
++		var1.write(Math.round(this.hitY * 255.0F));
++		var1.write(Math.round(this.hitZ * 255.0F));
+ 	}
+ 
+ 	public void handle(PacketHandler var1) {
+@@ -45,6 +57,6 @@
  	}
  
  	public int getSize() {
 -		return 15;
-+		return 16;
++		return 19;
  	}
  }
 --- net/minecraft/client/render/entity/BlockEntityItemRenderer.java
@@ -2117,6 +2161,176 @@
  		}
  	}
  }
+--- /dev/null
++++ net/minecraft/inventory/menu/TableSawMenu.java
+@@ -1,0 +1,167 @@
++package net.minecraft.inventory.menu;
++
++import net.minecraft.block.Block;
++import net.minecraft.crafting.SawingManager;
++import net.minecraft.crafting.recipe.SawingRecipe;
++import net.minecraft.entity.mob.player.PlayerEntity;
++import net.minecraft.entity.mob.player.PlayerInventory;
++import net.minecraft.inventory.CraftingInventory;
++import net.minecraft.inventory.Inventory;
++import net.minecraft.inventory.ResultInventory;
++import net.minecraft.inventory.slot.CraftingResultSlot;
++import net.minecraft.inventory.slot.InventorySlot;
++import net.minecraft.item.ItemStack;
++import net.minecraft.stat.achievement.Achievements;
++import net.minecraft.world.World;
++
++import java.util.Collections;
++import java.util.List;
++
++public class TableSawMenu extends InventoryMenu {
++    public Inventory inputInventory = new CraftingInventory(this, 1, 1);
++    public Inventory resultInventory = new ResultInventory(21);
++    private World world;
++    private int x;
++    private int y;
++    private int z;
++
++    private int inputId;
++    private int inputMeta;
++    private float efficiencyBuildup;
++    private List<SawingRecipe> recipes = Collections.emptyList();
++
++    public TableSawMenu(PlayerInventory var1, World var2, int var3, int var4, int var5) {
++        this.world = var2;
++        this.x = var3;
++        this.y = var4;
++        this.z = var5;
++
++        for(int y = 0; y < 3; y++) {
++            for(int x = 0; x < 7; x++) {
++                this.addSlot(new ResultSlot(var1.player, this.inputInventory, this.resultInventory, x + y * 7, 44 + x * 18, 17 + y * 18));
++            }
++        }
++
++        this.addSlot(new InventorySlot(this.inputInventory, 0, 17, 35));
++
++        for(int y = 0; y < 3; y++) {
++            for(int x = 0; x < 9; x++) {
++                this.addSlot(new InventorySlot(var1, x + y * 9 + 9, 8 + x * 18, 84 + y * 18));
++            }
++        }
++
++        for(int i = 0; i < 9; ++i) {
++            this.addSlot(new InventorySlot(var1, i, 8 + i * 18, 142));
++        }
++
++        this.onContentsChanged(this.inputInventory);
++    }
++
++    public boolean isValid(PlayerEntity var1) {
++        return this.world.getBlock(this.x, this.y, this.z) == Block.TABLE_SAW.id
++            && var1.squaredDistanceTo(this.x + 0.5D, this.y + 0.5D, this.z + 0.5D) <= 64.0D;
++    }
++
++    public void onContentsChanged(Inventory var1) {
++        ItemStack input = this.inputInventory.getItem(0);
++        int newInputId = input != null ? input.id : 0;
++        int newInputMeta = input != null ? input.getMetadata() : 0;
++
++        if (newInputId != this.inputId || newInputMeta != this.inputMeta) {
++            this.inputId = newInputId;
++            this.inputMeta = newInputMeta;
++            this.efficiencyBuildup = 0.0F;
++            this.recipes = SawingManager.getInstance().getMatchingRecipes(input);
++        }
++
++        for(int i = 0; i < 21; i++) {
++            if(i < this.recipes.size()) {
++                this.resultInventory.setItem(i, this.recipes.get(i).output.copy());
++            } else {
++                this.resultInventory.setItem(i, null);
++            }
++        }
++    }
++
++    public void close(PlayerEntity var1) {
++        super.close(var1);
++
++        if(!this.world.isMultiplayer) {
++            ItemStack inputItem = this.inputInventory.removeItemQuietly(0);
++            if(inputItem != null) {
++                var1.dropItem(inputItem);
++            }
++        }
++    }
++
++    public ItemStack quickMoveItem(int var1) {
++        ItemStack var2 = null;
++        InventorySlot var3 = (InventorySlot)this.slots.get(var1);
++        if(var3 != null && var3.hasItem()) {
++            ItemStack var4 = var3.getItem();
++            var2 = var4.copy();
++            if(var1 < 21) {
++                if(!this.moveItem(var4, 22, 58, true)) {
++                    return null;
++                }
++
++                var3.onQuickMoved(var4, var2);
++            } else if(var1 >= 22 && var1 < 49) {
++                if(!this.moveItem(var4, 49, 58, false)) {
++                    return null;
++                }
++            } else if(var1 >= 49 && var1 < 58) {
++                if(!this.moveItem(var4, 22, 49, false)) {
++                    return null;
++                }
++            } else if(!this.moveItem(var4, 22, 58, false)) {
++                return null;
++            }
++
++            if(var4.size == 0) {
++                var3.setItem((ItemStack)null);
++            } else {
++                var3.markDirty();
++            }
++
++            if(var4.size == var2.size) {
++                return null;
++            }
++
++            var3.onItemRemoved(var4);
++        }
++
++        return var2;
++    }
++
++    private class ResultSlot extends CraftingResultSlot {
++        private final PlayerEntity sawPlayer;
++
++        public ResultSlot(PlayerEntity var1, Inventory var2, Inventory var3, int var4, int var5, int var6) {
++            super(var1, var2, var3, var4, var5, var6);
++            this.sawPlayer = var1;
++        }
++
++        public void onItemRemoved(ItemStack var1) {
++            TableSawMenu menu = TableSawMenu.this;
++            SawingRecipe recipe = menu.recipes.get(this.index);
++            float efficiency = recipe != null ? recipe.efficiency : 0.0F;
++
++            if (menu.efficiencyBuildup < 1.0F) {
++                menu.efficiencyBuildup += efficiency;
++                super.onItemRemoved(var1);
++                return;
++            }
++
++            menu.efficiencyBuildup -= 1.0F;
++            this.checkAchievements(var1);
++            menu.onContentsChanged(this.inventory);
++        }
++
++        @Override
++        protected void checkAchievements(ItemStack var1) {
++            super.checkAchievements(var1);
++            this.sawPlayer.incrementStat(Achievements.USE_TABLE_SAW);
++        }
++    }
++}
 --- net/minecraft/world/gen/structure/VillagePieces.java
 +++ net/minecraft/world/gen/structure/VillagePieces.java
 @@ -12,6 +12,9 @@
@@ -2845,7 +3059,7 @@
  
  public class CraftingManager {
  	private static final CraftingManager INSTANCE = new CraftingManager();
-@@ -31,24 +32,33 @@
+@@ -31,24 +32,34 @@
  		(new DyeRecipes()).register(this);
  		this.registerShaped(new ItemStack(Item.PAPER, 3), new Object[]{"###", Character.valueOf('#'), Item.REEDS});
  		this.registerShaped(new ItemStack(Item.BOOK, 1), new Object[]{"#", "#", "#", Character.valueOf('#'), Item.PAPER});
@@ -2874,6 +3088,7 @@
  		this.registerShaped(new ItemStack(Block.STONE_SLAB, 6, 4), new Object[]{"###", Character.valueOf('#'), Block.BRICKS});
  		this.registerShaped(new ItemStack(Block.STONE_SLAB, 6, 5), new Object[]{"###", Character.valueOf('#'), Block.STONE_BRICKS});
 +		this.registerShaped(new ItemStack(Block.STONE_SLAB, 6, 6), new Object[]{"###", Character.valueOf('#'), Block.NETHER_BRICKS});
++		this.registerShaped(new ItemStack(Block.STONE_SLAB, 6, 7), new Object[]{"###", Character.valueOf('#'), new ItemStack(Block.STONE_COLUMN, 1, 1)});
 +		this.registerShaped(new ItemStack(Block.WOODEN_SLAB, 6, 0), new Object[]{"###", Character.valueOf('#'), new ItemStack(Block.PLANKS, 1, 0)});
 +		this.registerShaped(new ItemStack(Block.WOODEN_SLAB, 6, 1), new Object[]{"###", Character.valueOf('#'), new ItemStack(Block.PLANKS, 1, 1)});
 +		this.registerShaped(new ItemStack(Block.WOODEN_SLAB, 6, 2), new Object[]{"###", Character.valueOf('#'), new ItemStack(Block.PLANKS, 1, 2)});
@@ -2881,7 +3096,7 @@
  		this.registerShaped(new ItemStack(Block.LADDER, 3), new Object[]{"# #", "###", "# #", Character.valueOf('#'), Item.STICK});
  		this.registerShaped(new ItemStack(Item.WOODEN_DOOR, 1), new Object[]{"##", "##", "##", Character.valueOf('#'), Block.PLANKS});
  		this.registerShaped(new ItemStack(Block.TRAPDOOR, 2), new Object[]{"###", "###", Character.valueOf('#'), Block.PLANKS});
-@@ -60,7 +70,12 @@
+@@ -60,7 +71,12 @@
  		this.registerShaped(new ItemStack(Block.PLANKS, 4, 1), new Object[]{"#", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 1)});
  		this.registerShaped(new ItemStack(Block.PLANKS, 4, 2), new Object[]{"#", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 2)});
  		this.registerShaped(new ItemStack(Block.PLANKS, 4, 3), new Object[]{"#", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 3)});
@@ -2894,7 +3109,7 @@
  		this.registerShaped(new ItemStack(Block.TORCH, 4), new Object[]{"X", "#", Character.valueOf('X'), Item.COAL, Character.valueOf('#'), Item.STICK});
  		this.registerShaped(new ItemStack(Block.TORCH, 4), new Object[]{"X", "#", Character.valueOf('X'), new ItemStack(Item.COAL, 1, 1), Character.valueOf('#'), Item.STICK});
  		this.registerShaped(new ItemStack(Item.BOWL, 4), new Object[]{"# #", " # ", Character.valueOf('#'), Block.PLANKS});
-@@ -74,16 +89,21 @@
+@@ -74,16 +90,22 @@
  		this.registerShaped(new ItemStack(Block.LIT_PUMPKIN, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.PUMPKIN, Character.valueOf('B'), Block.TORCH});
  		this.registerShaped(new ItemStack(Item.CHEST_MINECART, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.CHEST, Character.valueOf('B'), Item.MINECART});
  		this.registerShaped(new ItemStack(Item.FURNACE_MINECART, 1), new Object[]{"A", "B", Character.valueOf('A'), Block.FURNACE, Character.valueOf('B'), Item.MINECART});
@@ -2919,10 +3134,11 @@
 +		this.registerShaped(new ItemStack(Block.STONE_BRICK_STAIRS, 8), new Object[]{"#  ", "## ", "###", Character.valueOf('#'), Block.STONE_BRICKS});
 +		this.registerShaped(new ItemStack(Block.NETHER_BRICK_STAIRS, 8), new Object[]{"#  ", "## ", "###", Character.valueOf('#'), Block.NETHER_BRICKS});
 +		this.registerShaped(new ItemStack(Block.SANDSTONE_STAIRS, 8), new Object[]{"#  ", "## ", "###", Character.valueOf('#'), Block.SANDSTONE});
++		this.registerShaped(new ItemStack(Block.GABBRO_SHINGLES_STAIRS, 8), new Object[]{"#  ", "## ", "###", Character.valueOf('#'), new ItemStack(Block.STONE_COLUMN, 1, 1)});
  		this.registerShaped(new ItemStack(Item.PAINTING, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.STICK, Character.valueOf('X'), Block.WOOL});
  		this.registerShaped(new ItemStack(Item.GOLDEN_APPLE, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.GOLD_NUGGET, Character.valueOf('X'), Item.APPLE});
  		this.registerShaped(new ItemStack(Block.LEVER, 1), new Object[]{"X", "#", Character.valueOf('#'), Block.COBBLESTONE, Character.valueOf('X'), Item.STICK});
-@@ -92,7 +112,7 @@
+@@ -92,7 +114,7 @@
  		this.registerShaped(new ItemStack(Item.CLOCK, 1), new Object[]{" # ", "#X#", " # ", Character.valueOf('#'), Item.GOLD_INGOT, Character.valueOf('X'), Item.REDSTONE});
  		this.registerShaped(new ItemStack(Item.COMPASS, 1), new Object[]{" # ", "#X#", " # ", Character.valueOf('#'), Item.IRON_INGOT, Character.valueOf('X'), Item.REDSTONE});
  		this.registerShaped(new ItemStack(Item.MAP, 1), new Object[]{"###", "#X#", "###", Character.valueOf('#'), Item.PAPER, Character.valueOf('X'), Item.COMPASS});
@@ -2931,7 +3147,7 @@
  		this.registerShaped(new ItemStack(Block.STONE_PRESSURE_PLATE, 1), new Object[]{"##", Character.valueOf('#'), Block.STONE});
  		this.registerShaped(new ItemStack(Block.WOODEN_PRESSURE_PLATE, 1), new Object[]{"##", Character.valueOf('#'), Block.PLANKS});
  		this.registerShaped(new ItemStack(Block.DISPENSER, 1), new Object[]{"###", "#X#", "#R#", Character.valueOf('#'), Block.COBBLESTONE, Character.valueOf('X'), Item.BOW, Character.valueOf('R'), Item.REDSTONE});
-@@ -103,6 +123,11 @@
+@@ -103,6 +125,11 @@
  		this.registerShapeless(new ItemStack(Item.EYE_OF_ENDER, 1), new Object[]{Item.ENDER_PEARL, Item.BLAZE_POWDER});
  		this.registerShapeless(new ItemStack(Item.FIRE_CHARGE, 3), new Object[]{Item.GUNPOWDER, Item.BLAZE_POWDER, Item.COAL});
  		this.registerShapeless(new ItemStack(Item.FIRE_CHARGE, 3), new Object[]{Item.GUNPOWDER, Item.BLAZE_POWDER, new ItemStack(Item.COAL, 1, 1)});
@@ -2943,7 +3159,7 @@
  		Collections.sort(this.recipes, new CraftingManager.C_57536588());
  		System.out.println(this.recipes.size() + " recipes");
  	}
-@@ -113,7 +138,7 @@
+@@ -113,7 +140,7 @@
  		int var5 = 0;
  		int var6 = 0;
  		if(var2[var4] instanceof String[]) {
@@ -2952,7 +3168,7 @@
  
  			for(int var8 = 0; var8 < var11.length; ++var8) {
  				String var9 = var11[var8];
-@@ -183,6 +208,10 @@
+@@ -183,6 +210,10 @@
  	}
  
  	public ItemStack getResult(CraftingInventory var1) {
@@ -2963,7 +3179,7 @@
  		int var2 = 0;
  		ItemStack var3 = null;
  		ItemStack var4 = null;
-@@ -218,7 +247,16 @@
+@@ -218,7 +249,16 @@
  			for(var5 = 0; var5 < this.recipes.size(); ++var5) {
  				Recipe var11 = (Recipe)this.recipes.get(var5);
  				if(var11.matches(var1)) {
@@ -3090,6 +3306,62 @@
  		}
  
  	}
+--- /dev/null
++++ net/minecraft/block/TableSawBlock.java
+@@ -1,0 +1,53 @@
++package net.minecraft.block;
++
++import net.minecraft.block.material.Material;
++import net.minecraft.entity.mob.MobEntity;
++import net.minecraft.entity.mob.player.PlayerEntity;
++import net.minecraft.util.math.MathHelper;
++import net.minecraft.world.World;
++
++public class TableSawBlock extends Block {
++    protected TableSawBlock(int var1) {
++        super(var1, Material.STONE);
++    }
++
++    public int getSprite(int var1) {
++        return var1 == 0 ? 215
++            : var1 == 1 ? 62
++            : var1 <= 3 ? 231
++            : 45;
++    }
++
++    public int getSprite(int var1, int var2) {
++        return var1 == 0 ? 62
++            : var1 == 1 ? 215
++            : var1 <= 3 == ((var2 & 2) == 0) ? 231
++            : 45;
++    }
++
++    public void onPlaced(World var1, int var2, int var3, int var4, MobEntity var5) {
++        int var6 = MathHelper.floor((double)(var5.yaw * 4.0F / 360.0F) + 0.5D) & 3;
++        if(var6 == 0) {
++            var1.setBlockMetadata(var2, var3, var4, 1);
++        }
++
++        if(var6 == 1) {
++            var1.setBlockMetadata(var2, var3, var4, 2);
++        }
++
++        if(var6 == 2) {
++            var1.setBlockMetadata(var2, var3, var4, 0);
++        }
++
++        if(var6 == 3) {
++            var1.setBlockMetadata(var2, var3, var4, 3);
++        }
++    }
++
++    public boolean use(World var1, int var2, int var3, int var4, PlayerEntity var5) {
++        if (!var1.isMultiplayer) {
++            var5.openTableSawMenu(var2, var3, var4);
++        }
++        return true;
++    }
++}
 --- net/minecraft/isom/IsomPreviewCanvas.java
 +++ net/minecraft/isom/IsomPreviewCanvas.java
 @@ -19,6 +19,7 @@
@@ -4310,6 +4582,34 @@
 +		}
 +	}
 +}
+--- /dev/null
++++ net/minecraft/item/StoneColumnItem.java
+@@ -1,0 +1,25 @@
++package net.minecraft.item;
++
++import net.minecraft.entity.mob.player.PlayerEntity;
++import net.minecraft.world.World;
++
++public class StoneColumnItem extends PlantBlockItem {
++    private int face;
++
++    public StoneColumnItem(int var1, boolean var2) {
++        super(var1, var2);
++    }
++
++    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
++        this.face = var7;
++        return super.useOn(var1, var2, var3, var4, var5, var6, var7, hitX, hitY, hitZ);
++    }
++
++    public int getBlockMetadata(int var1) {
++        int metadata = super.getBlockMetadata(var1);
++        if(metadata < 4) {
++            metadata += this.face / 2 * 4;
++        }
++        return metadata;
++    }
++}
 --- net/minecraft/enchantment/DamageEnchantment.java
 +++ net/minecraft/enchantment/DamageEnchantment.java
 @@ -23,12 +23,23 @@
@@ -4789,15 +5089,21 @@
  }
 --- net/minecraft/entity/mob/player/PlayerEntity.java
 +++ net/minecraft/entity/mob/player/PlayerEntity.java
-@@ -9,6 +9,7 @@
- import net.minecraft.block.entity.FurnaceBlockEntity;
- import net.minecraft.block.entity.SignBlockEntity;
+@@ -4,11 +4,9 @@
+ import java.util.List;
+ import net.minecraft.block.BedBlock;
+ import net.minecraft.block.Block;
+-import net.minecraft.block.entity.BrewingStandBlockEntity;
+-import net.minecraft.block.entity.DispenserBlockEntity;
+-import net.minecraft.block.entity.FurnaceBlockEntity;
+-import net.minecraft.block.entity.SignBlockEntity;
++import net.minecraft.block.entity.*;
  import net.minecraft.block.material.Material;
 +import net.minecraft.client.Minecraft;
  import net.minecraft.enchantment.EnchantmentHelper;
  import net.minecraft.entity.Entity;
  import net.minecraft.entity.FishingBobberEntity;
-@@ -27,11 +28,13 @@
+@@ -27,11 +25,13 @@
  import net.minecraft.inventory.Inventory;
  import net.minecraft.inventory.menu.InventoryMenu;
  import net.minecraft.inventory.menu.PlayerMenu;
@@ -4811,7 +5117,7 @@
  import net.minecraft.stat.Stat;
  import net.minecraft.stat.Stats;
  import net.minecraft.stat.achievement.Achievements;
-@@ -46,7 +49,8 @@
+@@ -46,7 +46,8 @@
  	public PlayerInventory inventory = new PlayerInventory(this);
  	public InventoryMenu playerMenu;
  	public InventoryMenu menu;
@@ -4821,7 +5127,7 @@
  	protected int pressedJumpTwiceTimer = 0;
  	public byte userType = 0;
  	public int score = 0;
-@@ -85,6 +89,7 @@
+@@ -85,6 +86,7 @@
  	protected float baseSpeed = 0.1F;
  	protected float baseFlyingSpeed = 0.02F;
  	public FishingBobberEntity fishingBobber = null;
@@ -4829,7 +5135,7 @@
  
  	public PlayerEntity(World var1) {
  		super(var1);
-@@ -97,6 +102,8 @@
+@@ -97,6 +99,8 @@
  		this.rotationOffset = 180.0F;
  		this.safeOnFireTime = 20;
  		this.texture = "/mob/char.png";
@@ -4838,7 +5144,7 @@
  	}
  
  	public int getMaxHealth() {
-@@ -147,12 +154,22 @@
+@@ -147,12 +151,22 @@
  	}
  
  	public void tick() {
@@ -4862,7 +5168,7 @@
  					this.onConsumeItem(var1, 5);
  				}
  
-@@ -243,7 +260,6 @@
+@@ -243,7 +257,6 @@
  		if(!this.world.isMultiplayer) {
  			this.hungerManager.tick(this);
  		}
@@ -4870,7 +5176,7 @@
  	}
  
  	protected void onConsumeItem(ItemStack var1, int var2) {
-@@ -326,7 +342,20 @@
+@@ -326,7 +339,20 @@
  	}
  
  	private int getSwingArmSpeed() {
@@ -4892,7 +5198,7 @@
  	}
  
  	protected void aiTick() {
-@@ -345,6 +374,10 @@
+@@ -345,6 +371,10 @@
  	}
  
  	public void mobTick() {
@@ -4903,7 +5209,7 @@
  		if(this.pressedJumpTwiceTimer > 0) {
  			--this.pressedJumpTwiceTimer;
  		}
-@@ -359,8 +392,9 @@
+@@ -359,8 +389,9 @@
  		this.landSpeed = this.baseSpeed;
  		this.flyingSpeed = this.baseFlyingSpeed;
  		if(this.isSprinting()) {
@@ -4915,7 +5221,7 @@
  		}
  
  		float var1 = MathHelper.sqrt(this.velocityX * this.velocityX + this.velocityZ * this.velocityZ);
-@@ -393,6 +427,15 @@
+@@ -393,6 +424,15 @@
  
  	}
  
@@ -4931,19 +5237,50 @@
  	private void onEntityCollision(Entity var1) {
  		var1.onPlayerCollision(this);
  	}
-@@ -410,7 +453,10 @@
+@@ -410,7 +450,12 @@
  			this.dropItem(new ItemStack(Item.APPLE, 1), true);
  		}
  
 -		this.inventory.dropAll();
 +		if(this.world.getGameMode().itemsOnDeath == GameMode.ItemsOnDeath.DROP) {
 +			this.inventory.dropAll();
++		} else if(this.world.getGameMode().itemsOnDeath == GameMode.ItemsOnDeath.STORE) {
++			this.placeGravestone();
 +		}
 +
  		if(var1 != null) {
  			this.velocityX = (double)(-MathHelper.cos((this.damagedSwingDir + this.yaw) * (float)Math.PI / 180.0F) * 0.1F);
  			this.velocityZ = (double)(-MathHelper.sin((this.damagedSwingDir + this.yaw) * (float)Math.PI / 180.0F) * 0.1F);
-@@ -441,6 +487,12 @@
+@@ -422,6 +467,28 @@
+ 		this.incrementStat(Stats.DEATHS, 1);
+ 	}
+ 
++	public void placeGravestone() {
++		int x = MathHelper.floor(this.x);
++		int y = Math.max(MathHelper.floor(this.shape.minY), 0);
++		int z = MathHelper.floor(this.z);
++
++		while(!Block.GRAVESTONE.canBePlaced(this.world, x, y, z)) {
++			y++;
++		}
++
++		this.world.setBlock(x, y, z, Block.GRAVESTONE.id);
++		GravestoneBlockEntity gravestone = (GravestoneBlockEntity)this.world.getBlockEntity(x, y, z);
++
++		for(int i = 0; i < this.inventory.getSize(); i++) {
++			ItemStack item = this.inventory.getItem(i);
++			if(item != null) {
++				gravestone.items.add(item);
++				this.inventory.setItem(i, null);
++			}
++		}
++		gravestone.xp = this.getXpDrop(this);
++	}
++
+ 	public void takeKillScore(Entity var1, int var2) {
+ 		this.score += var2;
+ 		if(var1 instanceof PlayerEntity) {
+@@ -441,6 +508,12 @@
  		return this.dropItem(this.inventory.removeItem(this.inventory.selectedSlot, 1), false);
  	}
  
@@ -4956,7 +5293,7 @@
  	public ItemEntity dropItem(ItemStack var1) {
  		return this.dropItem(var1, false);
  	}
-@@ -490,6 +542,10 @@
+@@ -490,6 +563,10 @@
  			var3 = var2 + (float)(var4 * var4 + 1);
  		}
  
@@ -4967,7 +5304,18 @@
  		if(this.hasStatusEffect(StatusEffect.HASTE)) {
  			var3 *= 1.0F + (float)(this.getEffectInstance(StatusEffect.HASTE).getAmplifier() + 1) * 0.2F;
  		}
-@@ -615,7 +671,16 @@
+@@ -564,6 +641,10 @@
+ 	public void openCraftingTableMenu(int var1, int var2, int var3) {
+ 	}
+ 
++
++	public void openTableSawMenu(int var1, int var2, int var3) {
++	}
++
+ 	public void pickUp(Entity var1, int var2) {
+ 	}
+ 
+@@ -615,7 +696,16 @@
  					}
  
  					this.incrementStat(Stats.DAMAGE_TAKEN, var2);
@@ -4985,7 +5333,7 @@
  				}
  			}
  		}
-@@ -681,6 +746,7 @@
+@@ -681,6 +771,7 @@
  				}
  			}
  		}
@@ -4993,7 +5341,7 @@
  	}
  
  	protected void damageArmor(int var1) {
-@@ -698,8 +764,13 @@
+@@ -698,8 +789,13 @@
  
  		var2 = this.damageAfterArmorResistance(var1, var2);
  		var2 = this.damageAfterEffectsAndEnchantments(var1, var2);
@@ -5008,7 +5356,7 @@
  	}
  
  	public void openFurnaceMenu(FurnaceBlockEntity var1) {
-@@ -724,8 +795,8 @@
+@@ -724,8 +820,8 @@
  					this.clearItemInHand();
  				}
  			}
@@ -5018,7 +5366,7 @@
  	}
  
  	public ItemStack getItemInHand() {
-@@ -741,9 +812,13 @@
+@@ -741,9 +837,13 @@
  	}
  
  	public void swingArm() {
@@ -5034,7 +5382,7 @@
  		}
  
  	}
-@@ -771,11 +846,25 @@
+@@ -771,11 +871,25 @@
  			}
  
  			if(var2 > 0 || var4 > 0) {
@@ -5061,7 +5409,7 @@
  				var2 += var4;
  				boolean var6 = var1.takeDamage(DamageSource.player(this), var2);
  				if(var6) {
-@@ -783,7 +872,10 @@
+@@ -783,7 +897,10 @@
  						var1.addVelocity((double)(-MathHelper.sin(this.yaw * (float)Math.PI / 180.0F) * (float)var3 * 0.5F), 0.1D, (double)(MathHelper.cos(this.yaw * (float)Math.PI / 180.0F) * (float)var3 * 0.5F));
  						this.velocityX *= 0.6D;
  						this.velocityZ *= 0.6D;
@@ -5073,7 +5421,7 @@
  					}
  
  					if(var5) {
-@@ -816,16 +908,12 @@
+@@ -816,16 +933,12 @@
  					}
  
  					this.incrementStat(Stats.DAMAGE_DEALT, var2);
@@ -5092,7 +5440,7 @@
  	}
  
  	public void addCritParticles(Entity var1) {
-@@ -865,7 +953,7 @@
+@@ -865,7 +978,7 @@
  				return PlayerEntity.SleepAllowedStatus.NOT_POSSIBLE_HERE;
  			}
  
@@ -5101,7 +5449,7 @@
  				return PlayerEntity.SleepAllowedStatus.NOT_POSSIBLE_NOW;
  			}
  
-@@ -1045,12 +1133,17 @@
+@@ -1045,12 +1158,17 @@
  	protected void jump() {
  		super.jump();
  		this.incrementStat(Stats.JUMPS, 1);
@@ -5122,7 +5470,7 @@
  	}
  
  	public void moveRelative(float var1, float var2) {
-@@ -1061,6 +1154,14 @@
+@@ -1061,6 +1179,14 @@
  			double var9 = this.velocityY;
  			float var11 = this.flyingSpeed;
  			this.flyingSpeed = 0.05F;
@@ -5137,7 +5485,7 @@
  			super.moveRelative(var1, var2);
  			this.velocityY = var9 * 0.6D;
  			this.flyingSpeed = var11;
-@@ -1078,13 +1179,13 @@
+@@ -1078,13 +1204,13 @@
  				var7 = Math.round(MathHelper.sqrt(var1 * var1 + var3 * var3 + var5 * var5) * 100.0F);
  				if(var7 > 0) {
  					this.incrementStat(Stats.CM_DIVEN, var7);
@@ -5153,7 +5501,7 @@
  				}
  			} else if(this.isClimbing()) {
  				if(var3 > 0.0D) {
-@@ -1095,9 +1196,7 @@
+@@ -1095,9 +1221,7 @@
  				if(var7 > 0) {
  					this.incrementStat(Stats.CM_WALKED, var7);
  					if(this.isSprinting()) {
@@ -5164,7 +5512,7 @@
  					}
  				}
  			} else {
-@@ -1106,8 +1205,8 @@
+@@ -1106,8 +1230,8 @@
  					this.incrementStat(Stats.CM_FLOWN, var7);
  				}
  			}
@@ -5174,7 +5522,7 @@
  	}
  
  	private void tickRidingRelatedStats(double var1, double var3, double var5) {
-@@ -1139,6 +1238,7 @@
+@@ -1139,6 +1263,7 @@
  
  			super.takeFallDamage(var1);
  		}
@@ -5182,7 +5530,7 @@
  	}
  
  	public void onKill(MobEntity var1) {
-@@ -1157,18 +1257,18 @@
+@@ -1157,18 +1282,18 @@
  				return var1.getItem().getSprite(var1.getMetadata(), var2);
  			}
  
@@ -5206,7 +5554,7 @@
  				}
  			}
  		}
-@@ -1182,6 +1282,7 @@
+@@ -1182,6 +1307,7 @@
  		} else {
  			this.inPortal = true;
  		}
@@ -5214,7 +5562,7 @@
  	}
  
  	public void increaseXp(int var1) {
-@@ -1196,6 +1297,7 @@
+@@ -1196,6 +1322,7 @@
  		for(this.xp += var1; this.xpProgress >= 1.0F; this.xpProgress /= (float)this.getNextLevelExperience()) {
  			this.xpProgress = (this.xpProgress - 1.0F) * (float)this.getNextLevelExperience();
  			this.incrementXpLevel();
@@ -5222,7 +5570,7 @@
  		}
  
  	}
-@@ -1209,7 +1311,7 @@
+@@ -1209,7 +1336,7 @@
  	}
  
  	public int getNextLevelExperience() {
@@ -5231,7 +5579,7 @@
  	}
  
  	private void incrementXpLevel() {
-@@ -1217,11 +1319,29 @@
+@@ -1217,11 +1344,29 @@
  	}
  
  	public void addFatigue(float var1) {
@@ -5266,7 +5614,7 @@
  		}
  	}
  
-@@ -1230,7 +1350,8 @@
+@@ -1230,7 +1375,8 @@
  	}
  
  	public boolean canEat(boolean var1) {
@@ -5276,7 +5624,7 @@
  	}
  
  	public boolean needsHealing() {
-@@ -1244,8 +1365,8 @@
+@@ -1244,8 +1390,8 @@
  			if(!this.world.isMultiplayer) {
  				this.setUsingItem(true);
  			}
@@ -5286,7 +5634,7 @@
  	}
  
  	public boolean canUseItemOn(int var1, int var2, int var3) {
-@@ -1258,7 +1379,7 @@
+@@ -1258,7 +1404,7 @@
  	}
  
  	protected boolean shouldDropXp() {
@@ -5295,7 +5643,7 @@
  	}
  
  	public String getName() {
-@@ -1283,6 +1404,18 @@
+@@ -1283,6 +1429,18 @@
  	}
  
  	public void syncAbilities() {
@@ -5356,19 +5704,18 @@
 +}
 --- net/minecraft/item/ItemStack.java
 +++ net/minecraft/item/ItemStack.java
-@@ -1,9 +1,11 @@
- package net.minecraft.item;
+@@ -79,8 +79,8 @@
+ 		return this.getItem().getSprite(this);
+ 	}
  
- import java.util.ArrayList;
-+import java.util.Collections;
- import java.util.List;
- import net.minecraft.block.Block;
- import net.minecraft.enchantment.Enchantment;
-+import net.minecraft.enchantment.EnchantmentEntry;
- import net.minecraft.enchantment.EnchantmentHelper;
- import net.minecraft.entity.Entity;
- import net.minecraft.entity.mob.MobEntity;
-@@ -164,10 +166,15 @@
+-	public boolean useOn(PlayerEntity var1, World var2, int var3, int var4, int var5, int var6) {
+-		boolean var7 = this.getItem().useOn(this, var1, var2, var3, var4, var5, var6);
++	public boolean useOn(PlayerEntity var1, World var2, int var3, int var4, int var5, int var6, float hitX, float hitY, float hitZ) {
++		boolean var7 = this.getItem().useOn(this, var1, var2, var3, var4, var5, var6, hitX, hitY, hitZ);
+ 		if(var7) {
+ 			var1.incrementStat(Stats.ITEMS_USED[this.id], 1);
+ 		}
+@@ -164,10 +164,15 @@
  				if(var3 > 0 && var2.world.random.nextInt(var3 + 1) > 0) {
  					return;
  				}
@@ -5385,7 +5732,7 @@
  				var2.onBrokenItem(this);
  				if(var2 instanceof PlayerEntity) {
  					((PlayerEntity)var2).incrementStat(Stats.ITEMS_BROKEN[this.id], 1);
-@@ -180,8 +187,8 @@
+@@ -180,8 +185,8 @@
  
  				this.metadata = 0;
  			}
@@ -5395,7 +5742,7 @@
  	}
  
  	public void attack(MobEntity var1, PlayerEntity var2) {
-@@ -296,6 +303,10 @@
+@@ -296,6 +301,10 @@
  		return this.nbt == null ? null : (NbtList)this.nbt.get("ench");
  	}
  
@@ -5406,7 +5753,7 @@
  	public void setNbt(NbtCompound var1) {
  		this.nbt = var1;
  	}
-@@ -312,12 +323,26 @@
+@@ -312,12 +321,26 @@
  					short var5 = ((NbtCompound)var3.get(var4)).getShort("id");
  					short var6 = ((NbtCompound)var3.get(var4)).getShort("lvl");
  					if(Enchantment.BY_ID[var5] != null) {
@@ -5434,7 +5781,7 @@
  		return var1;
  	}
  
-@@ -330,10 +355,10 @@
+@@ -330,10 +353,10 @@
  	}
  
  	public boolean isEnchantable() {
@@ -5447,7 +5794,7 @@
  		if(this.nbt == null) {
  			this.setNbt(new NbtCompound());
  		}
-@@ -343,10 +368,25 @@
+@@ -343,10 +366,25 @@
  		}
  
  		NbtList var3 = (NbtList)this.nbt.get("ench");
@@ -5811,7 +6158,19 @@
  	public abstract int[] getArea(int var1, int var2, int var3, int var4);
 --- net/minecraft/client/render/entity/MinecartRenderer.java
 +++ net/minecraft/client/render/entity/MinecartRenderer.java
-@@ -90,7 +90,7 @@
+@@ -72,11 +72,9 @@
+ 			float var30 = 12.0F / 16.0F;
+ 			GL11.glScalef(var30, var30, var30);
+ 			if(var1.type == 1) {
+-				GL11.glTranslatef(-0.5F, 0.0F, 0.5F);
+ 				GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
+ 				(new BlockRenderer()).renderAsItem(Block.CHEST, 0, var1.getBrightness(var9));
+ 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+-				GL11.glTranslatef(0.5F, 0.0F, -0.5F);
+ 				GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+ 			} else if(var1.type == 2) {
+ 				GL11.glTranslatef(0.0F, 5.0F / 16.0F, 0.0F);
+@@ -90,7 +88,7 @@
  			GL11.glScalef(1.0F / var30, 1.0F / var30, 1.0F / var30);
  		}
  
@@ -5845,7 +6204,24 @@
  	}
  
  	public static void mineBlockInCreative(Minecraft var0, ClientPlayerInteractionManager var1, int var2, int var3, int var4, int var5) {
-@@ -60,6 +55,21 @@
+@@ -44,7 +39,7 @@
+ 
+ 	}
+ 
+-	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
++	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		int var8 = var2.getBlock(var4, var5, var6);
+ 		if(var8 > 0 && Block.BY_ID[var8].use(var2, var4, var5, var6, var1)) {
+ 			return true;
+@@ -53,13 +48,28 @@
+ 		} else {
+ 			int var9 = var3.getMetadata();
+ 			int var10 = var3.size;
+-			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7);
++			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 			var3.setDamage(var9);
+ 			var3.size = var10;
+ 			return var11;
  		}
  	}
  
@@ -6949,7 +7325,7 @@
  }
 --- /dev/null
 +++ net/minecraft/block/VariantStoneSlabBlock.java
-@@ -1,0 +1,27 @@
+@@ -1,0 +1,35 @@
 +package net.minecraft.block;
 +
 +import java.util.Random;
@@ -6958,7 +7334,7 @@
 +import net.minecraft.item.ItemStack;
 +
 +public class VariantStoneSlabBlock extends StoneSlabBlock {
-+	public static final String[] blockStepTypes = {"stone", "sand", "wood", "cobble", "brick", "smoothStoneBrick", "netherBrick"};
++	public static final String[] blockStepTypes = {"stone", "sand", "wood", "cobble", "brick", "smoothStoneBrick", "netherBrick", "gabbroShingles"};
 +
 +	public VariantStoneSlabBlock(int var1, boolean var2) {
 +		super(var1, var2, Material.STONE);
@@ -6966,7 +7342,15 @@
 +
 +	public int getSprite(int var1, int var2) {
 +		int var3 = var2 & 7;
-+		return var3 == 0 ? (var1 <= 1 ? 6 : 5) : (var3 == 1 ? (var1 == 0 ? 208 : (var1 == 1 ? 176 : 192)) : (var3 == 2 ? Block.PLANKS.sprite : (var3 == 3 ? Block.COBBLESTONE.sprite : (var3 == 4 ? Block.BRICKS.sprite : (var3 == 5 ? Block.STONE_BRICKS.sprite : (var3 == 6 ? Block.NETHER_BRICKS.sprite : 6))))));
++		return var3 == 0 ? (var1 <= 1 ? 6 : 5)
++			: var3 == 1 ? (var1 == 0 ? 208 : var1 == 1 ? 176 : 192)
++			: var3 == 2 ? Block.PLANKS.sprite
++			: var3 == 3 ? Block.COBBLESTONE.sprite
++			: var3 == 4 ? Block.BRICKS.sprite
++			: var3 == 5 ? Block.STONE_BRICKS.sprite
++		    : var3 == 6 ? Block.NETHER_BRICKS.sprite
++			: var3 == 7 ? (var1 <= 1 ? 216 : 232)
++		    : 6;
 +	}
 +
 +	public int getDropItem(int var1, Random var2, int var3) {
@@ -7391,6 +7775,17 @@
  	}
  
  	public int getTickRate() {
+@@ -186,8 +365,8 @@
+ 
+ 	}
+ 
+-	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5) {
+-		if(var5 == 0) {
++	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5, float hitX, float hitY, float hitZ) {
++		if(var5 == 0 || var5 != 1 && hitY >= 0.5F) {
+ 			int var6 = var1.getBlockMetadata(var2, var3, var4);
+ 			var1.setBlockMetadata(var2, var3, var4, var6 | 4);
+ 		}
 --- net/minecraft/client/render/entity/CreeperRenderer.java
 +++ net/minecraft/client/render/entity/CreeperRenderer.java
 @@ -30,6 +30,7 @@
@@ -7615,7 +8010,7 @@
 +	public static Item COSMITE_CHESTPLATE = (new ArmorItem(157, ArmorItem.Tier.COSMITE, 6, 1)).setSprite(1, 11).setKey("chestplateCosmite");
 +	public static Item COSMITE_LEGGINGS = (new ArmorItem(158, ArmorItem.Tier.COSMITE, 6, 2)).setSprite(2, 11).setKey("leggingsCosmite");
 +	public static Item COSMITE_BOOTS = (new ArmorItem(159, ArmorItem.Tier.COSMITE, 6, 3)).setSprite(3, 11).setKey("bootsCosmite");
-+	public static Item TITANIUM_BOW = (new BowItem(160, 768, Enchantment.SHARPSHOOTER.id, Enchantment.SHARPSHOOTER.id, Enchantment.QUICK_DRAW.id, Enchantment.QUICK_DRAW.id)).setSprite(12, 11).setKey("titaniumBow");
++	public static Item TITANIUM_BOW = (new BowItem(160, 768, Enchantment.SHARPSHOOTER.id, Enchantment.SHARPSHOOTER.id, Enchantment.QUICK_DRAW.id, Enchantment.QUICK_DRAW.id, -Enchantment.POWER.id - 1)).setSprite(12, 11).setKey("titaniumBow");
 +	public static Item NETHER_BRICK = (new Item(161)).setSprite(8, 10).setKey("netherBrick");
 +	public static Item LIGHT_CART = (new MinecartItem(162, 0, TitaniumCartEntity::new)).setSprite(8, 9).setKey("lightCart");
  	public static Item RECORD_13 = (new MusicDiscItem(2000, "13")).setSprite(0, 15).setKey("record");
@@ -7669,7 +8064,18 @@
  
  	protected Item(int var1) {
  		this.id = 256 + var1;
-@@ -382,6 +454,32 @@
+@@ -207,6 +279,10 @@
+ 		return false;
+ 	}
+ 
++	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
++		return this.useOn(var1, var2, var3, var4, var5, var6, var7);
++	}
++
+ 	public float getMiningSpeed(ItemStack var1, Block var2) {
+ 		return 1.0F;
+ 	}
+@@ -382,6 +458,34 @@
  		return this.getMaxStackSize() == 1 && this.isDamageable();
  	}
  
@@ -7694,6 +8100,8 @@
 +		for(int baseEnchantment : baseEnchantments) {
 +			if(baseEnchantment == enchantment) {
 +				level++;
++			} else if(baseEnchantment == -enchantment - 1) {
++				level--;
 +			}
 +		}
 +		return level;
@@ -7702,7 +8110,7 @@
  	protected HitResult getUseTarget(World var1, PlayerEntity var2, boolean var3) {
  		float var4 = 1.0F;
  		float var5 = var2.lastPitch + (var2.pitch - var2.lastPitch) * var4;
-@@ -414,29 +512,59 @@
+@@ -414,29 +518,59 @@
  		return this.getSprite(var1);
  	}
  
@@ -7768,7 +8176,7 @@
  		}
  
  		public int getDurability() {
-@@ -457,6 +585,14 @@
+@@ -457,6 +591,14 @@
  
  		public int getEnchantability() {
  			return this.enchantability;
@@ -8200,6 +8608,55 @@
 +		this.dragonDefeated = var1;
  	}
  }
+--- net/minecraft/block/entity/BlockEntity.java
++++ net/minecraft/block/entity/BlockEntity.java
+@@ -137,5 +137,6 @@
+ 		register(BrewingStandBlockEntity.class, "Cauldron");
+ 		register(EnchantingTableBlockEntity.class, "EnchantTable");
+ 		register(EndPortalBlockEntity.class, "Airportal");
++		register(GravestoneBlockEntity.class, "Airportal");
+ 	}
+ }
+--- /dev/null
++++ net/minecraft/block/entity/GravestoneBlockEntity.java
+@@ -1,0 +1,37 @@
++package net.minecraft.block.entity;
++
++import net.minecraft.item.ItemStack;
++import net.minecraft.nbt.NbtCompound;
++import net.minecraft.nbt.NbtList;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class GravestoneBlockEntity extends BlockEntity {
++    public final List<ItemStack> items = new ArrayList<>();
++    public int xp;
++
++    public void readNbt(NbtCompound var1) {
++        super.readNbt(var1);
++        this.items.clear();
++        NbtList nbtItems = var1.getList("Items");
++        for(int i = 0; i < nbtItems.size(); i++) {
++            ItemStack item = ItemStack.fromNbt((NbtCompound)nbtItems.get(i));
++            this.items.add(item);
++        }
++        this.xp = var1.getInt("Experience");
++    }
++
++    public void writeNbt(NbtCompound var1) {
++        super.writeNbt(var1);
++        NbtList nbtItems = new NbtList();
++        for(ItemStack item : this.items) {
++            if(item == null) {
++                continue;
++            }
++            nbtItems.addElement(item.writeNbt(new NbtCompound()));
++        }
++        var1.put("Items", nbtItems);
++        var1.putInt("Experience", this.xp);
++    }
++}
 --- net/minecraft/world/gen/feature/LiquidFallFeature.java
 +++ net/minecraft/world/gen/feature/LiquidFallFeature.java
 @@ -6,33 +6,39 @@
@@ -8360,7 +8817,7 @@
  
  					byte var30 = 0;
 -					if(this.minecraft.world.getData().isHardcore()) {
-+					if(gameMode.hardcore) {
++					if(gameMode.itemsOnDeath == GameMode.ItemsOnDeath.DESTROY) {
  						var30 = 5;
  					}
  
@@ -8619,6 +9076,48 @@
  				var1 += var3;
  			}
  		}
+--- /dev/null
++++ net/minecraft/crafting/recipe/SawingRecipe.java
+@@ -1,0 +1,39 @@
++package net.minecraft.crafting.recipe;
++
++import net.minecraft.item.ItemStack;
++
++public class SawingRecipe {
++    private final int order;
++    public final ItemStack input;
++    public final ItemStack output;
++    public final float efficiency;
++
++    public SawingRecipe(int order, ItemStack input, ItemStack output) {
++        this(order, input, output, 0.0F);
++    }
++
++    public SawingRecipe(int order, ItemStack input, ItemStack output, float efficiency) {
++        this.order = order;
++        this.input = input;
++        this.output = output;
++        this.efficiency = efficiency;
++    }
++
++    public boolean matches(ItemStack item) {
++        return this.input.id == item.id
++            && (this.input.getMetadata() == item.getMetadata()
++            || this.input.getMetadata() == -1);
++    }
++
++    public SawingRecipe stacked(int amount) {
++        if (amount <= 1) {
++            return this;
++        }
++
++        return new SawingRecipe(this.order, this.input, new ItemStack(this.output.id, this.output.size * amount, this.output.getMetadata()), this.efficiency);
++    }
++
++    public int getOrder() {
++        return this.order;
++    }
++}
 --- net/minecraft/entity/mob/monster/SilverfishEntity.java
 +++ net/minecraft/entity/mob/monster/SilverfishEntity.java
 @@ -24,7 +24,7 @@
@@ -11575,6 +12074,36 @@
 +		return true;
 +	}
 +}
+--- /dev/null
++++ net/minecraft/client/gui/screen/inventory/menu/TableSawScreen.java
+@@ -1,0 +1,27 @@
++package net.minecraft.client.gui.screen.inventory.menu;
++
++import net.minecraft.entity.mob.player.PlayerInventory;
++import net.minecraft.inventory.menu.TableSawMenu;
++import net.minecraft.locale.I18n;
++import net.minecraft.world.World;
++import org.lwjgl.opengl.GL11;
++
++public class TableSawScreen extends InventoryMenuScreen {
++    public TableSawScreen(PlayerInventory var1, World var2, int var3, int var4, int var5) {
++        super(new TableSawMenu(var1, var2, var3, var4, var5));
++    }
++
++    protected void renderLabels() {
++        this.textRenderer.draw(I18n.translate("container.sawing"), 8, 6, 4210752);
++        this.textRenderer.draw(I18n.translate("container.inventory"), 8, this.backgroundHeight - 96 + 2, 4210752);
++    }
++
++    protected void renderMenuBackground(float var1, int var2, int var3) {
++        int var4 = this.minecraft.textureManager.load("/gui/saw.png");
++        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
++        this.minecraft.textureManager.bind(var4);
++        int var5 = (this.width - this.backgroundWidth) / 2;
++        int var6 = (this.height - this.backgroundHeight) / 2;
++        this.drawTexture(var5, var6, 0, 0, this.backgroundWidth, this.backgroundHeight);
++    }
++}
 --- net/minecraft/world/gen/noise/ImprovedNoise.java
 +++ net/minecraft/world/gen/noise/ImprovedNoise.java
 @@ -32,6 +32,43 @@
@@ -11621,6 +12150,42 @@
  	public final double lerp(double var1, double var3, double var5) {
  		return var3 + var1 * (var5 - var3);
  	}
+--- /dev/null
++++ net/minecraft/block/StoneColumnBlock.java
+@@ -1,0 +1,33 @@
++package net.minecraft.block;
++
++import net.minecraft.block.material.Material;
++import net.minecraft.item.ItemStack;
++
++public class StoneColumnBlock extends Block {
++    protected StoneColumnBlock(int var1) {
++        super(var1, Material.STONE);
++    }
++
++    public int getRenderType() {
++        return 28;
++    }
++
++    public int getSprite(int var1, int var2) {
++        int type = var2 & 3;
++        int orientation = (var2 >> 2) & 3;
++        boolean topBottom = var1 / 2 == orientation;
++
++        return type == 1 ? (topBottom ? 216 : 232)
++            : (topBottom ? 213 : 204);
++    }
++
++    protected ItemStack getSilkTouchDrop(int var1) {
++        ItemStack item = super.getSilkTouchDrop(var1);
++        item.setDamage(item.getMetadata() & 3);
++        return item;
++    }
++
++    protected int getDropItemMetadata(int var1) {
++        return var1 & 3;
++    }
++}
 --- net/minecraft/block/SoulSandBlock.java
 +++ net/minecraft/block/SoulSandBlock.java
 @@ -18,5 +18,6 @@
@@ -12709,16 +13274,20 @@
  		this.rightArm.rotationZ += MathHelper.cos(var3 * 0.09F) * 0.05F + 0.05F;
 --- net/minecraft/crafting/BlockRecipes.java
 +++ net/minecraft/crafting/BlockRecipes.java
-@@ -16,5 +16,11 @@
+@@ -16,5 +16,15 @@
  		var1.registerShaped(new ItemStack(Block.IRON_BARS, 16), new Object[]{"###", "###", Character.valueOf('#'), Item.IRON_INGOT});
  		var1.registerShaped(new ItemStack(Block.GLASS_PANE, 16), new Object[]{"###", "###", Character.valueOf('#'), Block.GLASS});
  		var1.registerShaped(new ItemStack(Block.REDSTONE_LAMP, 1), new Object[]{" R ", "RGR", " R ", Character.valueOf('R'), Item.REDSTONE, Character.valueOf('G'), Block.GLOWSTONE});
 +		var1.registerShaped(new ItemStack(Block.STONE_BRICKS, 1, 3), new Object[]{"#", "#", Character.valueOf('#'), new ItemStack(Block.STONE_SLAB, 1, 5)});
++		var1.registerShaped(new ItemStack(Block.STONE_COLUMN, 3, 0), new Object[]{"#", "#", Character.valueOf('#'), Block.STONE_BRICKS});
 +		var1.registerShaped(new ItemStack(Block.STONE, 1, 1), new Object[]{"#", "#", Character.valueOf('#'), new ItemStack(Block.STONE_SLAB, 1, 0)});
 +		var1.registerShaped(new ItemStack(Block.LOG, 3, 12), new Object[]{"##", "##", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 0)});
 +		var1.registerShaped(new ItemStack(Block.LOG, 3, 13), new Object[]{"##", "##", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 1)});
 +		var1.registerShaped(new ItemStack(Block.LOG, 3, 14), new Object[]{"##", "##", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 2)});
 +		var1.registerShaped(new ItemStack(Block.LOG, 3, 15), new Object[]{"##", "##", Character.valueOf('#'), new ItemStack(Block.LOG, 1, 3)});
++		var1.registerShaped(new ItemStack(Block.TABLE_SAW), new Object[]{"XX", "##", "##", Character.valueOf('X'), Item.IRON_INGOT, Character.valueOf('#'), Block.COBBLESTONE});
++		var1.registerShaped(new ItemStack(Block.STONE_COLUMN, 4, 1), new Object[]{"##", "##", Character.valueOf('#'), new ItemStack(Block.END_STONE, 1, 1)});
++		var1.registerShaped(new ItemStack(Block.END_STONE, 1, 3), new Object[]{"#", "#", Character.valueOf('#'), new ItemStack(Block.STONE_SLAB, 1, 7)});
  	}
  }
 --- net/minecraft/block/MelonBlock.java
@@ -13877,7 +14446,16 @@
  
 --- net/minecraft/stat/achievement/Achievements.java
 +++ net/minecraft/stat/achievement/Achievements.java
-@@ -33,11 +33,16 @@
+@@ -21,7 +21,7 @@
+ 	public static AchievementStat CRAFT_BREAD = (new AchievementStat(7, "makeBread", -1, -3, Item.BREAD, CRAFT_WOODEN_HOE)).register();
+ 	public static AchievementStat CRAFT_CAKE = (new AchievementStat(8, "bakeCake", 0, -5, Item.CAKE, CRAFT_WOODEN_HOE)).register();
+ 	public static AchievementStat CRAFT_BETTER_PICKAXE = (new AchievementStat(9, "buildBetterPickaxe", 6, 2, Item.STONE_PICKAXE, CRAFT_PICKAXE)).register();
+-	public static AchievementStat COOK_FISH = (new AchievementStat(10, "cookFish", 2, 6, Item.COOKED_FISH, CRAFT_FURNACE)).register();
++	public static AchievementStat COOK_FISH = (new AchievementStat(10, "cookFish", 4, 6, Item.COOKED_FISH, CRAFT_FURNACE)).register();
+ 	public static AchievementStat TRAVEL_KILOMETER_BY_MINECART = (new AchievementStat(11, "onARail", 2, 3, Block.RAIL, GET_IRON_INGOT)).setChallenge().register();
+ 	public static AchievementStat CRAFT_SWORD = (new AchievementStat(12, "buildSword", 6, -1, Item.WOODEN_SWORD, CRAFT_CRAFTING_TABLE)).register();
+ 	public static AchievementStat KILL_ENEMY = (new AchievementStat(13, "killEnemy", 8, -1, Item.BONE, CRAFT_SWORD)).register();
+@@ -33,11 +33,17 @@
  	public static AchievementStat KILL_GHAST_WITH_FIREBALL = (new AchievementStat(19, "ghast", -4, 8, Item.GHAST_TEAR, ENTER_THE_NETHER)).setChallenge().register();
  	public static AchievementStat GET_BLAZE_ROD = (new AchievementStat(20, "blazeRod", 0, 9, Item.BLAZE_ROD, ENTER_THE_NETHER)).register();
  	public static AchievementStat BREW_POTION = (new AchievementStat(21, "potion", 2, 8, Item.POTION, GET_BLAZE_ROD)).register();
@@ -13893,6 +14471,7 @@
 +	public static AchievementStat RIDE_LIGHT_CART_FAST = (new AchievementStat(28, "lightCartSpeed", 5, 8, Item.LIGHT_CART, ENTER_THE_END)).setChallenge().register();
 +	public static AchievementStat GET_COSMITE_INGOT = (new AchievementStat(29, "acquireCosmite", 1, 12, Item.COSMITE_PICKAXE, ENTER_THE_END)).register();
 +	public static AchievementStat GET_CULTURED_MEAL = (new AchievementStat(31, "acquireCulturedMeal", 4, -5, Item.CULTURED_MEAL, CRAFT_WOODEN_HOE)).register();
++	public static AchievementStat USE_TABLE_SAW = (new AchievementStat(32, "tableSaw", 2, 6, Block.TABLE_SAW, GET_IRON_INGOT)).register();
  
  	public static void init() {
  	}
@@ -14293,7 +14872,7 @@
  	public static void renderShape(Box var0, double var1, double var3, double var5) {
 --- /dev/null
 +++ net/minecraft/block/EndCrystalBlock.java
-@@ -1,0 +1,20 @@
+@@ -1,0 +1,27 @@
 +package net.minecraft.block;
 +
 +import net.minecraft.block.material.Material;
@@ -14312,6 +14891,13 @@
 +
 +    public int getDropItem(int var1, Random var2, int var3) {
 +        return Item.END_CRYSTAL.id;
++    }
++
++    public int getDropCount(int var1, Random var2) {
++        return var1 <= 0 ? 1
++            : var1 == 1 ? 1 + var2.nextInt(3) / 2
++            : var1 == 2 ? 1 + (var2.nextInt(3) + 1) / 2
++            : 1 + var2.nextInt(3);
 +    }
 +}
 --- net/minecraft/network/packet/PlayerRespawnPacket.java
@@ -14363,7 +14949,7 @@
  	public int getSize() {
 --- /dev/null
 +++ net/minecraft/world/GameMode.java
-@@ -1,0 +1,438 @@
+@@ -1,0 +1,439 @@
 +package net.minecraft.world;
 +
 +import java.io.DataInputStream;
@@ -14800,6 +15386,7 @@
 +		DROP,
 +		DESTROY,
 +		KEEP,
++		STORE,
 +	}
 +}
 --- /dev/null
@@ -15081,6 +15668,15 @@
  	}
  
  	public void handlePlayerUse(PlayerUsePacket var1) {
+@@ -383,7 +395,7 @@
+ 			}
+ 
+ 			if(this.teleported && this.player.squaredDistanceTo((double)var5 + 0.5D, (double)var6 + 0.5D, (double)var7 + 0.5D) < 64.0D && (var12 > 16 || var9)) {
+-				this.player.interactionManager.useBlock(this.player, var2, var3, var5, var6, var7, var8);
++				this.player.interactionManager.useBlock(this.player, var2, var3, var5, var6, var7, var8, var1.hitX, var1.hitY, var1.hitZ);
+ 			}
+ 
+ 			var4 = true;
 @@ -463,6 +475,7 @@
  		} else {
  			LOGGER.warning(this.player.name + " tried to set an invalid carried item");
@@ -15828,7 +16424,7 @@
  			this.world.isMultiplayer = true;
  			this.minecraft.setWorld(this.world);
  			this.minecraft.player.dimension = var1.dimension;
-@@ -690,13 +648,19 @@
+@@ -690,31 +648,36 @@
  
  	public void handleOpenInventoryMenu(OpenInventoryMenuPacket var1) {
  		ClientPlayerEntity var2 = this.minecraft.player;
@@ -15841,24 +16437,39 @@
  		switch(var1.type) {
  		case 0:
  			var2.openChestMenu(new SimpleInventory(var1.displayName, var1.size));
- 			var2.menu.networkId = var1.menuId;
+-			var2.menu.networkId = var1.menuId;
  			break;
  		case 1:
 -			var2.openCraftingTableMenu(MathHelper.floor(var2.x), MathHelper.floor(var2.y), MathHelper.floor(var2.z));
+-			var2.menu.networkId = var1.menuId;
 +			var2.openCraftingTableMenu(var1.x, var1.y, var1.z);
- 			var2.menu.networkId = var1.menuId;
  			break;
  		case 2:
-@@ -708,7 +672,7 @@
- 			var2.menu.networkId = var1.menuId;
+ 			var2.openFurnaceMenu(new FurnaceBlockEntity());
+-			var2.menu.networkId = var1.menuId;
+ 			break;
+ 		case 3:
+ 			var2.openDispenserMenu(new DispenserBlockEntity());
+-			var2.menu.networkId = var1.menuId;
  			break;
  		case 4:
 -			var2.openEnchantingTableMenu(MathHelper.floor(var2.x), MathHelper.floor(var2.y), MathHelper.floor(var2.z));
+-			var2.menu.networkId = var1.menuId;
 +			var2.openEnchantingTableMenu(var1.x, var1.y, var1.z);
- 			var2.menu.networkId = var1.menuId;
  			break;
  		case 5:
-@@ -783,13 +747,27 @@
+ 			var2.openBrewingStandMenu(new BrewingStandBlockEntity());
+-			var2.menu.networkId = var1.menuId;
++			break;
++		case 6:
++			var2.openTableSawMenu(var1.x, var1.y, var1.z);
++			break;
+ 		}
++		var2.menu.networkId = var1.menuId;
+ 
+ 	}
+ 
+@@ -783,13 +746,27 @@
  	}
  
  	public void handleBlockEntityUpdate(BlockEntityUpdatePacket var1) {
@@ -15893,7 +16504,7 @@
  	}
  
  	public void handleInventoryMenuData(InventoryMenuDataPacket var1) {
-@@ -817,6 +795,11 @@
+@@ -817,6 +794,11 @@
  		this.minecraft.world.addBlockEvent(var1.x, var1.y, var1.z, var1.type, var1.data);
  	}
  
@@ -15905,7 +16516,7 @@
  	public void handleGameEvent(GameEventPacket var1) {
  		ClientPlayerEntity var2 = this.minecraft.player;
  		int var3 = var1.event;
-@@ -834,8 +817,13 @@
+@@ -834,8 +816,13 @@
  			((MultiplayerInteractionManager)this.minecraft.interactionManager).setGameMode(var1.data == 1);
  		} else if(var3 == 4) {
  			this.minecraft.openScreen(new CreditsScreen());
@@ -15920,7 +16531,7 @@
  	}
  
  	public void handleMapData(MapDataPacket var1) {
-@@ -860,6 +848,7 @@
+@@ -860,6 +847,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).addStatusEffect(new StatusEffectInstance(var1.effect, var1.duration, var1.amplifier));
  		}
@@ -15928,7 +16539,7 @@
  	}
  
  	public void handleEntityRemoveStatusEffect(EntityRemoveStatusEffectPacket var1) {
-@@ -867,6 +856,7 @@
+@@ -867,6 +855,7 @@
  		if(var2 != null && var2 instanceof MobEntity) {
  			((MobEntity)var2).removeEffect(var1.effect);
  		}
@@ -15936,7 +16547,7 @@
  	}
  
  	public boolean isServer() {
-@@ -902,5 +892,9 @@
+@@ -902,5 +891,9 @@
  		var2.abilities.creativeMode = var1.creativeMode;
  		var2.abilities.invulnerable = var1.invulnerable;
  		var2.abilities.canFly = var1.allowFlying;
@@ -16371,6 +16982,40 @@
  		}
  	}
  
+@@ -176,9 +184,9 @@
+ 
+ 	}
+ 
+-	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
++	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		this.sendSelectedHotbarSlot();
+-		this.networkHandler.sendPacket(new PlayerUsePacket(var4, var5, var6, var7, var1.inventory.getSelectedItem()));
++		this.networkHandler.sendPacket(new PlayerUsePacket(var4, var5, var6, var7, var1.inventory.getSelectedItem(), hitX, hitY, hitZ));
+ 		int var8 = var2.getBlock(var4, var5, var6);
+ 		if(var8 > 0 && Block.BY_ID[var8].use(var2, var4, var5, var6, var1)) {
+ 			return true;
+@@ -187,18 +195,18 @@
+ 		} else if(this.isCreativeMode) {
+ 			int var9 = var3.getMetadata();
+ 			int var10 = var3.size;
+-			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7);
++			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 			var3.setDamage(var9);
+ 			var3.size = var10;
+ 			return var11;
+ 		} else {
+-			return var3.useOn(var1, var2, var4, var5, var6, var7);
++			return var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 		}
+ 	}
+ 
+ 	public boolean useItem(PlayerEntity var1, World var2, ItemStack var3) {
+ 		this.sendSelectedHotbarSlot();
+-		this.networkHandler.sendPacket(new PlayerUsePacket(-1, -1, -1, 255, var1.inventory.getSelectedItem()));
++		this.networkHandler.sendPacket(new PlayerUsePacket(-1, -1, -1, 255, var1.inventory.getSelectedItem(), 0.0F, 0.0F, 0.0F));
+ 		boolean var4 = super.useItem(var1, var2, var3);
+ 		return var4;
+ 	}
 @@ -247,6 +255,7 @@
  	public void closeMenu(int var1, PlayerEntity var2) {
  		if(var1 != -9999) {
@@ -16787,7 +17432,7 @@
 +    }
 +
 +    public void tick() {
-+        double prevVelocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
++        double prevVelocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ * this.velocityZ;
 +
 +        int blockX = MathHelper.floor(this.x);
 +        int blockY = MathHelper.floor(this.y);
@@ -16830,7 +17475,7 @@
 +
 +        double velocitySquared = this.velocityX * this.velocityX + this.velocityY * this.velocityY + this.velocityZ + this.velocityZ;
 +
-+        if(velocitySquared > 0.4D * 0.4D && prevVelocitySquared > velocitySquared) {
++        if(velocitySquared > 0.4D * 0.4D && prevVelocitySquared >= velocitySquared) {
 +            this.velocitySustainTicks++;
 +            if(this.velocitySustainTicks > 100) {
 +                this.velocitySustainTicks = 0;
@@ -19001,6 +19646,29 @@
  					var15 = var4[var10].getBlockIdsUpperStorage();
  					System.arraycopy(var15.data, 0, var8, var9, var15.data.length);
  					var9 += var15.data.length;
+--- net/minecraft/inventory/ResultInventory.java
++++ net/minecraft/inventory/ResultInventory.java
+@@ -4,10 +4,18 @@
+ import net.minecraft.item.ItemStack;
+ 
+ public class ResultInventory implements Inventory {
+-	private ItemStack[] items = new ItemStack[1];
++	private ItemStack[] items;
++
++	public ResultInventory() {
++		this(1);
++	}
++
++	public ResultInventory(int size) {
++		this.items = new ItemStack[size];
++	}
+ 
+ 	public int getSize() {
+-		return 1;
++		return this.items.length;
+ 	}
+ 
+ 	public ItemStack getItem(int var1) {
 --- net/minecraft/world/gen/carver/NetherCaveCarver.java
 +++ net/minecraft/world/gen/carver/NetherCaveCarver.java
 @@ -12,6 +12,7 @@
@@ -19059,7 +19727,7 @@
 +}
 --- /dev/null
 +++ net/minecraft/block/EndStoneBlock.java
-@@ -1,0 +1,21 @@
+@@ -1,0 +1,22 @@
 +package net.minecraft.block;
 +
 +import net.minecraft.block.material.Material;
@@ -19073,6 +19741,7 @@
 +        switch (var2) {
 +            case 1: return 169;
 +            case 2: return 170;
++            case 3: return var1 <= 1 ? 216 : 217;
 +            default: return this.sprite;
 +        }
 +    }
@@ -19823,6 +20492,86 @@
  				var19 = var18.getCenterPos();
  				var20 = var19.x - var2;
 --- /dev/null
++++ net/minecraft/block/GravestoneBlock.java
+@@ -1,0 +1,77 @@
++package net.minecraft.block;
++
++import net.minecraft.block.entity.BlockEntity;
++import net.minecraft.block.entity.GravestoneBlockEntity;
++import net.minecraft.block.material.Material;
++import net.minecraft.entity.ExperienceOrbEntity;
++import net.minecraft.entity.ItemEntity;
++import net.minecraft.item.ItemStack;
++import net.minecraft.util.math.Box;
++import net.minecraft.world.World;
++
++import java.util.Random;
++
++public class GravestoneBlock extends BlockWithBlockEntity {
++    private final Random random = new Random();
++
++    protected GravestoneBlock(int var1) {
++        super(var1, Material.STONE);
++        this.sprite = 204;
++        this.setShape(2.0F / 16.0F, 0.0F, 6.0F / 16.0F, 14.0F / 16.0F, 14.0F / 16.0F, 10.0F / 16.0F);
++    }
++
++    public BlockEntity createBlockEntity() {
++        return new GravestoneBlockEntity();
++    }
++
++    public int getDropItem(int var1, Random var2, int var3) {
++        return 0;
++    }
++
++    public int getDropCount(int var1, Random var2) {
++        return 0;
++    }
++
++    public Box getCollisionShape(World var1, int var2, int var3, int var4) {
++        return null;
++    }
++
++    public boolean isSolidRender() {
++        return false;
++    }
++
++    public boolean isCube() {
++        return false;
++    }
++
++    public void onRemoved(World var1, int var2, int var3, int var4) {
++        GravestoneBlockEntity entity = (GravestoneBlockEntity)var1.getBlockEntity(var2, var3, var4);
++        if(entity == null) {
++            return;
++        }
++
++        for(ItemStack item : entity.items) {
++            if(item == null) {
++                continue;
++            }
++
++            ItemEntity itemEntity = new ItemEntity(
++                var1,
++                var2 + this.random.nextDouble() * 0.8D + 0.1D,
++                var3 + this.random.nextDouble() * 0.8D + 0.1D,
++                var4 + this.random.nextDouble() * 0.8D + 0.1D,
++                item
++            );
++            var1.addEntity(itemEntity);
++        }
++        entity.items.clear();
++
++        while(entity.xp > 0) {
++            int xpDrop = ExperienceOrbEntity.roundSize(entity.xp);
++            entity.xp -= xpDrop;
++            var1.addEntity(new ExperienceOrbEntity(var1, var2, var3, var4, xpDrop));
++        }
++
++        super.onRemoved(var1, var2, var3, var4);
++    }
++}
+--- /dev/null
 +++ net/minecraft/entity/mob/player/SprintOnlyHungerManager.java
 @@ -1,0 +1,48 @@
 +package net.minecraft.entity.mob.player;
@@ -20401,7 +21150,7 @@
 +        super(var1);
 +    }
 +
-+    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
++    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
 +        if(var1.size > 0 && var3.getBlock(var4, var5, var6) == this.id) {
 +            int meta = var3.getBlockMetadata(var4, var5, var6);
 +            if(meta >= 7) {
@@ -20418,7 +21167,7 @@
 +                return true;
 +            }
 +        }
-+        return super.useOn(var1, var2, var3, var4, var5, var6, var7);
++        return super.useOn(var1, var2, var3, var4, var5, var6, var7, hitX, hitY, hitZ);
 +    }
 +}
 --- /dev/null
@@ -20882,7 +21631,22 @@
  			}
  
  		}
-@@ -1102,6 +1143,9 @@
+@@ -969,11 +1010,13 @@
+ 				int var5 = this.crosshairTarget.y;
+ 				int var6 = this.crosshairTarget.z;
+ 				int var7 = this.crosshairTarget.face;
++				Vec3d hit = this.crosshairTarget.facePos;
+ 				if(var1 == 0) {
+ 					this.interactionManager.startMiningBlock(var4, var5, var6, this.crosshairTarget.face);
+ 				} else {
+ 					int var9 = var3 != null ? var3.size : 0;
+-					if(this.interactionManager.useBlock(this.player, this.world, var3, var4, var5, var6, var7)) {
++					if(this.interactionManager.useBlock(this.player, this.world, var3, var4, var5, var6, var7,
++						(float)hit.x - var4, (float)hit.y - var5, (float)hit.z - var6)) {
+ 						var2 = false;
+ 						this.player.swingArm();
+ 					}
+@@ -1102,6 +1145,9 @@
  		if(!this.paused && this.world != null) {
  			this.interactionManager.tick();
  		}
@@ -20892,7 +21656,7 @@
  
  		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textureManager.load("/terrain.png"));
  		Profiler.swap("textures");
-@@ -1177,14 +1221,144 @@
+@@ -1177,14 +1223,144 @@
  			label361:
  			while(true) {
  				while(true) {
@@ -21039,7 +21803,7 @@
  							}
  
  							while(this.isMultiplayer() && this.options.chatKey.consumeClick()) {
-@@ -1196,15 +1370,15 @@
+@@ -1196,15 +1372,15 @@
  							}
  
  							if(this.player.hasItemInUse()) {
@@ -21060,7 +21824,7 @@
  										while(this.options.pickItemKey.consumeClick()) {
  										}
  										break;
-@@ -1224,16 +1398,17 @@
+@@ -1224,16 +1400,17 @@
  								}
  							}
  
@@ -21080,7 +21844,7 @@
  							KeyBinding.click(Keyboard.getEventKey());
  						}
  					} while(!Keyboard.getEventKeyState());
-@@ -1254,11 +1429,12 @@
+@@ -1254,11 +1431,12 @@
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_T && Keyboard.isKeyDown(Keyboard.KEY_F3)) {
  								this.textureManager.reload();
@@ -21095,7 +21859,7 @@
  							}
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_A && Keyboard.isKeyDown(Keyboard.KEY_F3)) {
-@@ -1271,7 +1447,7 @@
+@@ -1271,7 +1449,7 @@
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_F3) {
  								this.options.debugEnabled = !this.options.debugEnabled;
@@ -21104,7 +21868,7 @@
  							}
  
  							if(Keyboard.getEventKey() == Keyboard.KEY_F5) {
-@@ -1290,6 +1466,12 @@
+@@ -1290,6 +1468,12 @@
  						for(var7 = 0; var7 < 9; ++var7) {
  							if(Keyboard.getEventKey() == Keyboard.KEY_1 + var7) {
  								this.player.inventory.selectedSlot = var7;
@@ -21117,7 +21881,7 @@
  							}
  						}
  
-@@ -1318,7 +1500,7 @@
+@@ -1318,7 +1502,7 @@
  				}
  			}
  
@@ -21126,7 +21890,7 @@
  				this.world.difficulty = 3;
  			} else {
  				this.world.difficulty = this.options.difficulty;
-@@ -1328,6 +1510,8 @@
+@@ -1328,6 +1512,8 @@
  				this.world.difficulty = 1;
  			}
  
@@ -21135,7 +21899,7 @@
  			Profiler.swap("gameRenderer");
  			if(!this.paused) {
  				this.gameRenderer.tick();
-@@ -1395,6 +1579,7 @@
+@@ -1395,6 +1581,7 @@
  			if(var5.isNew) {
  				this.stats.increment(Stats.WORLDS_CREATED, 1);
  				this.stats.increment(Stats.GAMES_STARTED, 1);
@@ -21143,7 +21907,7 @@
  				this.setWorld(var5, I18n.translate("menu.generatingLevel"));
  			} else {
  				this.stats.increment(Stats.WORLDS_LOADED, 1);
-@@ -1415,7 +1600,7 @@
+@@ -1415,7 +1602,7 @@
  		double var7 = 1.0D;
  		if(var2 > -1 && this.player.dimension == -1) {
  			var7 = 0.125D;
@@ -21152,7 +21916,7 @@
  			var7 = 8.0D;
  		}
  
-@@ -1443,14 +1628,19 @@
+@@ -1443,14 +1630,19 @@
  				this.setWorld(var9, "Leaving the Nether", this.player);
  			} else {
  				this.setWorld(var9, "Leaving the End", this.player);
@@ -21175,7 +21939,7 @@
  			this.player.setPositionAndAngles(var3, this.player.y, var5, 90.0F, 0.0F);
  			if(this.player.isAlive()) {
  				var9.tickEntity(this.player, false);
-@@ -1564,7 +1754,7 @@
+@@ -1564,7 +1756,7 @@
  		this.progressRenderer.progressStart("Converting World to " + this.worldStorageSource.getName());
  		this.progressRenderer.progressStage("This may take a while :)");
  		this.worldStorageSource.convert(var1, this.progressRenderer);
@@ -21184,7 +21948,7 @@
  	}
  
  	private void prepareWorld(String var1) {
-@@ -1593,13 +1783,13 @@
+@@ -1593,13 +1785,13 @@
  			var7.setCenter(var6.x >> 4, var6.z >> 4);
  		}
  
@@ -21200,7 +21964,7 @@
  				if(!this.interactionManager.hidesGui()) {
  					while(this.world.doLightUpdates()) {
  					}
-@@ -1612,7 +1802,7 @@
+@@ -1612,7 +1804,7 @@
  				this.progressRenderer.progressStage(I18n.translate("menu.simulating"));
  			}
  
@@ -21209,7 +21973,7 @@
  			this.world.prepare();
  		}
  
-@@ -1631,7 +1821,13 @@
+@@ -1631,7 +1823,13 @@
  		} else if(var4.equalsIgnoreCase("music")) {
  			this.soundEngine.loadMusic(var1, var2);
  		} else if(var4.equalsIgnoreCase("newmusic")) {
@@ -21224,7 +21988,7 @@
  		}
  
  	}
-@@ -1694,6 +1890,8 @@
+@@ -1694,6 +1892,8 @@
  		this.player = (ClientPlayerEntity)this.interactionManager.createPlayer(this.world);
  		if(var3) {
  			this.player.copyFrom(var9);
@@ -21233,7 +21997,7 @@
  		}
  
  		this.player.dimension = var2;
-@@ -1722,15 +1920,17 @@
+@@ -1722,15 +1922,17 @@
  	}
  
  	public static void startAndConnect(String var0, String var1, String var2) throws LWJGLException {
@@ -21253,7 +22017,7 @@
  		Thread var8 = new Thread(var7, "Minecraft main thread");
  		var8.setPriority(10);
  		var7.hostAddress = "www.minecraft.net";
-@@ -1770,6 +1970,10 @@
+@@ -1770,6 +1972,10 @@
  		start(var1, var2);
  	}
  
@@ -21264,7 +22028,7 @@
  	public static boolean isDisplayGui() {
  		return INSTANCE == null || !INSTANCE.options.hideGui;
  	}
-@@ -1786,6 +1990,22 @@
+@@ -1786,6 +1992,22 @@
  		return INSTANCE != null && INSTANCE.options.debugEnabled;
  	}
  
@@ -21287,7 +22051,7 @@
  	public boolean isIllegalChatMessage(String var1) {
  		if(var1.startsWith("/")) {
  		}
-@@ -1796,47 +2016,75 @@
+@@ -1796,47 +2018,75 @@
  	private void doPick() {
  		if(this.crosshairTarget != null) {
  			boolean var1 = this.player.abilities.creativeMode;
@@ -21350,7 +22114,7 @@
 +				boolean var4 = false;
 +				if(Item.BY_ID[var2] != null && Item.BY_ID[var2].hasCustomData()) {
 +					var3 = this.world.getBlockMetadata(this.crosshairTarget.x, this.crosshairTarget.y, this.crosshairTarget.z);
-+					if(var2 == Block.LOG.id && var3 >= 4 && var3 < 12) {
++					if((var2 == Block.LOG.id || var2 == Block.STONE_COLUMN.id) && var3 >= 4 && var3 < 12) {
 +						var3 &= 3;
 +					}
 +					var4 = true;
@@ -22070,7 +22834,7 @@
  	public static final Block LILY_PAD = (new LilyPadBlock(111, 76)).setStrength(0.0F).setSounds(GRASS_SOUNDS).setKey("waterlily");
  	public static final Block NETHER_BRICKS = (new Block(112, 224, Material.STONE)).setStrength(2.0F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("netherBrick");
  	public static final Block NETHER_BRICK_FENCE = (new FenceBlock(113, 224, Material.STONE)).setStrength(2.0F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("netherFence");
-@@ -163,12 +155,27 @@
+@@ -163,12 +155,31 @@
  	public static final Block ENCHANTING_TABLE = (new EnchantingTableBlock(116)).setStrength(5.0F).setBlastResistance(2000.0F).setKey("enchantmentTable");
  	public static final Block BREWING_STAND = (new BrewingStandBlock(117)).setStrength(0.5F).setLight(2.0F / 16.0F).setKey("brewingStand").updateClients();
  	public static final Block CAULDRON = (new CauldronBlock(118)).setStrength(2.0F).setKey("cauldron").updateClients();
@@ -22098,10 +22862,14 @@
 +	public static final Block COAL_BLOCK = (new CoalBlock(137, 190)).setStrength(5.0F).setBlastResistance(6.0F).setSounds(STONE_SOUNDS).setKey("blockCoal");
 +	public static final Block REDSTONE_BLOCK = (new RedstoneBlock(138, 200)).setStrength(5.0F).setBlastResistance(6.0F).setSounds(STONE_SOUNDS).setKey("blockRedstone");
 +    public static final Block COCOA = new CocoaBlock(139).setStrength(0.2F).setBlastResistance(5.0F).setSounds(WOOD_SOUNDS).setKey("cocoa").updateClients();
++	public static final Block TABLE_SAW = (new TableSawBlock(140)).setStrength(3.5F).setSounds(STONE_SOUNDS).setKey("tableSaw");
++	public static final Block STONE_COLUMN = new StoneColumnBlock(141).setStrength(2.0F).setBlastResistance(10.0F).setSounds(STONE_SOUNDS).setKey("stoneColumn");
++	public static final Block GABBRO_SHINGLES_STAIRS = (new StairsBlock(142, STONE_COLUMN, 1)).setKey("stairsGabbroShingles").updateClients();
++	public static final Block GRAVESTONE = (new GravestoneBlock(143)).setStrength(0.5F).setBlastResistance(6000000.0F).setSounds(STONE_SOUNDS).setKey("gravestone");
  	public int sprite;
  	public final int id;
  	protected float miningTime;
-@@ -187,6 +194,7 @@
+@@ -187,6 +198,7 @@
  	public float gravity;
  	public final Material material;
  	public float slipperiness;
@@ -22109,7 +22877,7 @@
  	private String key;
  
  	protected Block(int var1, Material var2) {
-@@ -420,6 +428,18 @@
+@@ -420,6 +432,18 @@
  		}
  	}
  
@@ -22128,7 +22896,18 @@
  	protected int getDropItemMetadata(int var1) {
  		return 0;
  	}
-@@ -597,8 +617,8 @@
+@@ -557,6 +581,10 @@
+ 	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5) {
+ 	}
+ 
++	public void updateMetadataOnPlaced(World var1, int var2, int var3, int var4, int var5, float hitX, float hitY, float hitZ) {
++		this.updateMetadataOnPlaced(var1, var2, var3, var4, var5);
++	}
++
+ 	public void startMining(World var1, int var2, int var3, int var4, PlayerEntity var5) {
+ 	}
+ 
+@@ -597,8 +625,8 @@
  	}
  
  	public void afterMinedByPlayer(World var1, PlayerEntity var2, int var3, int var4, int var5, int var6) {
@@ -22138,7 +22917,7 @@
  		if(this.hasSilkTouchDrops() && EnchantmentHelper.hasSilkTouch(var2.inventory)) {
  			ItemStack var8 = this.getSilkTouchDrop(var6);
  			if(var8 != null) {
-@@ -665,19 +685,27 @@
+@@ -665,19 +693,27 @@
  	}
  
  	public float getAmbientOcclusionLight(WorldView var1, int var2, int var3, int var4) {
@@ -22169,22 +22948,24 @@
  		Item.BY_ID[SAPLING.id] = (new SaplingItem(SAPLING.id - 256)).setKey("sapling");
  		Item.BY_ID[LEAVES.id] = (new LeavesItem(LEAVES.id - 256)).setKey("leaves");
  		Item.BY_ID[VINE.id] = new PlantBlockItem(VINE.id - 256, false);
-@@ -685,6 +713,14 @@
+@@ -685,6 +721,16 @@
  		Item.BY_ID[LILY_PAD.id] = new LilyPadItem(LILY_PAD.id - 256);
  		Item.BY_ID[PISTON.id] = new PistonBlockItem(PISTON.id - 256);
  		Item.BY_ID[STICKY_PISTON.id] = new PistonBlockItem(STICKY_PISTON.id - 256);
 +		Item.BY_ID[WOODEN_SLAB.id] = (new SlabItem(WOODEN_SLAB, DOUBLE_WOODEN_SLAB)).setKey("woodSlab");
 +		Item.BY_ID[BROWN_MUSHROOM_BLOCK.id] = (new LogItem(BROWN_MUSHROOM_BLOCK.id - 256, BROWN_MUSHROOM_BLOCK)).setKey("mushroom");
 +		Item.BY_ID[RED_MUSHROOM_BLOCK.id] = (new LogItem(RED_MUSHROOM_BLOCK.id - 256, RED_MUSHROOM_BLOCK)).setKey("mushroom");
-+		Item.BY_ID[END_STONE.id] = (new PlantBlockItem(END_STONE.id - 256, true)).setNames(new String[]{null, "gabbro", "sulfur"});
++		Item.BY_ID[END_STONE.id] = (new PlantBlockItem(END_STONE.id - 256, true)).setNames(new String[]{null, "gabbro", "sulfur", "smoothGabbro"});
 +		Item.BY_ID[SPONGE.id] = (new PlantBlockItem(SPONGE.id - 256, true)).setNames(new String[]{null, "wet"});
 +		Item.BY_ID[SNOW_LAYER.id] = (new SnowLayerItem(SNOW_LAYER.id - 256));
 +		Item.BY_ID[DIRT.id] = (new PlantBlockItem(DIRT.id - 256, true)).setNames(new String[]{null, "coarse"});
 +		Item.BY_ID[COAL_BLOCK.id] = (new PlantBlockItem(COAL_BLOCK.id - 256, true)).setNames(new String[]{null, "charcoal"});
++		Item.BY_ID[STONE_COLUMN.id] = (new StoneColumnItem(STONE_COLUMN.id - 256, true)).setNames(new String[]{null, "gabbro"});
++		Item.BY_ID[MONSTER_EGG.id] = (new LogItem(MONSTER_EGG.id - 256, MONSTER_EGG)).setKey("monsterEgg");
  
  		for(int var0 = 0; var0 < 256; ++var0) {
  			if(BY_ID[var0] != null) {
-@@ -706,7 +742,7 @@
+@@ -706,7 +752,7 @@
  					var1 = true;
  				}
  
@@ -23921,7 +24702,7 @@
  	}
  
  	public void render(float var1) {
-@@ -127,14 +141,15 @@
+@@ -127,19 +141,20 @@
  		super.initWorld(var1);
  	}
  
@@ -23942,7 +24723,14 @@
 +		);
  	}
  
- 	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
+-	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
++	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		int var8 = var2.getBlock(var4, var5, var6);
+-		return var8 > 0 && Block.BY_ID[var8].use(var2, var4, var5, var6, var1) ? true : (var3 == null ? false : var3.useOn(var1, var2, var4, var5, var6, var7));
++		return var8 > 0 && Block.BY_ID[var8].use(var2, var4, var5, var6, var1) ? true : (var3 == null ? false : var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ));
+ 	}
+ 
+ 	public boolean hasXpBar() {
 --- /dev/null
 +++ net/minecraft/client/gui/screen/inventory/menu/LogicalEnchantingTableScreen.java
 @@ -1,0 +1,80 @@
@@ -24508,7 +25296,18 @@
  	}
  
  	public void openFurnaceMenu(FurnaceBlockEntity var1) {
-@@ -358,8 +388,8 @@
+@@ -296,6 +326,10 @@
+ 		this.minecraft.openScreen(new DispenserScreen(this.inventory, var1));
+ 	}
+ 
++	public void openTableSawMenu(int var1, int var2, int var3) {
++		this.minecraft.openScreen(new TableSawScreen(this.inventory, this.world, var1, var2, var3));
++	}
++
+ 	public void addCritParticles(Entity var1) {
+ 		this.minecraft.particleManager.add(new EmitterParticle(this.minecraft.world, var1));
+ 	}
+@@ -358,8 +392,8 @@
  			} else {
  				this.minecraft.stats.increment(var1, var2);
  			}
@@ -24520,7 +25319,7 @@
  	private boolean isSolidBlock(int var1, int var2, int var3) {
 --- /dev/null
 +++ net/minecraft/enchantment/logical/EnchantmentIngredients.java
-@@ -1,0 +1,168 @@
+@@ -1,0 +1,170 @@
 +package net.minecraft.enchantment.logical;
 +
 +import static net.minecraft.enchantment.Enchantment.*;
@@ -24535,10 +25334,11 @@
 +
 +    static {
 +        register(BLAZE_POWDER.id,
-+            new Add(FIRE_ASPECT.id, 0.2D),
++            new Add(FIRE_ASPECT.id, 0.5D),
 +            new Add(FLAME.id, 0.2D),
 +            new Add(FIRE_PROTECTION.id, 0.6D),
-+            new Add(SHARPNESS.id, -0.1D));
++            new Add(SHARPNESS.id, -0.1D),
++            new Multiply(FIRE_ASPECT.id, 0.9D));
 +        register(BLAZING_STEEL_INGOT.id,
 +            new Add(EFFICIENCY.id, 1.2D),
 +            new Add(UNBREAKING.id, -0.5D),
@@ -24568,7 +25368,7 @@
 +            new Add(VELOCITY.id, -0.5D),
 +            new Add(PROTECTION.id, -0.5D));
 +        register(DIAMOND.id,
-+            new Add(SHARPNESS.id, 1.2D),
++            new Add(SHARPNESS.id, 1.5D),
 +            new Add(EFFICIENCY.id, 0.4D),
 +            new Add(LOOTING.id, 0.15D),
 +            new Add(FORTUNE.id, 0.5D),
@@ -24591,9 +25391,9 @@
 +            new Add(RESPIRATION.id, 0.45D),
 +            new Add(AQUA_AFFINITY.id, 0.15D));
 +        register(FLINT.id,
-+            new Add(SHARPNESS.id, 0.8D),
++            new Add(SHARPNESS.id, 1.0),
 +            new Add(UNBREAKING.id, -0.8D),
-+            new Multiply(SHARPNESS.id, 0.9D),
++            new Multiply(SHARPNESS.id, 0.95D),
 +            new Add(FIRE_ASPECT.id, 0.1D),
 +            new Add(FLAME.id, 0.1D));
 +        register(SPECKLED_MELON.id,
@@ -24623,7 +25423,8 @@
 +            new Multiply(PROTECTION.id, 0.9D),
 +            new Add(VELOCITY.id, -0.25D),
 +            new Add(KNOCKBACK.id, 0.4D),
-+            new Add(SHARPNESS.id, 0.3D),
++            new Add(SHARPNESS.id, 0.5D),
++            new Multiply(SHARPNESS.id, 0.95D),
 +            new Add(PUNCH.id, 0.4D));
 +        register(OBSIDIAN.id,
 +            new Add(UNBREAKING.id, 0.8D),
@@ -25843,7 +26644,7 @@
  import net.minecraft.client.gui.screen.StatsScreen;
  import net.minecraft.client.gui.screen.menu.AchievementsScreen;
  import net.minecraft.client.gui.widget.ButtonWidget;
-@@ -13,10 +16,14 @@
+@@ -13,10 +16,12 @@
  import net.minecraft.inventory.SimpleInventory;
  import net.minecraft.inventory.menu.InventoryMenu;
  import net.minecraft.inventory.slot.InventorySlot;
@@ -25853,12 +26654,10 @@
  import net.minecraft.locale.I18n;
  import net.minecraft.stat.achievement.Achievements;
 +import net.minecraft.world.biome.Biome;
-+import net.minecraft.world.biome.HellBiome;
-+import net.minecraft.world.biome.TheEndBiome;
  import org.lwjgl.input.Mouse;
  import org.lwjgl.opengl.GL11;
  
-@@ -35,8 +42,15 @@
+@@ -35,8 +40,15 @@
  	}
  
  	public void tick() {
@@ -25875,7 +26674,7 @@
  		}
  
  	}
-@@ -100,11 +114,12 @@
+@@ -100,11 +112,12 @@
  	}
  
  	public void init() {
@@ -25889,7 +26688,7 @@
  		}
  
  	}
-@@ -117,7 +132,6 @@
+@@ -117,7 +130,6 @@
  		super.handleMouse();
  		int var1 = Mouse.getEventDWheel();
  		if(var1 != 0) {
@@ -25897,7 +26696,7 @@
  			if(var1 > 0) {
  				var1 = 1;
  			}
-@@ -126,22 +140,29 @@
+@@ -126,22 +138,29 @@
  				var1 = -1;
  			}
  
@@ -25940,7 +26739,7 @@
  		int var5 = this.x;
  		int var6 = this.y;
  		int var7 = var5 + 155;
-@@ -197,56 +218,93 @@
+@@ -197,56 +216,97 @@
  			this.minecraft.openScreen(new StatsScreen(this, this.minecraft.stats));
  		}
  
@@ -25959,7 +26758,7 @@
  
  		public CreativePlayerMenu(PlayerEntity var1) {
 -			Block[] var2 = new Block[]{Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.ICE, Block.SNOW, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.END_STONE, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP};
-+			Block[] var2 = {Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.REDSTONE_BLOCK, Block.COAL_BLOCK, Block.COAL_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.BLAZE_REMAINS, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.SPONGE, Block.ICE, Block.SNOW, Block.SNOW_LAYER, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.BROWN_MUSHROOM_BLOCK, Block.RED_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.STONE_SLAB, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.TITANIUM_ORE, Block.TITANIUM_BLOCK, Block.COSMITE_BLOCK, Block.END_CRYSTAL_BLOCK, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.SPRUCE_STAIRS, Block.BIRCH_STAIRS, Block.JUNGLE_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.SANDSTONE_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP, Block.GEYSER, Block.MONSTER_EGG, Block.MONSTER_EGG, Block.MONSTER_EGG};
++			Block[] var2 = {Block.COBBLESTONE, Block.STONE, Block.DIAMOND_ORE, Block.GOLD_ORE, Block.IRON_ORE, Block.COAL_ORE, Block.LAPIS_ORE, Block.REDSTONE_ORE, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_BRICKS, Block.STONE_COLUMN, Block.CLAY, Block.DIAMOND_BLOCK, Block.GOLD_BLOCK, Block.IRON_BLOCK, Block.BEDROCK, Block.LAPIS_BLOCK, Block.REDSTONE_BLOCK, Block.COAL_BLOCK, Block.COAL_BLOCK, Block.BRICKS, Block.MOSSY_COBBLESTONE, Block.STONE, Block.STONE_SLAB, Block.STONE_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.WOODEN_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.STONE_SLAB, Block.OBSIDIAN, Block.NETHERRACK, Block.SOUL_SAND, Block.GLOWSTONE, Block.BLAZE_REMAINS, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LOG, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.LEAVES, Block.DIRT, Block.DIRT, Block.GRASS, Block.SAND, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.SANDSTONE, Block.GRAVEL, Block.WEB, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.PLANKS, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.SAPLING, Block.DEADBUSH, Block.SPONGE, Block.SPONGE, Block.ICE, Block.SNOW, Block.SNOW_LAYER, Block.YELLOW_FLOWER, Block.RED_FLOWER, Block.BROWN_MUSHROOM, Block.RED_MUSHROOM, Block.BROWN_MUSHROOM_BLOCK, Block.RED_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.BROWN_MUSHROOM_BLOCK, Block.CACTUS, Block.MELON_BLOCK, Block.PUMPKIN, Block.LIT_PUMPKIN, Block.VINE, Block.IRON_BARS, Block.GLASS_PANE, Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE, Block.NETHER_BRICK_STAIRS, Block.STONE_SLAB, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.END_STONE, Block.STONE_COLUMN, Block.STONE_SLAB, Block.TITANIUM_ORE, Block.TITANIUM_BLOCK, Block.COSMITE_BLOCK, Block.END_CRYSTAL_BLOCK, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.MYCELIUM, Block.LILY_PAD, Block.TALLGRASS, Block.TALLGRASS, Block.CHEST, Block.CRAFTING_TABLE, Block.GLASS, Block.TNT, Block.BOOKSHELF, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.WOOL, Block.DISPENSER, Block.FURNACE, Block.TABLE_SAW, Block.NOTEBLOCK, Block.JUKEBOX, Block.STICKY_PISTON, Block.PISTON, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE, Block.FENCE_GATE, Block.LADDER, Block.RAIL, Block.POWERED_RAIL, Block.DETECTOR_RAIL, Block.TORCH, Block.OAK_STAIRS, Block.SPRUCE_STAIRS, Block.BIRCH_STAIRS, Block.JUNGLE_STAIRS, Block.STONE_STAIRS, Block.BRICK_STAIRS, Block.STONE_BRICK_STAIRS, Block.SANDSTONE_STAIRS, Block.GABBRO_SHINGLES_STAIRS, Block.LEVER, Block.STONE_PRESSURE_PLATE, Block.WOODEN_PRESSURE_PLATE, Block.REDSTONE_TORCH, Block.STONE_BUTTON, Block.TRAPDOOR, Block.ENCHANTING_TABLE, Block.REDSTONE_LAMP, Block.GEYSER, Block.MONSTER_EGG, Block.MONSTER_EGG, Block.MONSTER_EGG};
 +			Biome[] culturedMealBiomes = {Biome.PLAINS, Biome.DARK_FOREST, Biome.RAINFOREST, Biome.SWAMPLAND, Biome.ARCHIPELAGO, Biome.ICE_PLAINS, Biome.TAIGA, Biome.OCEAN, Biome.SEASONAL_FOREST, Biome.DESERT};
 +
 +			Set<Integer> excludedItems = Stream.of(
@@ -25993,7 +26792,8 @@
 +				Block.SPONGE,
 +				Block.DIRT,
 +				Block.COAL_BLOCK,
-+                Block.MONSTER_EGG
++                Block.MONSTER_EGG,
++				Block.STONE_COLUMN
 +			).collect(Collectors.toSet());
 +			Map<Block, Integer> metaMap = new HashMap<>();
  
@@ -26006,6 +26806,9 @@
 -				} else if(var2[var12] == Block.STONE_SLAB) {
 +				if(var2[var12] == Block.STONE_SLAB) {
  					var13 = var4++;
++					if (var4 == 5) {
++						var4++;
++					}
 +					if (var13 == 2) {
 +						var13 += var4;
 +					}
@@ -26057,7 +26860,7 @@
  			for(var12 = 1; var12 < 16; ++var12) {
  				this.items.add(new ItemStack(Item.DYE.id, 1, var12));
  			}
-@@ -258,6 +316,44 @@
+@@ -258,6 +318,44 @@
  				this.items.add(new ItemStack(Item.SPAWN_EGG.id, 1, var17.intValue()));
  			}
  
@@ -26102,7 +26905,7 @@
  			PlayerInventory var16 = var1.inventory;
  
  			for(var13 = 0; var13 < 9; ++var13) {
-@@ -298,6 +394,10 @@
+@@ -298,6 +396,10 @@
  		}
  
  		protected void clickSlot(int var1, int var2, boolean var3, PlayerEntity var4) {
@@ -27768,7 +28571,7 @@
  import net.minecraft.world.WorldSettings;
  
  public class CommandHandler {
-@@ -216,7 +218,135 @@
+@@ -216,7 +218,136 @@
  							} else {
  								var6.sendMessage("Can\'t find user " + var19);
  							}
@@ -27789,6 +28592,7 @@
 +                                            throw new RuntimeException(e);
 +                                        }
 +                                    });
++								return;
 +							}
 +
 +							String rule = var3[1];
@@ -27905,7 +28709,7 @@
  							if(var3.length != 3) {
  								return;
  							}
-@@ -347,6 +477,7 @@
+@@ -347,6 +478,7 @@
  		var1.sendMessage("   say <message>             broadcasts a message to all players");
  		var1.sendMessage("   time <add|set> <amount>   adds to or sets the world time (0-24000)");
  		var1.sendMessage("   gamemode <player> <mode>  sets player\'s game mode (0 or 1)");
@@ -28650,9 +29454,9 @@
 +        super(var1, var2);
 +    }
 +
-+    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
++    public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
 +        this.face = var7;
-+        return super.useOn(var1, var2, var3, var4, var5, var6, var7);
++        return super.useOn(var1, var2, var3, var4, var5, var6, var7, hitX, hitY, hitZ);
 +    }
 +
 +    public int getBlockMetadata(int var1) {
@@ -28742,6 +29546,145 @@
  
  	protected int getDropItem() {
 --- /dev/null
++++ net/minecraft/crafting/SawingManager.java
+@@ -1,0 +1,136 @@
++package net.minecraft.crafting;
++
++import net.minecraft.block.Block;
++import net.minecraft.crafting.recipe.SawingRecipe;
++import net.minecraft.item.Item;
++import net.minecraft.item.ItemStack;
++
++import java.util.*;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
++
++public class SawingManager {
++    private static final SawingManager INSTANCE = new SawingManager();
++    private static final float STAIR_EFFICIENCY = 1.0F / 3.0F;
++
++    public static SawingManager getInstance() {
++        return INSTANCE;
++    }
++
++    private final List<SawingRecipe> recipes = new ArrayList<>();
++    private int order;
++
++    private SawingManager() {
++        register(Block.STONE, 0, Block.STONE, 1, 1);
++        register(Block.STONE, 1, Block.STONE, 1, 0);
++        register(Block.STONE, Block.STONE_SLAB, 2, 0);
++
++        register(Block.SANDSTONE, Block.STONE_SLAB, 2, 1);
++        register(Block.SANDSTONE, Block.SANDSTONE_STAIRS, STAIR_EFFICIENCY);
++        register(Block.SANDSTONE, Block.SANDSTONE, 1, 1);
++        register(Block.SANDSTONE, Block.SANDSTONE, 1, 2);
++
++        register(Block.STONE, Block.COBBLESTONE);
++        register(Block.COBBLESTONE, Block.STONE_SLAB, 2, 3);
++        register(Block.COBBLESTONE, Block.STONE_STAIRS, STAIR_EFFICIENCY);
++
++        register(new SawingRecipe(this.order++, new ItemStack(Block.BRICKS), new ItemStack(Item.BRICK, 4)));
++        register(Block.BRICKS, Block.STONE_SLAB, 2, 4);
++        register(Block.BRICKS, Block.BRICK_STAIRS, STAIR_EFFICIENCY);
++
++        register(Block.STONE, Block.STONE_BRICKS);
++        register(Block.STONE_BRICKS, Block.STONE_SLAB, 2, 5);
++        register(Block.STONE_BRICKS, Block.STONE_BRICK_STAIRS, STAIR_EFFICIENCY);
++        register(Block.STONE_BRICKS, Block.STONE_BRICKS);
++        register(Block.STONE_BRICKS, Block.STONE_BRICKS, 1, 3);
++        register(Block.STONE_BRICKS, Block.STONE_COLUMN);
++        register(Block.STONE_COLUMN, 0, Block.STONE_BRICKS, 1, 3);
++
++        register(new SawingRecipe(this.order++, new ItemStack(Block.NETHER_BRICKS), new ItemStack(Item.NETHER_BRICK, 4)));
++        register(Block.NETHER_BRICKS, Block.STONE_SLAB, 2, 6);
++        register(Block.NETHER_BRICKS, Block.NETHER_BRICK_STAIRS, STAIR_EFFICIENCY);
++        register(Block.NETHER_BRICKS, Block.NETHER_BRICK_FENCE);
++
++        register(Block.END_STONE, 1, Block.STONE_COLUMN, 1, 1);
++        register(Block.END_STONE, 3, Block.STONE_COLUMN, 1, 1);
++        register(Block.STONE_COLUMN, 1, Block.STONE_SLAB, 2, 7);
++        register(Block.STONE_COLUMN, 1, Block.GABBRO_SHINGLES_STAIRS, 1, 1, STAIR_EFFICIENCY);
++        register(Block.STONE_COLUMN, 1, Block.END_STONE, 1, 3);
++
++        for (int i = 0; i < 4; i++) {
++            register(Block.LOG, i + 12, Block.LOG, 1, i);
++            register(Block.LOG, i, Block.PLANKS, 4, i);
++            register(Block.LOG, i + 12, Block.FENCE, 3, i);
++            register(Block.LOG, i, Block.FENCE, 3, i);
++            register(Block.PLANKS, i, Block.WOODEN_SLAB, 2, i);
++            register(Block.PLANKS, i, (i == 0 ? Block.OAK_STAIRS : Block.BY_ID[Block.SPRUCE_STAIRS.id + i - 1]), 1, 0, STAIR_EFFICIENCY);
++        }
++        register(new SawingRecipe(this.order++, new ItemStack(Block.LOG), new ItemStack(Item.STICK, 8)));
++        register(new SawingRecipe(this.order++, new ItemStack(Block.PLANKS), new ItemStack(Item.STICK, 2)));
++
++        register(new SawingRecipe(this.order++, new ItemStack(Block.CLAY), new ItemStack(Item.CLAY, 4)));
++        register(new SawingRecipe(this.order++, new ItemStack(Block.SNOW), new ItemStack(Item.SNOWBALL, 4)));
++        register(new SawingRecipe(this.order++, new ItemStack(Block.GLOWSTONE), new ItemStack(Item.GLOWSTONE_DUST, 4)));
++
++    }
++
++    private void register(Block input, Block output) {
++        this.recipes.add(new SawingRecipe(this.order++, new ItemStack(input, 1, -1), new ItemStack(output, 1, 0)));
++    }
++
++    private void register(Block input, Block output, float efficiency) {
++        this.recipes.add(new SawingRecipe(this.order++, new ItemStack(input, 1, -1), new ItemStack(output, 1, 0), efficiency));
++    }
++
++    private void register(Block input, Block output, int outputCount, int outputMeta) {
++        this.recipes.add(new SawingRecipe(this.order++, new ItemStack(input, 1, -1), new ItemStack(output, outputCount, outputMeta)));
++    }
++
++    private void register(Block input, int inputMeta, Block output, int outputCount, int outputMeta) {
++        this.recipes.add(new SawingRecipe(this.order++, new ItemStack(input, 1, inputMeta), new ItemStack(output, outputCount, outputMeta)));
++    }
++
++    private void register(Block input, int inputMeta, Block output, int outputCount, int outputMeta, float efficiency) {
++        this.recipes.add(new SawingRecipe(this.order++, new ItemStack(input, 1, inputMeta), new ItemStack(output, outputCount, outputMeta), efficiency));
++    }
++
++    private void register(SawingRecipe recipe) {
++        this.recipes.add(recipe);
++    }
++
++    public List<SawingRecipe> getMatchingRecipes(ItemStack item) {
++        return this.getMatchingRecipesRecursively(item, Collections.emptyList(), 1).stream()
++            .filter(recipe -> recipe.output.id != item.id || recipe.output.getMetadata() != Math.max(item.getMetadata(), 0))
++            .sorted(Comparator.comparingInt(SawingRecipe::getOrder))
++            .collect(Collectors.toList());
++    }
++
++    private List<SawingRecipe> getMatchingRecipesRecursively(ItemStack item, List<SawingRecipe> foundRecipes, int stack) {
++        if (item == null || item.size <= 0) {
++            return Collections.emptyList();
++        }
++
++        List<SawingRecipe> matchingRecipes = this.recipes.stream()
++            .filter(recipe -> foundRecipes.stream().noneMatch(otherRecipe -> ItemStack.matches(otherRecipe.output, recipe.output)) && recipe.matches(item))
++            .map(recipe -> recipe.stacked(stack))
++            .collect(Collectors.toList());
++        if (matchingRecipes.isEmpty()) {
++            return matchingRecipes;
++        }
++
++        List<SawingRecipe> combinedRecipes = Stream.concat(
++            matchingRecipes.stream(),
++            foundRecipes.stream()
++        ).collect(Collectors.toList());
++
++        Set<ItemStack> seenOutputs = ConcurrentHashMap.newKeySet();
++        return Stream.concat(
++            matchingRecipes.stream(),
++            matchingRecipes.stream()
++                .flatMap(recipe -> getMatchingRecipesRecursively(recipe.output, combinedRecipes, recipe.output.size).stream())
++        ).filter(recipe -> seenOutputs.stream().noneMatch(output -> ItemStack.matches(output, recipe.output))
++            && seenOutputs.add(recipe.output))
++        .collect(Collectors.toList());
++    }
++}
+--- /dev/null
 +++ net/minecraft/enchantment/QuickDrawEnchantment.java
 @@ -1,0 +1,28 @@
 +package net.minecraft.enchantment;
@@ -28809,6 +29752,15 @@
  
  	public void render(float var1) {
  	}
+@@ -73,7 +73,7 @@
+ 		CreativeInteractionManager.setSurvivalMode(var1);
+ 	}
+ 
+-	public abstract boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7);
++	public abstract boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ);
+ 
+ 	public PlayerEntity createPlayer(World var1) {
+ 		return new ClientPlayerEntity(this.minecraft, var1, this.minecraft.session, var1.dimension.id);
 --- net/minecraft/world/gen/feature/SwampTreeFeature.java
 +++ net/minecraft/world/gen/feature/SwampTreeFeature.java
 @@ -6,13 +6,24 @@
@@ -29090,7 +30042,7 @@
 +import net.minecraft.network.packet.*;
  
  public abstract class PacketHandler {
-+	public static final int PROTOCOL_VERSION = 4070006;
++	public static final int PROTOCOL_VERSION = 4070007;
 +
  	public abstract boolean isServer();
  
@@ -29252,7 +30204,7 @@
  	public static final String VALID_CHAT_CHARACTERS = getValidChatCharString();
  	public static final char[] INVALID_FILE_CHARS = new char[]{'/', '\n', '\r', '\t', '\u0000', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
 +	public static final String INVALID_FILE_CHARS_STRING = new String(INVALID_FILE_CHARS);
-+	public static final String VERSION = "AuthAdv 1.4.3";
++	public static final String VERSION = "AuthAdv 1.4.4";
 +	public static final boolean PRE_RELEASE = VERSION.contains("Pre-release");
 +	public static final boolean DEBUG_MODE = false;
 +    public static final boolean PANORAMA_MODE = false;
@@ -29514,10 +30466,10 @@
 +	private boolean tesselateLog(Block var1, int var2, int var3, int var4) {
 +		int orientation = (this.world.getBlockMetadata(var2, var3, var4) >> 2) & 3;
 +        if (orientation == 1) {
-+            this.westFaceRotation = 1;
++            this.westFaceRotation = 2;
 +            this.eastFaceRotation = 1;
 +        } else if (orientation == 2) {
-+            this.northFaceRotation = 1;
++            this.northFaceRotation = 2;
 +            this.southFaceRotation = 1;
 +            this.topFaceRotation = 1;
 +            this.bottomFaceRotation = 1;
@@ -30649,14 +31601,13 @@
  	}
  
  	public int getBlockMetadata(int var1) {
-@@ -21,12 +31,16 @@
+@@ -21,15 +31,19 @@
  	}
  
  	public String getTranslationKey(ItemStack var1) {
 -		int var2 = var1.getMetadata();
 -		if(var2 < 0 || var2 >= StoneSlabBlock.VARIANTS.length) {
 -			var2 = 0;
--		}
 +		if(this.blockStepTypes == null) {
 +			return super.getTranslationKey();
 +		} else {
@@ -30664,13 +31615,18 @@
 +			if(var2 < 0 || var2 >= this.blockStepTypes.length) {
 +				var2 = 0;
 +			}
- 
--		return super.getTranslationKey() + "." + StoneSlabBlock.VARIANTS[var2];
++
 +			return super.getTranslationKey() + "." + this.blockStepTypes[var2];
-+		}
+ 		}
+-
+-		return super.getTranslationKey() + "." + StoneSlabBlock.VARIANTS[var2];
  	}
  
- 	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
+-	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
++	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		if(var1.size == 0) {
+ 			return false;
+ 		} else if(!var2.canUseItemOn(var4, var5, var6)) {
 @@ -39,51 +53,51 @@
  			int var9 = var3.getBlockMetadata(var4, var5, var6);
  			int var10 = var9 & 7;
@@ -30687,7 +31643,7 @@
  				return true;
  			} else {
 -				return combineSlabs(var1, var2, var3, var4, var5, var6, var7) ? true : super.useOn(var1, var2, var3, var4, var5, var6, var7);
-+				return this.combineSlabs(var1, var3, var4, var5, var6, var7) || super.useOn(var1, var2, var3, var4, var5, var6, var7);
++				return this.combineSlabs(var1, var3, var4, var5, var6, var7) || super.useOn(var1, var2, var3, var4, var5, var6, var7, hitX, hitY, hitZ);
  			}
  		}
  	}
@@ -31346,6 +32302,15 @@
  	private boolean wasHungry = true;
  	private int lastSentXp = -99999999;
  	private int spawnProtectionTicks = 60;
+@@ -164,7 +140,7 @@
+ 
+ 	public void die(DamageSource var1) {
+ 		this.server.playerManager.sendPacket(new ChatMessagePacket(var1.getDeathMessage(this)));
+-		this.inventory.dropAll();
++		super.die(var1);
+ 	}
+ 
+ 	public boolean takeDamage(DamageSource var1, int var2) {
 @@ -185,7 +161,12 @@
  				}
  			}
@@ -31439,9 +32404,18 @@
  		this.menu.networkId = this.menuId;
  		this.menu.addListener(this);
  	}
-@@ -462,11 +449,11 @@
+@@ -461,12 +448,20 @@
+ 		this.menu.addListener(this);
  	}
  
++	public void openTableSawMenu(int var1, int var2, int var3) {
++		this.incrementSyncId();
++		this.networkHandler.sendPacket(new OpenInventoryMenuPacket(this.menuId, 6, "Sawing", 1));
++		this.menu = new TableSawMenu(this.inventory, this.world, var1, var2, var3);
++		this.menu.networkId = this.menuId;
++		this.menu.addListener(this);
++	}
++
  	public void onSlotChanged(InventoryMenu var1, int var2, ItemStack var3) {
 -		if(!(var1.getSlot(var2) instanceof CraftingResultSlot)) {
 -			if(!this.useItemCooldown) {
@@ -31456,7 +32430,7 @@
  	}
  
  	public void setMenu(InventoryMenu var1) {
-@@ -502,17 +489,17 @@
+@@ -502,17 +497,17 @@
  	}
  
  	public void incrementStat(Stat var1, int var2) {
@@ -31823,7 +32797,16 @@
  				this.setBlockWithMetadata(var1, Block.STONE_BRICKS.id, 0, var5, var6 + 2, var7, var3);
 --- net/minecraft/item/BlockItem.java
 +++ net/minecraft/item/BlockItem.java
-@@ -51,8 +51,6 @@
+@@ -17,7 +17,7 @@
+ 		return this.block;
+ 	}
+ 
+-	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7) {
++	public boolean useOn(ItemStack var1, PlayerEntity var2, World var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		int var8 = var3.getBlock(var4, var5, var6);
+ 		if(var8 == Block.SNOW_LAYER.id) {
+ 			var7 = 1;
+@@ -51,13 +51,11 @@
  			return false;
  		} else if(!var2.canUseItemOn(var4, var5, var6)) {
  			return false;
@@ -31832,6 +32815,12 @@
  		} else if(var3.canPlace(this.block, var4, var5, var6, false, var7)) {
  			Block var9 = Block.BY_ID[this.block];
  			if(var3.setBlockWithMetadata(var4, var5, var6, this.block, this.getBlockMetadata(var1.getMetadata()))) {
+ 				if(var3.getBlock(var4, var5, var6) == this.block) {
+-					Block.BY_ID[this.block].updateMetadataOnPlaced(var3, var4, var5, var6, var7);
++					Block.BY_ID[this.block].updateMetadataOnPlaced(var3, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 					Block.BY_ID[this.block].onPlaced(var3, var4, var5, var6, var2);
+ 				}
+ 
 --- net/minecraft/entity/projectile/FireballEntity.java
 +++ net/minecraft/entity/projectile/FireballEntity.java
 @@ -27,15 +27,10 @@
@@ -32353,9 +33342,11 @@
  		} else {
 --- /dev/null
 +++ net/minecraft/client/gui/screen/world/GameModeCustomizationScreen.java
-@@ -1,0 +1,327 @@
+@@ -1,0 +1,383 @@
 +package net.minecraft.client.gui.screen.world;
 +
++import java.util.Arrays;
++import java.util.List;
 +import java.util.function.Consumer;
 +import net.minecraft.client.gui.screen.Screen;
 +import net.minecraft.client.gui.widget.ButtonWidget;
@@ -32371,6 +33362,7 @@
 +	private GameMode gameMode;
 +	private int page = -1;
 +	private boolean blockButtons;
++	private final String[] tooltips = new String[10];
 +
 +	public GameModeCustomizationScreen(CreateWorldScreen var1) {
 +		this.parent = var1;
@@ -32392,6 +33384,7 @@
 +			this.buttons.add(new ButtonWidget(-6, this.width / 2 + 5, this.height / 6 + 180, 150, 20, lang.translate("customizedGameMode.save")));
 +		}
 +
++		Arrays.fill(this.tooltips, null);
 +		switch(this.page) {
 +		case -1:
 +			this.addButtonPreset(0, presetButtonText("default"));
@@ -32400,67 +33393,67 @@
 +			this.addButtonPreset(3, presetButtonText("vanilla"));
 +			break;
 +		case 0:
-+			this.addButton(0, i18ncgm("xpEnabled", this.gameMode.xpEnabled));
-+			this.addButton(1, i18ncgm("enchantingType", this.gameMode.enchantingType.toString().toLowerCase()));
-+			this.addButton(2, i18ncgm("baseEnchantments", this.gameMode.baseEnchantments));
-+			this.addButton(3, i18ncgm("sprintingEnabled", this.gameMode.sprintingEnabled));
-+			this.addSlider(4, i18ncgm("sprintCooldownMultiplier"), this.gameMode.sprintCooldownMultiplier, 0.0F, 5.0F, 0.05F,
++			this.addButton(0, "xpEnabled", this.gameMode.xpEnabled);
++			this.addButton(1, "enchantingType", this.gameMode.enchantingType.toString().toLowerCase());
++			this.addButton(2, "baseEnchantments", this.gameMode.baseEnchantments);
++			this.addButton(3, "sprintingEnabled", this.gameMode.sprintingEnabled);
++			this.addSlider(4, "sprintCooldownMultiplier", this.gameMode.sprintCooldownMultiplier, 0.0F, 5.0F, 0.05F,
 +				v -> {
 +					this.gameMode.sprintCooldownMultiplier = v;
 +					this.gameMode.preset = "";
 +				});
-+			this.addButton(5, i18ncgm("hungerType", this.gameMode.hungerType.toString().toLowerCase()));
-+			this.addButton(6, i18ncgm("foodStacking", this.gameMode.foodStacking.toString().toLowerCase()));
-+			this.addSlider(7, i18ncgm("eatingDuration"), this.gameMode.eatingDuration / 20.0F, 0.0F, 5.0F, 0.05F,
++			this.addButton(5, "hungerType", this.gameMode.hungerType.toString().toLowerCase());
++			this.addButton(6, "foodStacking", this.gameMode.foodStacking.toString().toLowerCase());
++			this.addSlider(7, "eatingDuration", this.gameMode.eatingDuration / 20.0F, 0.0F, 5.0F, 0.05F,
 +				v -> {
 +					this.gameMode.eatingDuration = Math.round(v * 20.0F);
 +					this.gameMode.preset = "";
 +				});
-+			this.addButton(8, i18ncgm("eatingInterruption", this.gameMode.eatingInterruption));
-+			this.addSlider(9, i18ncgm("exhaustionMultiplier"), this.gameMode.exhaustionMultiplier, 0.0F, 2.0F, 0.05F,
++			this.addButton(8, "eatingInterruption", this.gameMode.eatingInterruption);
++			this.addSlider(9, "exhaustionMultiplier", this.gameMode.exhaustionMultiplier, 0.0F, 2.0F, 0.05F,
 +				v -> {
 +					this.gameMode.exhaustionMultiplier = v;
 +					this.gameMode.preset = "";
 +				});
 +			break;
 +		case 1:
-+			this.addButton(0, i18ncgm("reducedFood", this.gameMode.reducedFood));
-+			this.addButton(1, i18ncgm("animalDespawning", this.gameMode.animalDespawning));
-+			this.addSlider(2, i18ncgm("passiveSpawnRate"), (float)this.gameMode.passiveSpawnRate, 1.0F, 400.0F, 5.0F,
++			this.addButton(0, "reducedFood", this.gameMode.reducedFood);
++			this.addButton(1, "animalDespawning", this.gameMode.animalDespawning);
++			this.addSlider(2, "passiveSpawnRate", (float)this.gameMode.passiveSpawnRate, 1.0F, 400.0F, 5.0F,
 +				v -> {
 +					this.gameMode.passiveSpawnRate = (int)(float)v;
 +					this.gameMode.preset = "";
 +				});
-+			this.addButton(3, i18ncgm("classicAI", this.gameMode.classicAI));
-+			this.addSlider(4, i18ncgm("healthMultiplier"), this.gameMode.healthMultiplier, 1.0F, 2.0F, 0.05F,
++			this.addButton(3, "classicAI", this.gameMode.classicAI);
++			this.addSlider(4, "healthMultiplier", this.gameMode.healthMultiplier, 1.0F, 2.0F, 0.05F,
 +				v -> {
 +					this.gameMode.healthMultiplier = v;
 +					this.gameMode.preset = "";
 +				});
-+			this.addButton(5, i18ncgm("criticalHits", this.gameMode.criticalHits));
-+			this.addButton(6, i18ncgm("swordBlocking", this.gameMode.swordBlocking));
-+			this.addSlider(7, i18ncgm("oreMultiplier"), this.gameMode.oreMultiplier, 0.0F, 2.0F, 0.05F,
++			this.addButton(5, "criticalHits", this.gameMode.criticalHits);
++			this.addButton(6, "swordBlocking", this.gameMode.swordBlocking);
++			this.addSlider(7, "oreMultiplier", this.gameMode.oreMultiplier, 0.0F, 2.0F, 0.05F,
 +				v -> {
 +					this.gameMode.oreMultiplier = v;
 +					this.gameMode.preset = "";
 +				});
-+			this.addButton(8, i18ncgm("classicHurtSound", this.gameMode.classicHurtSound));
-+			this.addButton(9, i18ncgm("plankVariants", this.gameMode.plankVariants));
++			this.addButton(8, "classicHurtSound", this.gameMode.classicHurtSound);
++			this.addButton(9, "plankVariants", this.gameMode.plankVariants);
 +			break;
 +		case 2:
-+			this.addButton(0, i18ncgm("itemsOnDeath", this.gameMode.itemsOnDeath.toString().toLowerCase()));
-+			this.addButton(1, i18ncgm("hardcore", this.gameMode.hardcore));
++			this.addButton(0, "itemsOnDeath", this.gameMode.itemsOnDeath.toString().toLowerCase());
++			this.addButton(1, "hardcore", this.gameMode.hardcore);
 +            int daySliderIndex = this.buttons.size();
-+            this.addSlider(2, i18ncgm("dayLength"), this.gameMode.dayLength / 1200.0F, 1.0F, 100.0F, 1.0F,
++            this.addSlider(2, "dayLength", this.gameMode.dayLength / 1200.0F, 1.0F, 100.0F, 1.0F,
 +                v -> {
 +                    this.gameMode.dayLength = Math.round(v * 1200.0F);
 +                    this.gameMode.preset = "";
 +                    ((GenericSliderWidget)this.buttons.get(daySliderIndex)).message += " mins";
 +                });
 +            ((GenericSliderWidget)this.buttons.get(daySliderIndex)).message += " mins";
-+            this.addButton(3, i18ncgm("doDaylightCycle", this.gameMode.doDaylightCycle));
++            this.addButton(3, "doDaylightCycle", this.gameMode.doDaylightCycle);
 +            int initialTimeSlider = this.buttons.size();
-+            this.addSlider(4, i18ncgm("initialTimeOfDay"), this.gameMode.initialTimeOfDay, 0.0F, 1.0F, 1.0F / 96.0F,
++            this.addSlider(4, "initialTimeOfDay", this.gameMode.initialTimeOfDay, 0.0F, 1.0F, 1.0F / 96.0F,
 +                v -> {
 +                    v = Math.round(v * 96.0F) / 96.0F;
 +                    if(v >= 0.0F) {
@@ -32477,25 +33470,32 @@
 +                    slider.message = slider.label + ": " + String.format("%02d:%02d", minutes, seconds);
 +                });
 +            ((GenericSliderWidget)this.buttons.get(initialTimeSlider)).onValueChange.accept(this.gameMode.initialTimeOfDay - 10.0F);
-+            this.addButton(5, i18ncgm("doWeatherCycle", this.gameMode.doWeatherCycle));
-+            this.addButton(6, i18ncgm("netherAccess", this.gameMode.netherAccess));
-+            this.addButton(7, i18ncgm("endAccess", this.gameMode.endAccess));
-+            this.addButton(8, i18ncgm("extraTiers", this.gameMode.extraTiers));
-+            this.addButton(9, i18ncgm("fastBaseMinecarts", this.gameMode.fastBaseMinecarts));
++            this.addButton(5, "doWeatherCycle", this.gameMode.doWeatherCycle);
++            this.addButton(6, "netherAccess", this.gameMode.netherAccess);
++            this.addButton(7, "endAccess", this.gameMode.endAccess);
++            this.addButton(8, "extraTiers", this.gameMode.extraTiers);
++            this.addButton(9, "fastBaseMinecarts", this.gameMode.fastBaseMinecarts);
 +			break;
 +		}
-+
 +	}
 +
-+	private void addButton(int var1, String var2) {
-+		this.addButton(var1, new ButtonWidget(var1, 0, 0, 150, 20, var2));
++	private void addButton(int var1, String var2, boolean var3) {
++		this.addButton(var1, new ButtonWidget(var1, 0, 0, 150, 20, i18ncgm(var2, var3)));
++		this.tooltips[var1] = i18ncgm(var2 + ".desc").replace("\\n", "\n");
++	}
++
++	private void addButton(int var1, String var2, String var3) {
++		this.addButton(var1, new ButtonWidget(var1, 0, 0, 150, 20, i18ncgm(var2, var3)));
++		this.tooltips[var1] = i18ncgm(var2 + ".desc").replace("\\n", "\n")
++			+ "\n" + i18ncgm(var2 + "." + var3 + ".desc").replace("\\n", "\n");
 +	}
 +
 +	private void addSlider(int var1, String var2, float var3, float var4, float var5, float var6, Consumer<Float> var7) {
-+		GenericSliderWidget var8 = new GenericSliderWidget(var1, 0, 0, 150, 20, var2, (var3 - var4) / (var5 - var4), var4, var5);
++		GenericSliderWidget var8 = new GenericSliderWidget(var1, 0, 0, 150, 20, i18ncgm(var2), (var3 - var4) / (var5 - var4), var4, var5);
 +		var8.round = var6;
 +		var8.onValueChange = var7;
 +		this.addButton(var1, (ButtonWidget)var8);
++		this.tooltips[var1] = i18ncgm(var2 + ".desc");
 +	}
 +
 +	private void addButton(int var1, ButtonWidget var2) {
@@ -32539,74 +33539,70 @@
 +				this.minecraft.openScreen(this.parent);
 +				break;
 +			case 0:
-+				var1.message = i18ncgm("xpEnabled", this.gameMode.xpEnabled = !this.gameMode.xpEnabled);
++				this.gameMode.xpEnabled = !this.gameMode.xpEnabled;
 +				break;
 +			case 1:
 +				this.gameMode.enchantingType = GameMode.EnchantingType.values()[(this.gameMode.enchantingType.ordinal() + 1) % GameMode.EnchantingType.values().length];
-+				var1.message = i18ncgm("enchantingType", this.gameMode.enchantingType.toString().toLowerCase());
 +				break;
 +			case 2:
-+				var1.message = i18ncgm("baseEnchantments", this.gameMode.baseEnchantments = !this.gameMode.baseEnchantments);
++				this.gameMode.baseEnchantments = !this.gameMode.baseEnchantments;
 +				break;
 +			case 3:
-+				var1.message = i18ncgm("sprintingEnabled", this.gameMode.sprintingEnabled = !this.gameMode.sprintingEnabled);
++				this.gameMode.sprintingEnabled = !this.gameMode.sprintingEnabled;
 +				break;
 +			case 5:
 +				this.gameMode.hungerType = GameMode.HungerType.values()[(this.gameMode.hungerType.ordinal() + 1) % GameMode.HungerType.values().length];
-+				var1.message = i18ncgm("hungerType", this.gameMode.hungerType.toString().toLowerCase());
 +				break;
 +			case 6:
 +				this.gameMode.foodStacking = GameMode.FoodStackingType.values()[(this.gameMode.foodStacking.ordinal() + 1) % GameMode.FoodStackingType.values().length];
-+				var1.message = i18ncgm("foodStacking", this.gameMode.foodStacking.toString().toLowerCase());
 +				break;
 +			case 8:
-+				var1.message = i18ncgm("eatingInterruption", this.gameMode.eatingInterruption = !this.gameMode.eatingInterruption);
++				this.gameMode.eatingInterruption = !this.gameMode.eatingInterruption;
 +				break;
 +			case 10:
-+				var1.message = i18ncgm("reducedFood", this.gameMode.reducedFood = !this.gameMode.reducedFood);
++				this.gameMode.reducedFood = !this.gameMode.reducedFood;
 +				break;
 +			case 11:
-+				var1.message = i18ncgm("animalDespawning", this.gameMode.animalDespawning = !this.gameMode.animalDespawning);
++				this.gameMode.animalDespawning = !this.gameMode.animalDespawning;
 +				break;
 +			case 13:
-+				var1.message = i18ncgm("classicAI", this.gameMode.classicAI = !this.gameMode.classicAI);
++				this.gameMode.classicAI = !this.gameMode.classicAI;
 +				break;
 +			case 15:
-+				var1.message = i18ncgm("criticalHits", this.gameMode.criticalHits = !this.gameMode.criticalHits);
++				this.gameMode.criticalHits = !this.gameMode.criticalHits;
 +				break;
 +			case 16:
-+				var1.message = i18ncgm("swordBlocking", this.gameMode.swordBlocking = !this.gameMode.swordBlocking);
++				this.gameMode.swordBlocking = !this.gameMode.swordBlocking;
 +				break;
 +			case 18:
-+				var1.message = i18ncgm("classicHurtSound", this.gameMode.classicHurtSound = !this.gameMode.classicHurtSound);
++				this.gameMode.classicHurtSound = !this.gameMode.classicHurtSound;
 +				break;
 +			case 19:
-+				var1.message = i18ncgm("plankVariants", this.gameMode.plankVariants = !this.gameMode.plankVariants);
++				this.gameMode.plankVariants = !this.gameMode.plankVariants;
 +				break;
 +			case 20:
 +				this.gameMode.itemsOnDeath = GameMode.ItemsOnDeath.values()[(this.gameMode.itemsOnDeath.ordinal() + 1) % GameMode.ItemsOnDeath.values().length];
-+				var1.message = i18ncgm("itemsOnDeath", this.gameMode.itemsOnDeath.toString().toLowerCase());
 +				break;
 +			case 21:
-+				var1.message = i18ncgm("hardcore", this.gameMode.hardcore = !this.gameMode.hardcore);
++				this.gameMode.hardcore = !this.gameMode.hardcore;
 +				break;
 +            case 23:
-+                var1.message = i18ncgm("doDaylightCycle", this.gameMode.doDaylightCycle = !this.gameMode.doDaylightCycle);
++                this.gameMode.doDaylightCycle = !this.gameMode.doDaylightCycle;
 +                break;
 +            case 25:
-+                var1.message = i18ncgm("doWeatherCycle", this.gameMode.doWeatherCycle = !this.gameMode.doWeatherCycle);
++                this.gameMode.doWeatherCycle = !this.gameMode.doWeatherCycle;
 +                break;
 +            case 26:
-+                var1.message = i18ncgm("netherAccess", this.gameMode.netherAccess = !this.gameMode.netherAccess);
++                this.gameMode.netherAccess = !this.gameMode.netherAccess;
 +                break;
 +            case 27:
-+                var1.message = i18ncgm("endAccess", this.gameMode.endAccess = !this.gameMode.endAccess);
++                this.gameMode.endAccess = !this.gameMode.endAccess;
 +                break;
 +            case 28:
-+                var1.message = i18ncgm("extraTiers", this.gameMode.extraTiers = !this.gameMode.extraTiers);
++                this.gameMode.extraTiers = !this.gameMode.extraTiers;
 +                break;
 +            case 29:
-+                var1.message = i18ncgm("fastBaseMinecarts", this.gameMode.fastBaseMinecarts = !this.gameMode.fastBaseMinecarts);
++                this.gameMode.fastBaseMinecarts = !this.gameMode.fastBaseMinecarts;
 +                break;
 +			case 1000:
 +				this.parent.gameModeValue = this.gameMode = new GameMode();
@@ -32628,6 +33624,9 @@
 +
 +			if(var1.id >= 0 && var1.id < 1000) {
 +				this.gameMode.preset = "";
++				if (!(var1 instanceof GenericSliderWidget)) {
++					var2 = true;
++				}
 +			}
 +
 +			if(var2) {
@@ -32639,7 +33638,8 @@
 +		}
 +	}
 +
-+	public void render(int var1, int var2, float var3) {
++	@SuppressWarnings("unchecked")
++    public void render(int var1, int var2, float var3) {
 +		this.renderBackground();
 +		this.drawCenteredString(this.textRenderer, this.screenTitle, this.width / 2, 20, 16777215);
 +		super.render(var1, var2, var3);
@@ -32653,6 +33653,51 @@
 +			this.textRenderer.fontHeight += 1;
 +			this.textRenderer.splitAndDraw(i18ncgm("preset." + preset + ".description"), this.width / 2 + 5, this.height / 6 + 42, 180, 0xAAAAAA);
 +			this.textRenderer.fontHeight -= 1;
++		}
++
++		for (ButtonWidget button : (List<ButtonWidget>)this.buttons) {
++			if (button.id < 0 || button.id >= 1000
++				|| var1 < button.x || var1 >= button.x + 150
++				|| var2 < button.y || var2 >= button.y + 20) {
++				continue;
++			}
++
++			String tooltip = this.tooltips[button.id % 10];
++			if (tooltip == null) {
++				continue;
++			}
++
++			List<String> lines = (List<String>)this.textRenderer.split(tooltip, 200);
++			final int padding = 3;
++			final int lineHeight = 10;
++			int tooltipX = var1 + 12;
++			int tooltipY = var2 - 12;
++			int tooltipHeight = lines.size() * lineHeight - (lineHeight - 8);
++			int tooltipWidth = 0;
++
++			for (String line : lines) {
++				int lineWidth = this.textRenderer.getWidth(line);
++				if (lineWidth > tooltipWidth) {
++					tooltipWidth = lineWidth;
++				}
++			}
++
++			tooltipHeight += padding * 2;
++			tooltipWidth += padding * 2;
++
++			if (tooltipX + tooltipWidth > this.width) {
++				tooltipX = var1 - 12 - tooltipWidth;
++			}
++
++			if (tooltipY + tooltipHeight > this.height) {
++				tooltipY = var1 - 12 - tooltipHeight;
++			}
++
++			this.fillGradient(tooltipX, tooltipY, tooltipX + tooltipWidth, tooltipY + tooltipHeight, 0xAA000000, 0xAA000000);
++			int lineNo = 0;
++			for (String line : lines) {
++				this.textRenderer.draw(line, tooltipX + padding, tooltipY + padding + (lineNo++) * lineHeight, 0xFFFFFF);
++			}
 +		}
 +	}
 +
@@ -32681,6 +33726,32 @@
 +		return i18ncgm(var0) + transBool(var1);
 +	}
 +}
+--- net/minecraft/server/ServerPlayerInteractionManager.java
++++ net/minecraft/server/ServerPlayerInteractionManager.java
+@@ -184,7 +184,7 @@
+ 		}
+ 	}
+ 
+-	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7) {
++	public boolean useBlock(PlayerEntity var1, World var2, ItemStack var3, int var4, int var5, int var6, int var7, float hitX, float hitY, float hitZ) {
+ 		int var8 = var2.getBlock(var4, var5, var6);
+ 		if(var8 > 0 && Block.BY_ID[var8].use(var2, var4, var5, var6, var1)) {
+ 			return true;
+@@ -193,12 +193,12 @@
+ 		} else if(this.isCreative()) {
+ 			int var9 = var3.getMetadata();
+ 			int var10 = var3.size;
+-			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7);
++			boolean var11 = var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 			var3.setDamage(var9);
+ 			var3.size = var10;
+ 			return var11;
+ 		} else {
+-			return var3.useOn(var1, var2, var4, var5, var6, var7);
++			return var3.useOn(var1, var2, var4, var5, var6, var7, hitX, hitY, hitZ);
+ 		}
+ 	}
+ 
 --- net/minecraft/block/LiquidBlock.java
 +++ net/minecraft/block/LiquidBlock.java
 @@ -2,11 +2,13 @@
