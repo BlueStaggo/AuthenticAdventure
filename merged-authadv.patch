@@ -8610,6 +8610,15 @@
  }
 --- net/minecraft/block/entity/BlockEntity.java
 +++ net/minecraft/block/entity/BlockEntity.java
+@@ -20,7 +20,7 @@
+ 	public Block block;
+ 
+ 	private static void register(Class var0, String var1) {
+-		if(TYPE_TO_ID.containsKey(var1)) {
++		if(ID_TO_TYPE.containsKey(var1)) {
+ 			throw new IllegalArgumentException("Duplicate id: " + var1);
+ 		} else {
+ 			ID_TO_TYPE.put(var1, var0);
 @@ -137,5 +137,6 @@
  		register(BrewingStandBlockEntity.class, "Cauldron");
  		register(EnchantingTableBlockEntity.class, "EnchantTable");
@@ -30210,7 +30219,7 @@
  	public static final String VALID_CHAT_CHARACTERS = getValidChatCharString();
  	public static final char[] INVALID_FILE_CHARS = new char[]{'/', '\n', '\r', '\t', '\u0000', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'};
 +	public static final String INVALID_FILE_CHARS_STRING = new String(INVALID_FILE_CHARS);
-+	public static final String VERSION = "AuthAdv 1.4.4";
++	public static final String VERSION = "AuthAdv 1.4.5";
 +	public static final boolean PRE_RELEASE = VERSION.contains("Pre-release");
 +	public static final boolean DEBUG_MODE = false;
 +    public static final boolean PANORAMA_MODE = false;
