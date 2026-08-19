@@ -1,3 +1,12 @@
+# 1.4.5
+Released: August 19th 2026
+
+## Changes
+- Only lava is consumed when lava buckets are used as fuel
+
+## Bug Fixes
+- Fixed an issue with gravestones occupying the same block entity ID as end portals
+
 # 1.4.4
 Released: August 18th 2026
 

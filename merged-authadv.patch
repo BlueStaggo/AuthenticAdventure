@@ -8614,7 +8614,7 @@
  		register(BrewingStandBlockEntity.class, "Cauldron");
  		register(EnchantingTableBlockEntity.class, "EnchantTable");
  		register(EndPortalBlockEntity.class, "Airportal");
-+		register(GravestoneBlockEntity.class, "Airportal");
++		register(GravestoneBlockEntity.class, "Gravestone");
  	}
  }
 --- /dev/null
@@ -19025,7 +19025,7 @@
  		NbtList var2 = new NbtList();
  
  		for(int var3 = 0; var3 < this.inventory.length; ++var3) {
-@@ -131,22 +164,27 @@
+@@ -131,22 +164,33 @@
  		}
  
  		if(!this.world.isMultiplayer) {
@@ -19042,13 +19042,19 @@
 +				this.fuelTime = 0;
 +				this.cookSpeed = currentCookSpeed;
 +				if(this.canCook()) {
-+					this.totalFuelTime = this.fuelTime = getFuelTime(this.inventory[1]);
++					ItemStack fuel = this.inventory[1];
++					this.totalFuelTime = this.fuelTime = getFuelTime(fuel);
 +					if(this.fuelTime > 0) {
 +						var2 = true;
-+						if(this.inventory[1] != null) {
-+							--this.inventory[1].size;
-+							if(this.inventory[1].size == 0) {
-+								this.inventory[1] = null;
++						if(fuel != null) {
++							--fuel.size;
++							Item recipeRemainder = fuel.getItem().getRecipeRemainder();
++							if(fuel.size == 0) {
++								if(recipeRemainder != null) {
++									this.inventory[1] = new ItemStack(recipeRemainder);
++								} else {
++									this.inventory[1] = null;
++								}
 +							}
  						}
  					}
@@ -19063,7 +19069,7 @@
  					this.cookTime = 0;
  					this.finishCooking();
  					var2 = true;
-@@ -171,18 +209,32 @@
+@@ -171,18 +215,32 @@
  		if(this.inventory[0] == null) {
  			return false;
  		} else {
@@ -19100,7 +19106,7 @@
  			}
  
  			--this.inventory[0].size;
-@@ -190,6 +242,7 @@
+@@ -190,6 +248,7 @@
  				this.inventory[0] = null;
  			}
  
@@ -19108,7 +19114,7 @@
  		}
  	}
  
-@@ -198,7 +251,26 @@
+@@ -198,7 +257,26 @@
  			return 0;
  		} else {
  			int var1 = var0.getItem().id;
